@@ -1,0 +1,129 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.shell {
+  height: 100dvh;
+  background-color: var(--fe-bg);
+}
+
+.shell-sidenav {
+  width: 240px;
+  background-color: var(--fe-surface);
+  color: var(--fe-text);
+  border-right: 1px solid var(--fe-border);
+  transition: width 200ms ease;
+  overflow-x: hidden;
+
+  &.collapsed {
+    width: 72px;
+  }
+}
+
+.shell-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  height: 64px;
+  box-sizing: border-box;
+}
+
+.shell-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--fe-primary);
+  color: var(--fe-white);
+  font-weight: 700;
+  font-size: 14px;
+  flex: 0 0 auto;
+}
+
+.shell-brand-name {
+  font-size: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.shell-nav {
+  padding-top: 4px;
+
+  .mdc-list-item.active,
+  .mat-mdc-list-item.active {
+    background-color: color-mix(in srgb, var(--fe-primary) 12%, transparent);
+    color: var(--fe-primary);
+
+    mat-icon {
+      color: var(--fe-primary);
+    }
+  }
+}
+
+.shell-content {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--fe-bg);
+}
+
+.shell-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  height: 64px;
+  min-height: 64px;
+}
+
+.shell-title {
+  font-size: 18px;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.shell-spacer {
+  flex: 1 1 auto;
+}
+
+.shell-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--fe-secondary);
+  color: var(--fe-primary-dark-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.shell-user-summary {
+  padding: 12px 16px;
+  cursor: default;
+
+  .shell-user-name {
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .shell-user-email {
+    font-size: 12px;
+    color: var(--fe-text-muted);
+    margin-top: 2px;
+  }
+}
+
+.shell-main {
+  flex: 1 1 auto;
+  padding: 24px;
+  box-sizing: border-box;
+  min-height: 0;
+}

@@ -1,0 +1,15 @@
+<h1 class="page-title">Dashboard</h1>
+
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>Welcome back</mat-card-title>
+    @if (user(); as u) {
+      <mat-card-subtitle>
+        Signed in as {{ u.name || u.email }} · token expires {{ u.expiresAt | date:'short' }}
+      </mat-card-subtitle>
+    }
+  </mat-card-header>
+  <mat-card-content>
+    <p>Phase 4 admin shell is live. Real dashboard content will land in a later phase.</p>
+  </mat-card-content>
+</mat-card>

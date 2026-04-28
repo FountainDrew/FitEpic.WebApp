@@ -1,0 +1,61 @@
+<div class="auth-shell">
+  <mat-card class="auth-card">
+    <mat-card-header>
+      <mat-card-title>Create your FitEpic account</mat-card-title>
+      <mat-card-subtitle>Coach &amp; athlete admin</mat-card-subtitle>
+    </mat-card-header>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" autocomplete="on">
+      <mat-card-content>
+        <mat-form-field appearance="outline">
+          <mat-label>Name (optional)</mat-label>
+          <input matInput type="text" autocomplete="name" formControlName="name" [disabled]="submitting()" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" autocomplete="email" formControlName="email" [disabled]="submitting()" />
+          @if (form.controls.email.touched && form.controls.email.hasError('required')) {
+            <mat-error>Email is required.</mat-error>
+          }
+          @if (form.controls.email.touched && form.controls.email.hasError('email')) {
+            <mat-error>Enter a valid email address.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Password</mat-label>
+          <input
+            matInput
+            type="password"
+            autocomplete="new-password"
+            formControlName="password"
+            [disabled]="submitting()"
+          />
+          <mat-hint>At least 8 characters, with upper/lower case, a digit, and a symbol.</mat-hint>
+          @if (form.controls.password.touched && form.controls.password.hasError('required')) {
+            <mat-error>Password is required.</mat-error>
+          }
+          @if (form.controls.password.touched && form.controls.password.hasError('minlength')) {
+            <mat-error>Password must be at least 8 characters.</mat-error>
+          }
+        </mat-form-field>
+
+        @if (errorMessage(); as msg) {
+          <p class="auth-error" role="alert">{{ msg }}</p>
+        }
+      </mat-card-content>
+
+      <mat-card-actions align="end">
+        <a mat-button routerLink="/login" [class.disabled]="submitting()">Have an account?</a>
+        <button matButton="filled" type="submit" [disabled]="submitting() || form.invalid">
+          @if (submitting()) {
+            <mat-spinner diameter="18"></mat-spinner>
+          } @else {
+            Create account
+          }
+        </button>
+      </mat-card-actions>
+    </form>
+  </mat-card>
+</div>

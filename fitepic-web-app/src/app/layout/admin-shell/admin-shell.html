@@ -1,0 +1,85 @@
+<mat-sidenav-container class="shell" [hasBackdrop]="mode() === 'over'">
+  <mat-sidenav
+    class="shell-sidenav"
+    [class.collapsed]="collapsed()"
+    [mode]="mode()"
+    [opened]="opened()"
+    (openedChange)="mobileOpen.set($event)"
+    [disableClose]="mode() === 'side'"
+  >
+    <div class="shell-brand">
+      <span class="shell-brand-mark" aria-hidden="true">FE</span>
+      @if (!collapsed()) {
+        <span class="shell-brand-name">FitEpic</span>
+      }
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <mat-nav-list class="shell-nav">
+      @for (item of navItems; track item.route) {
+        <a
+          mat-list-item
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.route === '/' }"
+          (click)="onNavClick()"
+          [matTooltip]="collapsed() ? item.label : ''"
+          matTooltipPosition="right"
+        >
+          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+          @if (!collapsed()) {
+            <span matListItemTitle>{{ item.label }}</span>
+          }
+        </a>
+      }
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="shell-content">
+    <mat-toolbar class="shell-topbar" color="primary">
+      <button
+        mat-icon-button
+        (click)="toggleRail()"
+        [attr.aria-label]="mode() === 'over' ? 'Open menu' : (collapsed() ? 'Expand menu' : 'Collapse menu')"
+      >
+        <mat-icon>menu</mat-icon>
+      </button>
+
+      <span class="shell-title">FitEpic Admin</span>
+      <span class="shell-spacer"></span>
+
+      <button
+        mat-icon-button
+        (click)="cycleTheme()"
+        [matTooltip]="'Theme: ' + themeMode()"
+        [attr.aria-label]="'Theme: ' + themeMode()"
+      >
+        <mat-icon>{{ themeIcon }}</mat-icon>
+      </button>
+
+      <button mat-icon-button [matMenuTriggerFor]="userMenu" aria-label="Account menu">
+        <span class="shell-avatar">{{ userInitials() }}</span>
+      </button>
+      <mat-menu #userMenu="matMenu" xPosition="before">
+        @if (user(); as u) {
+          <div class="shell-user-summary" (click)="$event.stopPropagation()">
+            <div class="shell-user-name">{{ u.name || u.email }}</div>
+            @if (u.name && u.email) {
+              <div class="shell-user-email">{{ u.email }}</div>
+            }
+          </div>
+          <mat-divider></mat-divider>
+        }
+        <button mat-menu-item (click)="signOut()">
+          <mat-icon>logout</mat-icon>
+          <span>Sign out</span>
+        </button>
+      </mat-menu>
+    </mat-toolbar>
+
+    <main class="shell-main">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

@@ -1,0 +1,3895 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "FitEpic API",
+    "description": "The FitEpic API provides endpoints for user authentication and AI-powered workout parsing. Authenticate via **User/Register** or **User/SignIn** to obtain a JWT bearer token, then supply it in the `Authorization: Bearer {token}` header for all protected endpoints.",
+    "version": "v1"
+  },
+  "paths": {
+    "/athlete-profiles": {
+      "get": {
+        "tags": [
+          "AthleteProfiles"
+        ],
+        "summary": "Retrieve athlete profiles for all accepted connections (delta pull).",
+        "description": "Returns profiles for athletes with accepted connections to the authenticated user,\r\nfiltered by `Connection.UpdatedAt > since` when the `since` parameter is provided.\r\nAlways includes the authenticated athlete's own profile.\r\nOmit `since` for a full bootstrap pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Return only profiles for connections updated after this ISO 8601 timestamp. Omit for a full pull.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of athlete profiles.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AthleteProfileResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connection-invites/sync": {
+      "post": {
+        "tags": [
+          "ConnectionInvites"
+        ],
+        "summary": "Batch-sync connection invites from the mobile client.",
+        "description": "Called by the **requesting athlete** (the authenticated user) to create one or more invites.\r\nEach invite includes the granting athlete's email address, which the API resolves to an athlete ID.\r\nReturns 404 if any email does not match a registered athlete.\r\nReturns 409 if a pending invite already exists in the same direction at the same permission level.\r\n`ViewWorkouts` and `ProgramWorkouts` are independent — both may be invited concurrently between the same athletes.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "requestBody": {
+          "description": "The batch of invite creation requests.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SyncAthleteConnectionInvitesRequest"
+                  }
+                ],
+                "description": "Request body for batch-syncing connection invites from the mobile client.\r\nWraps an array of individual invite creation requests."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SyncAthleteConnectionInvitesRequest"
+                  }
+                ],
+                "description": "Request body for batch-syncing connection invites from the mobile client.\r\nWraps an array of individual invite creation requests."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SyncAthleteConnectionInvitesRequest"
+                  }
+                ],
+                "description": "Request body for batch-syncing connection invites from the mobile client.\r\nWraps an array of individual invite creation requests."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "All invites created successfully. Returns the list of created invite records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AthleteConnectionInviteResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "One or more granting athlete emails do not match a registered account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A pending invite already exists for one of the specified athletes at the requested permission level.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connection-invites": {
+      "get": {
+        "tags": [
+          "ConnectionInvites"
+        ],
+        "summary": "Retrieve all connection invites for the authenticated athlete since a given timestamp (delta pull).",
+        "description": "Returns all invite records (including soft-deleted ones) where the authenticated athlete\r\nis either the requesting or granting athlete.\r\nOmit `since` for a full bootstrap pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Return only records updated after this ISO 8601 timestamp. Omit for a full pull.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of invite records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AthleteConnectionInviteResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connection-invites/{id}/accept": {
+      "patch": {
+        "tags": [
+          "ConnectionInvites"
+        ],
+        "summary": "Accept a pending connection invite.",
+        "description": "Creates an `AthleteConnection` in `Accepted` status at the invite's permission level,\r\nthen sets the invite status to `Accepted`. The connection is created first so that a failure\r\nduring connection creation leaves the invite in `Pending` status (safe to retry).\r\nIf a connection already exists at the same `(requestingAthlete, grantingAthlete, permissionLevel)`\r\nit is reactivated rather than duplicated; if it is already `Accepted` the call is idempotent.\r\n`ViewWorkouts` and `ProgramWorkouts` are independent connections — accepting one does not affect the other.\r\nOnly the **granting athlete** may accept.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the invite to accept.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invite accepted. Returns the updated invite and the resulting (newly created or reactivated) athlete connection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptAthleteConnectionInviteResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated athlete is not the granting athlete of this invite.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No invite found with the specified ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The invite is not in Pending status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connection-invites/{id}/reject": {
+      "patch": {
+        "tags": [
+          "ConnectionInvites"
+        ],
+        "summary": "Reject a pending connection invite.",
+        "description": "Sets the invite status to `Rejected`. No connection is created.\r\nOnly the **granting athlete** may reject.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the invite to reject.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invite rejected. Returns the updated invite record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AthleteConnectionInviteResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated athlete is not the granting athlete of this invite.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No invite found with the specified ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The invite is not in Pending status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connections": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Retrieve all connections for the authenticated athlete since a given timestamp (delta pull).",
+        "description": "Returns all connection records (including soft-deleted ones) where the authenticated athlete\r\nis either the requesting or granting athlete\r\nOmit `since` for a full bootstrap pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Return only records updated after this ISO 8601 timestamp. Omit for a full pull.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of connection records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AthleteConnectionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connections/{id}/accept": {
+      "patch": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Accept a pending connection request.",
+        "description": "Sets the connection status to `Accepted`. Only the granting athlete\r\nmay accept it; the requesting athlete will receive `403 Forbidden`.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the connection to accept.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection accepted. Returns the updated connection record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AthleteConnectionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated athlete is not the granting athlete of this connection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No connection found with the specified ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connections/{id}/reject": {
+      "patch": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Reject a pending connection request.",
+        "description": "Sets the connection status to `Rejected`. Only the granting athlete\r\nmay reject it; the requesting athlete will receive `403 Forbidden`.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the connection to reject.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection rejected. Returns the updated connection record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AthleteConnectionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated athlete is not the granting athlete of this connection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No connection found with the specified ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connections/{id}/revoke": {
+      "patch": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Revoke an accepted connection.",
+        "description": "Sets the connection status to `Revoked`. Only the **granting athlete**\r\nmay revoke a connection. The connection must currently be in `Accepted` status.\r\n            \r\nRevoking removes all future access for the requesting athlete. The requesting athlete\r\nmay send a new connection request later.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the connection to revoke.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection revoked. Returns the updated connection record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AthleteConnectionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated athlete is not the granting athlete of this connection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No connection found with the specified ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The connection is not in Accepted status and cannot be revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connections/{id}": {
+      "delete": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Delete (soft-delete) a connection.",
+        "description": "Soft-deletes the connection by setting `isDeleted = true`. Either participant in the\r\nconnection (requesting or granting athlete) may delete it.\r\nscheduled workout records.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the connection to delete.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Connection deleted successfully."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated athlete is not a participant in this connection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No connection found with the specified ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "FitEpic.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/scheduledworkouts/sync": {
+      "post": {
+        "tags": [
+          "ScheduledWorkouts"
+        ],
+        "summary": "Sync a batch of scheduled workout create, update, or delete operations from the mobile client's outbox.",
+        "description": "Accepts an array of sync operations and applies them server-side using Last-Write-Wins conflict\r\nresolution. All accepted operations are written atomically in a single database transaction.\r\n            \r\nOperations where the server record is newer return `ConflictResolved` — the mobile client\r\nshould re-pull those records on the next delta pull.\r\n            \r\nWhen programming a workout for another athlete (`athleteId != currentAthlete`), the requesting\r\nathlete must have an accepted connection with the target athlete at the `ProgramWorkouts`\r\npermission level. A `ViewWorkouts`-only connection is not sufficient. If not, the entire batch\r\nis rejected with `403 Forbidden`.\r\n            \r\nThe server always overrides the `isLocked` field — the mobile payload value is ignored.\r\nFor locked records, only log fields (`status`, `scoreResult`, `notes`,\r\n`exerciseLogs`) may be updated; template fields are preserved.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "requestBody": {
+          "description": "A plain list of scheduled workout payloads. Set `isDeleted: true` on any item to soft-delete it.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ScheduledWorkoutRequest"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ScheduledWorkoutRequest"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ScheduledWorkoutRequest"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch processed. Each item indicates `Accepted` or `ConflictResolved`. The response also includes a server `Timestamp` for advancing the delta cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncBatchResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The requesting athlete does not have an accepted `ProgramWorkouts` connection with the target athlete.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "ScheduledWorkouts"
+        ],
+        "summary": "Pull scheduled workouts that have changed since a given timestamp (delta sync).",
+        "description": "Returns all scheduled workouts (including soft-deleted ones) with `UpdatedAt` strictly greater\r\nthan `since`. Omit `since` for a full bootstrap pull.\r\n            \r\nReturns only workouts owned by the authenticated athlete. Workouts programmed by the\r\nauthenticated athlete for other athletes are not included here — those are retrieved\r\non-demand via `GET /athletes/{id}/scheduledworkouts`.\r\n            \r\nEach record includes its full hydrated `exerciseLogs` array. The response also carries a\r\nserver-generated `Timestamp` the mobile client should store as its next `since` cursor.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Return only records updated after this ISO 8601 timestamp. Omit for a full pull.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "1-based page number. Defaults to 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of records per page. Defaults to 100, capped at 500.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a paginated list of scheduled workouts with a server `Timestamp` cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledWorkoutSyncResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduledworkouts": {
+      "get": {
+        "tags": [
+          "ScheduledWorkouts"
+        ],
+        "summary": "Retrieve scheduled workouts for the authenticated athlete on a specific date.",
+        "description": "Returns the current live state for all non-deleted scheduled workouts on the given date.\r\nEach record includes its full hydrated `exerciseLogs` array.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "description": "The date to query in `YYYY-MM-DD` format.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of scheduled workouts for the given date.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduledWorkoutResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/athletes/{id}/scheduledworkouts": {
+      "get": {
+        "tags": [
+          "ScheduledWorkouts"
+        ],
+        "summary": "Retrieve the scheduled workouts that the authenticated athlete has programmed for a specific target athlete.",
+        "description": "This is an on-demand social endpoint — it always returns the current live state (no `since` delta).\r\nSoft-deleted records are excluded.\r\n            \r\nThe authenticated athlete must have an accepted `AthleteConnection` with the target athlete\r\nat the `ProgramWorkouts` permission level. A `ViewWorkouts`-only connection is not sufficient.\r\nReturns `403 Forbidden` if no such connection exists.\r\n            \r\nOnly returns workouts where `programmedByAthleteId == currentAthlete` for the target.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the target athlete whose programmed workouts to retrieve.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "1-based page number. Defaults to 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of records per page. Defaults to 100, capped at 500.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a paginated list of scheduled workouts programmed for the target athlete.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledWorkoutResponsePagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No accepted `ProgramWorkouts` connection exists between the authenticated athlete and the target.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/feed": {
+      "get": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Retrieve the activity feed for the authenticated athlete.",
+        "description": "Returns completed workouts from two sources, deduplicated:\r\n(1) athletes the authenticated user shares an accepted `ViewWorkouts` connection with\r\nin <b>either direction</b> (symmetric peer relationship); and\r\n(2) workouts the authenticated user programmed for someone else\r\n(`ProgrammedByAthleteId == currentAthlete`), regardless of who owns the row.\r\nThe user's own workouts are excluded. A `ProgramWorkouts`-only connection does not\r\npull the grantor's other workouts into the feed — only the specific workouts the\r\nauthenticated user authored. Results are ordered by completion date descending and\r\npaginated. The initial release includes completed workouts only — PRs and streak milestones\r\nare deferred to a future iteration.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The page number (1-based). Defaults to 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "The number of items per page. Defaults to 20.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the activity feed items.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityFeedItemResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/reactions/batch": {
+      "post": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Fetch reactions for multiple completed workouts in a single request.",
+        "description": "Returns reaction lists grouped by workout log ID. Workout IDs the authenticated athlete\r\ncannot access return an empty `reactions` array rather than failing the entire batch.\r\nAccess is granted when the athlete is the owner, the programmer (`ProgrammedByAthleteId`),\r\nor shares an accepted `ViewWorkouts` connection with the owner in either direction.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "requestBody": {
+          "description": "List of workout log IDs to fetch reactions for.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/BatchReactionsRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/BatchReactionsRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/BatchReactionsRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns reactions grouped by workout log ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkoutReactionsResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/workouts/{workoutLogId}/reactions": {
+      "post": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Toggle a reaction on a completed workout.",
+        "description": "Each athlete can have one reaction per workout. Sending the same reaction type toggles it\r\noff (soft-delete). Sending a different type replaces the previous reaction.\r\n            \r\nRequires one of: (a) the authenticated athlete is the workout owner;\r\n(b) the authenticated athlete is the workout's programmer (`ProgrammedByAthleteId`); or\r\n(c) an accepted `ViewWorkouts` connection exists between the authenticated athlete and the\r\nworkout owner in <b>either direction</b>. A bare `ProgramWorkouts` connection on its own\r\nis not sufficient — only the specific workouts the authenticated athlete authored are accessible\r\nvia the programmer branch.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "workoutLogId",
+            "in": "path",
+            "description": "The ID of the scheduled workout (completed log) to react to.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The reaction type to toggle.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ToggleReactionRequest"
+                  }
+                ],
+                "description": "Request body for toggling a reaction on a completed workout."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ToggleReactionRequest"
+                  }
+                ],
+                "description": "Request body for toggling a reaction on a completed workout."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ToggleReactionRequest"
+                  }
+                ],
+                "description": "Request body for toggling a reaction on a completed workout."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reaction toggled. Returns the reaction record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReactionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No accepted connection exists with the workout owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Workout log not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/workouts/{workoutLogId}/comments": {
+      "post": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Add a comment to a completed workout.",
+        "description": "Comments are displayed in chronological order beneath the workout detail view.\r\nRequires one of: (a) the authenticated athlete is the workout owner;\r\n(b) the authenticated athlete is the workout's programmer (`ProgrammedByAthleteId`); or\r\n(c) an accepted `ViewWorkouts` connection exists between the authenticated athlete and the\r\nworkout owner in <b>either direction</b>. A bare `ProgramWorkouts` connection on its own\r\nis not sufficient — only the specific workouts the authenticated athlete authored are accessible\r\nvia the programmer branch.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "workoutLogId",
+            "in": "path",
+            "description": "The ID of the scheduled workout (completed log) to comment on.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The comment text.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AddCommentRequest"
+                  }
+                ],
+                "description": "Request body for adding a comment to a completed workout."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AddCommentRequest"
+                  }
+                ],
+                "description": "Request body for adding a comment to a completed workout."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AddCommentRequest"
+                  }
+                ],
+                "description": "Request body for adding a comment to a completed workout."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comment created. Returns the comment record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutCommentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No accepted connection exists with the workout owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Workout log not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/social/comments/{commentId}": {
+      "delete": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Delete (soft-delete) a comment.",
+        "description": "The workout owner can delete any comment on their workout. An athlete can delete\r\ntheir own comment on any workout. Returns `403` if neither condition is met.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "commentId",
+            "in": "path",
+            "description": "The ID of the comment to delete.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Comment deleted successfully."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated athlete is neither the comment author nor the workout owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Comment not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/StandardExercises": {
+      "get": {
+        "tags": [
+          "StandardExercises"
+        ],
+        "summary": "Retrieve a paginated page of standard exercises, optionally filtered by a sync watermark.",
+        "description": "Requires a valid `Authorization: Bearer {token}` header.\r\n            \r\nThis endpoint supports the mobile client's Delta Pull mechanism. Pass the greatest\r\n`UpdatedAt` timestamp received during a previous sync as since\r\nto receive only records modified after that point. Soft-deleted records\r\n(`IsDeleted = true`) are included in the response so the client can tombstone them locally.\r\n            \r\nOn first launch or after an app reinstall, omit since to pull the full\r\ncatalog from the beginning. Loop through all pages until `Page == TotalPages` before\r\nadvancing the local sync watermark and allowing app navigation.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Optional UTC watermark. Returns only records where `UpdatedAt` is greater than this value.\r\nOmit entirely to retrieve all records from the beginning of time (initial bootstrap pull).",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The 1-based page number to retrieve. Defaults to 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "The number of items per page. Defaults to 100.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a paginated list of standard exercises matching the query.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardExerciseResponsePagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The request is missing or contains an invalid JWT bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/User/Register": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Register a new user account.",
+        "description": "Creates a new user with the provided credentials and immediately returns a JWT bearer token.\r\nThis endpoint does not require authentication.",
+        "requestBody": {
+          "description": "Registration details including email, optional display name, and password.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RegisterRequest"
+                  }
+                ],
+                "description": "Request body for registering a new user account."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RegisterRequest"
+                  }
+                ],
+                "description": "Request body for registering a new user account."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RegisterRequest"
+                  }
+                ],
+                "description": "Request body for registering a new user account."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Registration succeeded. Returns a JWT token and user identity details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Registration failed. Returns a list of validation error messages (e.g., duplicate email, weak password).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/User/SignIn": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Authenticate an existing user.",
+        "description": "Validates credentials and returns a JWT bearer token on success.\r\nThis endpoint does not require authentication.\r\nInclude the returned token in the `Authorization: Bearer {token}` header for all subsequent requests.",
+        "requestBody": {
+          "description": "Sign-in credentials (email and password).",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SignInRequest"
+                  }
+                ],
+                "description": "Request body for authenticating a user."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SignInRequest"
+                  }
+                ],
+                "description": "Request body for authenticating a user."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SignInRequest"
+                  }
+                ],
+                "description": "Request body for authenticating a user."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication succeeded. Returns a JWT token and user identity details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed. The email or password is incorrect.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/User/ValidateAuth": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Validate the current JWT bearer token.",
+        "description": "Confirms the supplied token is valid and not expired, and returns the authenticated user's identity claims.\r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "responses": {
+          "200": {
+            "description": "Token is valid. Returns the authenticated user's email and display name."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/WeatherForecast": {
+      "get": {
+        "tags": [
+          "WeatherForecast"
+        ],
+        "operationId": "GetWeatherForecast",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WeatherForecast"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WeatherForecast"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WeatherForecast"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workouts/parse": {
+      "post": {
+        "tags": [
+          "Workouts"
+        ],
+        "summary": "Parse a free-form workout description into a structured workout.",
+        "description": "Submits raw workout text to Azure OpenAI for interpretation. The AI extracts the workout name,\r\ntype (e.g., AMRAP, ForTime, EMOM, Strength), score type, individual exercises with sets and reps,\r\nand any additional instructions. Exercises are matched against the standard exercise library when possible.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.\r\n            \r\nExample input:\r\n```\r\n21-15-9\r\nThrusters (95/65 lb)\r\nPull-ups\r\n```",
+        "requestBody": {
+          "description": "The raw workout text to parse.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ParseWorkoutRequest"
+                  }
+                ],
+                "description": "Request body for parsing a free-form workout description."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ParseWorkoutRequest"
+                  }
+                ],
+                "description": "Request body for parsing a free-form workout description."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ParseWorkoutRequest"
+                  }
+                ],
+                "description": "Request body for parsing a free-form workout description."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Parsing succeeded. Returns the structured workout with all extracted details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body was missing or empty, or the raw text contained no recognisable workout structure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workouts/sync": {
+      "post": {
+        "tags": [
+          "Workouts"
+        ],
+        "summary": "Sync a batch of workout create, update, or delete operations from the mobile client's outbox.",
+        "description": "Accepts a plain array of workout objects and applies them server-side using Last-Write-Wins conflict\r\nresolution. All accepted operations are written atomically in a single database transaction.\r\nSoft-deletes are signalled by setting `isDeleted: true` on the payload — no separate\r\noperation-type wrapper is required.\r\nOperations where the server record is newer return `ConflictResolved` — the mobile client\r\nshould re-pull those workouts on the next delta pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "requestBody": {
+          "description": "The flat list of workout payloads to sync. Set `isDeleted: true` to soft-delete.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WorkoutRequest"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WorkoutRequest"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WorkoutRequest"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch processed. Each item in the result indicates `Accepted` or `ConflictResolved`. Includes a server-generated `timestamp` the client can use to advance its delta-pull cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncBatchResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workouts": {
+      "get": {
+        "tags": [
+          "Workouts"
+        ],
+        "summary": "Retrieve all workouts for the authenticated athlete since a given timestamp (delta pull).",
+        "description": "Returns all workouts (including soft-deleted ones) with `UpdatedAt` strictly greater\r\nthan `since`. Omit `since` for a full bootstrap pull. Each workout includes its\r\nfull hydrated exercise list.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Return only records updated after this ISO 8601 timestamp. Omit for a full pull.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "1-based page number. Defaults to 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of records per page. Defaults to 100, capped at 500.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a paginated list of workouts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutResponsePagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AcceptAthleteConnectionInviteResponse": {
+        "required": [
+          "athleteProfile",
+          "connection",
+          "invite"
+        ],
+        "type": "object",
+        "properties": {
+          "invite": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AthleteConnectionInviteResponse"
+              }
+            ],
+            "description": "The updated invite record with status set to `Accepted`."
+          },
+          "connection": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AthleteConnectionResponse"
+              }
+            ],
+            "description": "The athlete connection that was created (or upgraded) as a result of accepting the invite.\r\nThe connection is returned in `Accepted` status."
+          },
+          "athleteProfile": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AthleteProfileResponse"
+              }
+            ],
+            "description": "The requesting athlete's profile (the athlete who sent the invite).\r\nProvided so the granting athlete's mobile client can store the profile locally\r\nwithout requiring an additional sync call."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response returned when a connection invite is accepted. Contains both the updated invite\r\nand the newly created (or upgraded) athlete connection, allowing the mobile client to\r\nstore both entities locally without requiring an additional sync call."
+      },
+      "ActivityFeedExerciseLogResponse": {
+        "type": "object",
+        "properties": {
+          "setNumber": {
+            "type": "integer",
+            "description": "1-based set identifier for straight-set workouts. Null for round-based workouts (AMRAP / EMOM / Intervals / Tabata / Circuit).",
+            "format": "int32",
+            "nullable": true
+          },
+          "roundNumber": {
+            "type": "integer",
+            "description": "1-based round identifier for round-based workouts (AMRAP / EMOM / Intervals / Tabata / Circuit). Null for straight-set workouts.",
+            "format": "int32",
+            "nullable": true
+          },
+          "actualReps": {
+            "type": "string",
+            "description": "Actual reps completed, as a free-form string (e.g. \"10\", \"10/8/6\", \"AMRAP\"). Null when not applicable.",
+            "nullable": true
+          },
+          "actualWeightLbs": {
+            "type": "number",
+            "description": "Actual weight lifted in pounds. Populated when the exercise's PerRoundMetric is Weight. Null otherwise.",
+            "format": "double",
+            "nullable": true
+          },
+          "actualDurationSeconds": {
+            "type": "integer",
+            "description": "Actual duration achieved in whole seconds (e.g. 120 for a 2-minute row). Populated when the exercise's PerRoundMetric is Duration. Null otherwise.",
+            "format": "int32",
+            "nullable": true
+          },
+          "actualDistance": {
+            "type": "number",
+            "description": "Actual distance the athlete covered. Populated when the exercise's PerRoundMetric is Distance. Null otherwise.",
+            "format": "double",
+            "nullable": true
+          },
+          "actualDistanceUnit": {
+            "type": "string",
+            "description": "Unit for ActualDistance. One of: Meters, Kilometers, Miles, Feet. Null when ActualDistance is null.",
+            "nullable": true
+          },
+          "actualCalories": {
+            "type": "number",
+            "description": "Actual calories the athlete achieved on an erg machine. Populated when the exercise's PerRoundMetric is Calories. Null otherwise.",
+            "format": "double",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "description": "Per-row athlete note. Also carries the value when the exercise's PerRoundMetric is CustomValue. Null when not provided.",
+            "nullable": true
+          },
+          "orderIndex": {
+            "type": "integer",
+            "description": "0-based display order of this log entry within the scheduled workout.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single logged set or round the athlete recorded for an exercise within a completed workout."
+      },
+      "ActivityFeedExerciseResponse": {
+        "type": "object",
+        "properties": {
+          "exerciseName": {
+            "type": "string",
+            "description": "The user-entered exercise name. Null if not set.",
+            "nullable": true
+          },
+          "orderIndex": {
+            "type": "integer",
+            "description": "Display order of this exercise within the workout.",
+            "format": "int32"
+          },
+          "sets": {
+            "type": "integer",
+            "description": "Number of prescribed sets.",
+            "format": "int32"
+          },
+          "reps": {
+            "type": "string",
+            "description": "Rep target. Supports range strings such as \"8-12\". Null if not specified.",
+            "nullable": true
+          },
+          "targetWeight": {
+            "type": "number",
+            "description": "Target weight in lbs. Null if not specified.",
+            "format": "double",
+            "nullable": true
+          },
+          "measurementType": {
+            "type": "string",
+            "description": "The primary measurement type for this exercise. One of: Reps, Time, Distance, Calories. Null if not set.",
+            "nullable": true
+          },
+          "duration": {
+            "type": "string",
+            "description": "ISO 8601 duration string (e.g. \"PT2M30S\"). Populated when MeasurementType is Time. Null otherwise.",
+            "nullable": true
+          },
+          "targetDistance": {
+            "type": "number",
+            "description": "Target distance value. Populated when MeasurementType is Distance. Null otherwise.",
+            "format": "double",
+            "nullable": true
+          },
+          "targetDistanceUnit": {
+            "type": "string",
+            "description": "Unit for TargetDistance. One of: Meters, Kilometers, Miles, Feet. Null when TargetDistance is null.",
+            "nullable": true
+          },
+          "targetCalories": {
+            "type": "number",
+            "description": "Target calorie count. Populated when MeasurementType is Calories. Null otherwise.",
+            "format": "double",
+            "nullable": true
+          },
+          "perRoundMetric": {
+            "type": "string",
+            "description": "The PerRoundMetric enum value as a string. One of: Weight, Duration, Distance, Calories, Reps, CustomValue.\r\nTells the client which actual-* column in each log entry is meaningful for this exercise. Null if the parent workout definition was deleted or no per-round metric is set.",
+            "nullable": true,
+            "example": "Reps"
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityFeedExerciseLogResponse"
+            },
+            "description": "Ordered list of logged sets or rounds the athlete recorded for this exercise.\r\nOrdered by RoundNumber then SetNumber then OrderIndex. Empty (never null) when the athlete has not logged anything for this exercise yet.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "An exercise entry within an activity feed workout card."
+      },
+      "ActivityFeedItemResponse": {
+        "type": "object",
+        "properties": {
+          "workoutLogId": {
+            "type": "string",
+            "description": "The ID of the scheduled workout log (completed workout).",
+            "nullable": true,
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "workoutId": {
+            "type": "string",
+            "description": "The ID of the workout definition. Null if the workout was deleted or no longer available.",
+            "nullable": true,
+            "example": "7ab12c34-1234-5678-abcd-ef0123456789"
+          },
+          "athleteId": {
+            "type": "string",
+            "description": "The ID of the athlete who completed the workout.",
+            "nullable": true,
+            "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "athleteName": {
+            "type": "string",
+            "description": "The display name of the athlete who completed the workout.",
+            "nullable": true,
+            "example": "Jane Doe"
+          },
+          "workoutName": {
+            "type": "string",
+            "description": "The name of the workout that was completed.",
+            "nullable": true,
+            "example": "Fran"
+          },
+          "scheduledDate": {
+            "type": "string",
+            "description": "The date the workout was scheduled for.",
+            "format": "date",
+            "example": "2025-07-20"
+          },
+          "scoreResult": {
+            "type": "string",
+            "description": "The athlete's score result for the workout. Null if no score was logged.",
+            "nullable": true,
+            "example": "2:45"
+          },
+          "completedAt": {
+            "type": "string",
+            "description": "The UTC timestamp when the workout was marked as completed.",
+            "format": "date-time",
+            "example": "2025-07-20T14:30:00Z"
+          },
+          "reactionCount": {
+            "type": "integer",
+            "description": "The total number of active (non-deleted) reactions on this workout.",
+            "format": "int32",
+            "example": 3
+          },
+          "commentCount": {
+            "type": "integer",
+            "description": "The total number of active (non-deleted) comments on this workout.",
+            "format": "int32",
+            "example": 1
+          },
+          "workoutType": {
+            "type": "string",
+            "description": "The workout type enum value as a string (e.g. \"StraightSets\", \"ForTime\", \"AMRAP\"). Null if the workout definition was deleted.",
+            "nullable": true,
+            "example": "ForTime"
+          },
+          "workoutTypeDisplay": {
+            "type": "string",
+            "description": "Human-readable workout type label (e.g. \"For Time\", \"Straight Sets\"). Null if the workout definition was deleted.",
+            "nullable": true,
+            "example": "For Time"
+          },
+          "scoreType": {
+            "type": "string",
+            "description": "The WorkoutScoreType enum value as a string (e.g. \"TimeToComplete\", \"RoundsAndReps\", \"HeaviestLoad\"). Null when the workout is unscored (None) or the workout definition was deleted.",
+            "nullable": true,
+            "example": "RoundsAndReps"
+          },
+          "scoreLabel": {
+            "type": "string",
+            "description": "Human-readable label for the score (e.g. \"Time\", \"Rounds + Reps\", \"Heaviest Load\"). Null when ScoreType is null or None.",
+            "nullable": true,
+            "example": "Rounds + Reps"
+          },
+          "roundCount": {
+            "type": "integer",
+            "description": "Prescribed round count for round-based workouts (AMRAP / EMOM / Intervals / Tabata / Circuit). Null for straight-set workouts, workouts where a round count is not applicable, or if the workout definition was deleted.",
+            "format": "int32",
+            "nullable": true,
+            "example": 8
+          },
+          "rawText": {
+            "type": "string",
+            "description": "Freeform workout description. Null for Straight Sets workouts or workouts with no raw text. Null if the workout definition was deleted.",
+            "nullable": true
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityFeedExerciseResponse"
+            },
+            "description": "Ordered list of exercises in the workout. Null if the workout definition was deleted or has no exercises.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a completed workout card in the activity feed."
+      },
+      "AddCommentRequest": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The comment text.",
+            "example": "Nice work on those cleans!"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for adding a comment to a completed workout."
+      },
+      "AthleteConnectionInviteResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for this invite (mobile-generated UUID).",
+            "nullable": true,
+            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          },
+          "requestingAthleteId": {
+            "type": "string",
+            "description": "The ID of the athlete who created the invite and is requesting access.",
+            "nullable": true,
+            "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "grantingAthleteId": {
+            "type": "string",
+            "description": "The ID of the athlete who was invited (resolved from email at creation time).",
+            "nullable": true,
+            "example": "eccbc87e-4b5c-3332-8c9e-d5fc8848b87d"
+          },
+          "requestingAthleteName": {
+            "type": "string",
+            "description": "The display name of the requesting athlete (the one who sent the invite).\r\nNull if the requesting athlete has not set a display name.\r\nPopulated at response time from user data — not stored on the invite entity.",
+            "nullable": true,
+            "example": "Jane Coach"
+          },
+          "grantingAthleteEmail": {
+            "type": "string",
+            "description": "The email address the requesting athlete entered when creating the invite.\r\nStored on the invite entity at creation time. Allows the requesting athlete to see\r\nwho they invited before the granting athlete has accepted.",
+            "nullable": true,
+            "example": "athlete@example.com"
+          },
+          "permissionLevel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConnectionPermissionLevel"
+              }
+            ],
+            "description": "The permission level being requested. One of `ViewWorkouts` or `ProgramWorkouts`.",
+            "example": "ViewWorkouts"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AthleteConnectionInviteStatus"
+              }
+            ],
+            "description": "The current status of the invite: `Pending`, `Accepted`, or `Rejected`.",
+            "example": "Pending"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The UTC timestamp when this invite was created.",
+            "format": "date-time",
+            "example": "2025-07-20T12:00:00Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "The UTC timestamp when this invite was last modified. Used for delta pull comparisons.",
+            "format": "date-time",
+            "example": "2025-07-20T12:05:00Z"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "Whether this invite has been soft-deleted. A value of `true` means the invite\r\nwas removed and mobile clients should treat it as deleted in their local store."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents an athlete connection invite record returned by the connection-invites endpoints.\r\nIncludes soft-deleted records so mobile clients can reconcile their local state."
+      },
+      "AthleteConnectionInviteStatus": {
+        "enum": [
+          "Pending",
+          "Accepted",
+          "Rejected"
+        ],
+        "type": "string"
+      },
+      "AthleteConnectionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for this connection (server-generated UUID).",
+            "nullable": true,
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "requestingAthleteId": {
+            "type": "string",
+            "description": "The ID of the athlete who requested the connection (viewer or programmer).",
+            "nullable": true,
+            "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "grantingAthleteId": {
+            "type": "string",
+            "description": "The ID of the athlete who grants access (whose data is shared or who receives programming).",
+            "nullable": true,
+            "example": "eccbc87e-4b5c-3332-8c9e-d5fc8848b87d"
+          },
+          "permissionLevel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConnectionPermissionLevel"
+              }
+            ],
+            "description": "The permission level granted by this connection. One of `ViewWorkouts` or `ProgramWorkouts`.",
+            "example": "ViewWorkouts"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AthleteConnectionStatus"
+              }
+            ],
+            "description": "The current status of the connection.",
+            "example": "Pending"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The UTC timestamp when this connection was created.",
+            "format": "date-time",
+            "example": "2025-07-20T12:00:00Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "The UTC timestamp when this connection was last modified. Used for delta pull comparisons.",
+            "format": "date-time",
+            "example": "2025-07-20T12:05:00Z"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "Whether this connection has been soft-deleted. A value of `true` means the connection\r\nwas removed and mobile clients should treat it as deleted in their local store."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents an athlete-to-athlete connection record returned by the connections endpoints.\r\nIncludes soft-deleted records so mobile clients can reconcile their local state."
+      },
+      "AthleteConnectionStatus": {
+        "enum": [
+          "Pending",
+          "Accepted",
+          "Rejected",
+          "Revoked"
+        ],
+        "type": "string"
+      },
+      "AthleteProfileResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the athlete.",
+            "nullable": true,
+            "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "The athlete's display name. Null if the athlete has not set a display name.",
+            "nullable": true,
+            "example": "Jane Coach"
+          },
+          "email": {
+            "type": "string",
+            "description": "The athlete's email address.",
+            "nullable": true,
+            "example": "jane@example.com"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents an athlete's profile information, derived from the user account and scoped\r\nvia accepted athlete connections. This is not a stored entity — it is constructed at query time."
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "JWT bearer token. Supply this in the `Authorization: Bearer {token}` header for all authenticated requests.",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "description": "The authenticated user's email address.",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "The authenticated user's display name. Null if not set at registration.",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "UTC date and time when the token expires. Obtain a new token via SignIn after this time.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Authentication response returned after a successful sign-in or registration."
+      },
+      "BatchReactionsRequest": {
+        "type": "object",
+        "properties": {
+          "workoutLogIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ConnectionPermissionLevel": {
+        "enum": [
+          "ViewWorkouts",
+          "ProgramWorkouts"
+        ],
+        "type": "string"
+      },
+      "CreateAthleteConnectionInviteRequest": {
+        "required": [
+          "grantingAthleteEmail",
+          "id",
+          "permissionLevel"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The mobile-generated UUID for this invite.",
+            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          },
+          "grantingAthleteEmail": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The email address of the athlete being invited (the granting athlete).\r\nThe API resolves this to an athlete ID. Returns 404 if no registered athlete matches.",
+            "format": "email",
+            "example": "athlete@example.com"
+          },
+          "permissionLevel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConnectionPermissionLevel"
+              }
+            ],
+            "description": "The permission level being requested. One of `ViewWorkouts` or `ProgramWorkouts`.",
+            "example": "ViewWorkouts"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a single connection invite to be created during a sync operation.\r\nThe requesting athlete provides the granting athlete's email address;\r\nthe API resolves it to an athlete ID server-side."
+      },
+      "DistanceUnit": {
+        "enum": [
+          "Meters",
+          "Kilometers",
+          "Miles",
+          "Feet"
+        ],
+        "type": "string"
+      },
+      "MeasurementType": {
+        "enum": [
+          "None",
+          "Weight",
+          "Time",
+          "Distance",
+          "Calories",
+          "Reps"
+        ],
+        "type": "string"
+      },
+      "ParseWorkoutErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Human-readable description of why the parse request failed.",
+            "nullable": true,
+            "example": "Unable to parse the provided workout text."
+          },
+          "reason": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutParseFailureReason"
+              }
+            ],
+            "description": "Machine-readable reason code indicating why parsing failed.\r\nUse this to display a specific message to the athlete in the mobile app."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Error response returned when a workout parse request cannot be fulfilled."
+      },
+      "ParseWorkoutRequest": {
+        "required": [
+          "rawText"
+        ],
+        "type": "object",
+        "properties": {
+          "rawText": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Raw workout text to parse. Can include exercise names, rep schemes, time domains, loading, and any other workout details.",
+            "example": "21-15-9\r\n            Thrusters (95/65 lb)\r\n            Pull-ups"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for parsing a free-form workout description."
+      },
+      "ParseWorkoutResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The workout name, if one could be identified (e.g., \"Fran\", \"Cindy\"). Null if the workout is unnamed.",
+            "nullable": true
+          },
+          "workoutType": {
+            "type": "string",
+            "description": "The structural type of the workout. Common values: `AMRAP`, `ForTime`, `EMOM`, `Strength`, `Chipper`.",
+            "nullable": true
+          },
+          "predictedScoreType": {
+            "type": "string",
+            "description": "The predicted score type for this workout. One of the `WorkoutScoreType` enum string values\r\n(e.g., `TimeToComplete`, `RoundsAndReps`, `HeaviestLoad`). The mobile client parses\r\nthis directly via `Enum.Parse<WorkoutScoreType>()` — casing must match exactly.",
+            "nullable": true
+          },
+          "originalText": {
+            "type": "string",
+            "description": "The original workout text exactly as submitted by the caller.",
+            "nullable": true
+          },
+          "instructions": {
+            "type": "string",
+            "description": "Optional workout-level coaching notes or movement instructions extracted from the text. Null if none were found.",
+            "nullable": true
+          },
+          "roundCount": {
+            "type": "integer",
+            "description": "Number of prescribed rounds extracted from the workout text. Null for all workout types except\r\n`Intervals`, or when no explicit round count was found in the text.",
+            "format": "int32",
+            "nullable": true
+          },
+          "duration": {
+            "type": "string",
+            "description": "Overall workout duration extracted from the workout text (time cap or total prescribed work,\r\ne.g. \"20 min AMRAP\" → 00:20:00). Null when no overall workout duration was identified —\r\ntypical for StraightSets, open ForTime with no cap, or workouts whose duration depends solely\r\non athlete pace.",
+            "format": "date-span",
+            "nullable": true,
+            "example": "00:20:00"
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParsedWorkoutExerciseResponse"
+            },
+            "description": "Ordered list of exercises extracted from the workout, sorted by their position in the original text.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Structured representation of a workout parsed from raw text."
+      },
+      "ParsedWorkoutExerciseResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The exercise name as extracted directly from the raw workout text.",
+            "nullable": true
+          },
+          "matchedExerciseName": {
+            "type": "string",
+            "description": "The canonical exercise name from the standard exercise library if a match was found. Null if no match.",
+            "nullable": true
+          },
+          "standardExerciseId": {
+            "type": "string",
+            "description": "The `Id` of the matched `StandardExercise` record (GUID string). Used by the mobile client\r\nas the foreign key when saving a `WorkoutExercise`. Null if no match was found — never fabricated.",
+            "nullable": true,
+            "example": "a87ff679-a2f3-4e61-8eb5-59fd2b8b45e5"
+          },
+          "sets": {
+            "type": "integer",
+            "description": "Total number of sets prescribed for this exercise. Null if not specified in the workout text.",
+            "format": "int32",
+            "nullable": true
+          },
+          "reps": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Rep count for each set. Contains a single value when all sets share equal reps (e.g., `[10]` for 3x10),\r\nor one value per set for pyramid schemes (e.g., `[21, 15, 9]`). Null if reps are not prescribed.",
+            "nullable": true
+          },
+          "targetWeight": {
+            "type": "number",
+            "description": "The prescribed load extracted from the raw workout text in lbs (e.g., `95.0` from \"Thrusters 95lb\").\r\nUsed by the mobile client to pre-populate `WorkoutExercise.TargetWeight`. Null when no load is specified.",
+            "format": "double",
+            "nullable": true,
+            "example": 95.0
+          },
+          "duration": {
+            "type": "string",
+            "description": "The prescribed work interval formatted as `hh:mm:ss` (e.g., `\"00:01:30\"` for 1 min 30 sec).\r\nExtracted by the AI from interval-based workout descriptions. Null for rep-based exercises.",
+            "format": "date-span",
+            "nullable": true,
+            "example": "00:01:30"
+          },
+          "targetDistance": {
+            "type": "number",
+            "description": "The prescribed distance value extracted from the workout text. Always paired with\r\nFitEpic.Api.Models.Response.ParsedWorkoutExerciseResponse.TargetDistanceUnit. Null when no distance is specified.",
+            "format": "double",
+            "nullable": true
+          },
+          "targetDistanceUnit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DistanceUnit"
+              }
+            ],
+            "description": "Unit for FitEpic.Api.Models.Response.ParsedWorkoutExerciseResponse.TargetDistance. One of `\"Meters\"`, `\"Kilometers\"`,\r\n`\"Miles\"`, or `\"Feet\"`. Null when FitEpic.Api.Models.Response.ParsedWorkoutExerciseResponse.TargetDistance is null.",
+            "nullable": true
+          },
+          "targetCalories": {
+            "type": "number",
+            "description": "The prescribed calorie target extracted from the workout text (e.g., `15` from \"15 Cal Row\").\r\nUsed by the mobile client to pre-populate `WorkoutExercise.TargetCalories`. Null when not specified.",
+            "format": "double",
+            "nullable": true
+          },
+          "perRoundMetric": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PerRoundMetric"
+              }
+            ],
+            "description": "The per-round metric the AI detected for this exercise. One of `Weight`, `Duration`,\r\n`Distance`, `Calories`, `Reps`, or `CustomValue`. Null when the AI did not\r\ndetect a per-round metric for this exercise.",
+            "nullable": true
+          },
+          "measurementType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MeasurementType"
+              }
+            ],
+            "description": "The primary measurement the AI identified for logging this exercise. `None` means the AI\r\ncould not determine a measurement type — the athlete can select one in the mobile app before saving."
+          },
+          "order": {
+            "type": "integer",
+            "description": "Zero-based position of this exercise within the workout sequence.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single exercise entry within a parsed workout."
+      },
+      "PerRoundMetric": {
+        "enum": [
+          "Weight",
+          "Duration",
+          "Distance",
+          "Calories",
+          "Reps",
+          "CustomValue"
+        ],
+        "type": "string"
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      },
+      "ReactionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for this reaction.",
+            "nullable": true,
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "workoutLogId": {
+            "type": "string",
+            "description": "The ID of the workout log this reaction is on.",
+            "nullable": true,
+            "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "athleteId": {
+            "type": "string",
+            "description": "The ID of the athlete who reacted.",
+            "nullable": true,
+            "example": "eccbc87e-4b5c-3332-8c9e-d5fc8848b87d"
+          },
+          "athleteName": {
+            "type": "string",
+            "description": "The display name of the athlete who reacted. Null if the athlete has no display name set, or for endpoints that do not populate this field (e.g. the toggle endpoint, since the caller already knows their own name).",
+            "nullable": true,
+            "example": "Jane Doe"
+          },
+          "type": {
+            "type": "string",
+            "description": "The reaction type. One of `Fire`, `Strong`, `Fast`, `Clap`, or `Trophy`.",
+            "nullable": true,
+            "example": "Fire"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "Whether this reaction has been soft-deleted (toggled off)."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a reaction on a completed workout."
+      },
+      "RegisterRequest": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The user's email address. Must be unique across all accounts.",
+            "format": "email",
+            "example": "user@example.com"
+          },
+          "name": {
+            "type": "string",
+            "description": "The user's display name. Null if not provided — can be set or updated later.",
+            "nullable": true,
+            "example": "John Doe"
+          },
+          "password": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The user's password. Must meet ASP.NET Identity complexity requirements\r\n(uppercase, lowercase, digit, and non-alphanumeric character).",
+            "example": "P@ssw0rd!"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for registering a new user account."
+      },
+      "ScheduledWorkoutRequest": {
+        "required": [
+          "athleteId",
+          "exerciseLogs",
+          "id",
+          "scheduledDate",
+          "workoutId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The mobile-generated UUID that uniquely identifies this scheduled workout.",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "workoutId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The ID of the workout template this scheduled workout is based on.",
+            "example": "a87ff679-a2f3-4e61-8eb5-59fd2b8b45e5"
+          },
+          "athleteId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The ID of the athlete this workout is scheduled for.",
+            "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "programmedByAthleteId": {
+            "type": "string",
+            "description": "The ID of the athlete who programmed this workout for another athlete. Null if self-programmed.",
+            "nullable": true
+          },
+          "scheduledDate": {
+            "type": "string",
+            "description": "The date the workout is scheduled to be performed.",
+            "format": "date",
+            "example": "2025-07-20"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScheduledWorkoutStatus"
+              }
+            ],
+            "description": "The current completion status of this scheduled workout.",
+            "example": "Pending"
+          },
+          "scoreType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutScoreType"
+              }
+            ],
+            "description": "How the workout result is measured and scored.",
+            "example": "TimeToComplete"
+          },
+          "scoreResult": {
+            "type": "string",
+            "description": "The athlete's recorded result for this workout (e.g., \"14:32\", \"185\"). Null if not yet logged.",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional notes from the athlete about their performance. Null if not provided.",
+            "nullable": true
+          },
+          "isLocked": {
+            "type": "boolean",
+            "description": "Indicates whether this scheduled workout was programmed by a trainer and its template fields are\r\nlocked. The server always determines and overrides this value — mobile payload value is ignored."
+          },
+          "duration": {
+            "type": "string",
+            "description": "Actual duration the athlete spent on this scheduled workout, as logged by the athlete.\r\nDistinct from the parent workout's prescribed duration. Null when the athlete has not yet\r\nlogged a duration. The mobile client typically pre-fills this from the parent workout's\r\n`Duration` when present and lets the athlete confirm or override before logging.",
+            "format": "date-span",
+            "nullable": true,
+            "example": "00:18:42"
+          },
+          "exerciseLogs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutExerciseLogRequest"
+            },
+            "description": "The individual exercise log entries capturing the athlete's actual performance."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The UTC timestamp when this scheduled workout was first created on the mobile client.",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "The UTC timestamp of the most recent local modification. Used for Last-Write-Wins conflict resolution.",
+            "format": "date-time"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "Whether this scheduled workout has been soft-deleted on the mobile client."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The scheduled workout payload sent as part of a batch sync request."
+      },
+      "ScheduledWorkoutResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for this scheduled workout (mobile-generated UUID).",
+            "nullable": true,
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "workoutId": {
+            "type": "string",
+            "description": "The ID of the workout template this scheduled workout is based on.",
+            "nullable": true,
+            "example": "a87ff679-a2f3-4e61-8eb5-59fd2b8b45e5"
+          },
+          "athleteId": {
+            "type": "string",
+            "description": "The ID of the athlete this workout is scheduled for.",
+            "nullable": true,
+            "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "programmedByAthleteId": {
+            "type": "string",
+            "description": "The ID of the athlete who programmed this workout for another athlete. Null if self-programmed.",
+            "nullable": true
+          },
+          "scheduledDate": {
+            "type": "string",
+            "description": "The date the workout is scheduled to be performed.",
+            "format": "date",
+            "example": "2025-07-20"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScheduledWorkoutStatus"
+              }
+            ],
+            "description": "The current completion status of this scheduled workout. Serialized as a string enum value.",
+            "example": "Pending"
+          },
+          "scoreType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutScoreType"
+              }
+            ],
+            "description": "How the workout result is measured and scored. Serialized as a string enum value.",
+            "example": "TimeToComplete"
+          },
+          "scoreResult": {
+            "type": "string",
+            "description": "The athlete's recorded result for this workout (e.g., \"14:32\", \"185\"). Null if not yet logged.",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional notes from the athlete about their performance. Null if not provided.",
+            "nullable": true
+          },
+          "isLocked": {
+            "type": "boolean",
+            "description": "`true` if this workout was programmed by a trainer and its template fields are locked.\r\n            The athlete may only update log fields (`status`, `scoreResult`, `notes`,\r\n            `exerciseLogs`) when this is `true`."
+          },
+          "duration": {
+            "type": "string",
+            "description": "Actual duration the athlete spent on this scheduled workout, as logged by the athlete.\r\nDistinct from the parent workout's prescribed duration. Null when the athlete has not yet\r\nlogged a duration.",
+            "format": "date-span",
+            "nullable": true,
+            "example": "00:18:42"
+          },
+          "exerciseLogs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutExerciseLogResponse"
+            },
+            "description": "The individual exercise log entries capturing the athlete's actual performance.\r\nAlways present; may be empty if the athlete has not yet logged results.",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The UTC timestamp when this scheduled workout was first created.",
+            "format": "date-time",
+            "example": "2025-07-18T12:00:00Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "The UTC timestamp of the most recent server-side modification. Used by the mobile client as the\r\n`since` cursor for subsequent delta pulls.",
+            "format": "date-time",
+            "example": "2025-07-20T18:00:00Z"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "`true` if this scheduled workout has been soft-deleted. The mobile client must remove\r\n            this record from its local store when this field is `true`."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a scheduled workout record returned by the delta pull endpoint. Includes soft-deleted\r\nrecords and records programmed by a trainer so the mobile client can maintain a complete local view."
+      },
+      "ScheduledWorkoutResponsePagedResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduledWorkoutResponse"
+            },
+            "description": "The items returned for the current page.",
+            "nullable": true
+          },
+          "page": {
+            "type": "integer",
+            "description": "The current 1-based page number that was returned.",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "The maximum number of items per page as requested.",
+            "format": "int32",
+            "example": 100
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "The total number of items matching the query across all pages.",
+            "format": "int32",
+            "example": 847
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "The total number of pages available given FitEpic.Api.Models.Response.PagedResponse`1.TotalCount and FitEpic.Api.Models.Response.PagedResponse`1.PageSize.\r\nThe mobile client should continue requesting incrementing pages until FitEpic.Api.Models.Response.PagedResponse`1.Page equals FitEpic.Api.Models.Response.PagedResponse`1.TotalPages.",
+            "format": "int32",
+            "readOnly": true,
+            "example": 9
+          }
+        },
+        "additionalProperties": false,
+        "description": "A paginated response wrapper returned by Delta Pull endpoints.\r\nThe mobile client uses FitEpic.Api.Models.Response.PagedResponse`1.Page, FitEpic.Api.Models.Response.PagedResponse`1.PageSize, and FitEpic.Api.Models.Response.PagedResponse`1.TotalPages\r\nto loop through all pages during an initial bootstrap sync or subsequent delta pulls."
+      },
+      "ScheduledWorkoutStatus": {
+        "enum": [
+          "Pending",
+          "Completed",
+          "Dismissed"
+        ],
+        "type": "string"
+      },
+      "ScheduledWorkoutSyncResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduledWorkoutResponse"
+            },
+            "description": "The paginated list of scheduled workout records that have changed since the requested timestamp.\r\nIncludes soft-deleted records so the mobile client can purge them from its local store.",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "UTC server time captured at the moment this response was generated.\r\nThe mobile client should store this value and use it as the `since` cursor for subsequent delta pulls.",
+            "format": "date-time",
+            "example": "2025-07-20T18:00:00Z"
+          },
+          "page": {
+            "type": "integer",
+            "description": "The current page number (1-based).",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "The number of items per page.",
+            "format": "int32",
+            "example": 100
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "The total number of records matching the query across all pages.",
+            "format": "int32",
+            "example": 42
+          }
+        },
+        "additionalProperties": false,
+        "description": "Returned by `GET /scheduledworkouts/sync`. Contains a paginated list of scheduled workout\r\nrecords changed since the requested timestamp, plus a server-generated cursor the mobile client\r\ncan use for subsequent delta pulls."
+      },
+      "SignInRequest": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The registered email address.",
+            "format": "email",
+            "example": "user@example.com"
+          },
+          "password": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The account password.",
+            "example": "P@ssw0rd!"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for authenticating a user."
+      },
+      "StandardExerciseResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the exercise as a UUID string.",
+            "nullable": true,
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "name": {
+            "type": "string",
+            "description": "The display name of the exercise.",
+            "nullable": true,
+            "example": "Barbell Back Squat"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "The UTC timestamp of the last modification to this record.\r\nThe mobile client must advance its local sync watermark to the greatest `UpdatedAt`\r\nvalue received across all items in a page after each successful pull.",
+            "format": "date-time",
+            "example": "2025-01-15T10:30:00+00:00"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "Indicates whether this exercise has been soft-deleted by an administrator.\r\nWhen `true`, the mobile client must hide this exercise from new-selection lists\r\nbut must not physically remove it, as historical workout logs may still reference it.",
+            "example": false
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a single entry from the global standard exercise catalog."
+      },
+      "StandardExerciseResponsePagedResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StandardExerciseResponse"
+            },
+            "description": "The items returned for the current page.",
+            "nullable": true
+          },
+          "page": {
+            "type": "integer",
+            "description": "The current 1-based page number that was returned.",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "The maximum number of items per page as requested.",
+            "format": "int32",
+            "example": 100
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "The total number of items matching the query across all pages.",
+            "format": "int32",
+            "example": 847
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "The total number of pages available given FitEpic.Api.Models.Response.PagedResponse`1.TotalCount and FitEpic.Api.Models.Response.PagedResponse`1.PageSize.\r\nThe mobile client should continue requesting incrementing pages until FitEpic.Api.Models.Response.PagedResponse`1.Page equals FitEpic.Api.Models.Response.PagedResponse`1.TotalPages.",
+            "format": "int32",
+            "readOnly": true,
+            "example": 9
+          }
+        },
+        "additionalProperties": false,
+        "description": "A paginated response wrapper returned by Delta Pull endpoints.\r\nThe mobile client uses FitEpic.Api.Models.Response.PagedResponse`1.Page, FitEpic.Api.Models.Response.PagedResponse`1.PageSize, and FitEpic.Api.Models.Response.PagedResponse`1.TotalPages\r\nto loop through all pages during an initial bootstrap sync or subsequent delta pulls."
+      },
+      "SyncAthleteConnectionInvitesRequest": {
+        "required": [
+          "invites"
+        ],
+        "type": "object",
+        "properties": {
+          "invites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateAthleteConnectionInviteRequest"
+            },
+            "description": "The list of invite operations to process. Each invite is created in a single transaction."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for batch-syncing connection invites from the mobile client.\r\nWraps an array of individual invite creation requests."
+      },
+      "SyncBatchResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SyncItemResult"
+            },
+            "description": "The per-item outcomes for the submitted batch.\r\nThe mobile client should iterate this list and update its local outbox accordingly —\r\nremoving `Accepted` items and flagging `ConflictResolved` items for re-pull.",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "UTC server time captured at the start of the sync operation.\r\nThe mobile client should store this value and use it as the `since` cursor for subsequent delta pulls.",
+            "format": "date-time",
+            "example": "2025-07-20T18:00:00Z"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Returned by all `POST /[domain]/sync` endpoints.\r\nContains one FitEpic.Api.Models.Response.SyncItemResult for every operation submitted in the request batch,\r\nplus a server timestamp the mobile client can use as its next `since` cursor."
+      },
+      "SyncItemResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The entity ID that this result corresponds to.\r\nMatches the `Id` supplied in the original sync request.",
+            "nullable": true,
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "The authoritative `UpdatedAt` timestamp for the entity after the operation was processed.\r\nThe mobile client must overwrite its local record with this value.",
+            "format": "date-time",
+            "example": "2025-01-15T08:30:00Z"
+          },
+          "resolution": {
+            "type": "string",
+            "description": "Indicates whether the server accepted the change or detected a conflict.\r\n<list type=\"bullet\"><item><description>`Accepted` — the payload was newer than the server record and has been persisted.</description></item><item><description>`ConflictResolved` — the server record was newer (Last-Write-Wins); the mobile client should re-pull this entity.</description></item></list>",
+            "nullable": true,
+            "example": "Accepted"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The server's outcome for a single sync operation submitted by the mobile client."
+      },
+      "ToggleReactionRequest": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The reaction type. One of `Fire`, `Strong`, `Fast`, `Clap`, or `Trophy`.",
+            "example": "Fire"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for toggling a reaction on a completed workout."
+      },
+      "WeatherForecast": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "temperatureC": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "temperatureF": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkoutCommentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for this comment.",
+            "nullable": true,
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "workoutLogId": {
+            "type": "string",
+            "description": "The ID of the workout log this comment is on.",
+            "nullable": true,
+            "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "athleteId": {
+            "type": "string",
+            "description": "The ID of the athlete who wrote the comment.",
+            "nullable": true,
+            "example": "eccbc87e-4b5c-3332-8c9e-d5fc8848b87d"
+          },
+          "text": {
+            "type": "string",
+            "description": "The comment text.",
+            "nullable": true,
+            "example": "Nice work on those cleans!"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The UTC timestamp when this comment was created.",
+            "format": "date-time",
+            "example": "2025-07-20T15:00:00Z"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a comment on a completed workout."
+      },
+      "WorkoutExerciseLogRequest": {
+        "required": [
+          "exerciseName",
+          "id",
+          "scheduledWorkoutId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The mobile-generated UUID that uniquely identifies this log entry.",
+            "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "scheduledWorkoutId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The ID of the parent scheduled workout that this log entry belongs to.",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "workoutExerciseId": {
+            "type": "string",
+            "description": "The ID of the `WorkoutExercise` this log entry tracks. Null if not linked to a specific exercise definition.",
+            "nullable": true
+          },
+          "exerciseName": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The exercise name carried over from the parent `WorkoutExercise` definition.\r\nStored as a denormalized snapshot so performance history remains readable without\r\njoining back to the workout."
+          },
+          "actualReps": {
+            "type": "string",
+            "description": "Actual reps completed as a free-form string (e.g., `\"21,15,9\"`, `\"10\"`, `\"Max\"`).\r\nAlso used as the storage field when `perRoundMetric = CustomValue` — the mobile client\r\nstores the per-round custom result here as a plain numeric string (e.g., `\"42\"`).\r\nNull when not applicable.",
+            "nullable": true
+          },
+          "actualWeightLbs": {
+            "type": "number",
+            "description": "Actual load used in lbs. Null if not tracked.",
+            "format": "double",
+            "nullable": true,
+            "example": 95.0
+          },
+          "actualDistance": {
+            "type": "number",
+            "description": "Actual distance achieved. Always paired with FitEpic.Api.Models.Request.WorkoutExerciseLogRequest.ActualDistanceUnit.\r\nNull when not applicable.",
+            "format": "double",
+            "nullable": true
+          },
+          "actualDistanceUnit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DistanceUnit"
+              }
+            ],
+            "description": "Unit for FitEpic.Api.Models.Request.WorkoutExerciseLogRequest.ActualDistance. Must be a valid FitEpic.Services.ServiceModels.DistanceUnit string value\r\n(e.g., `\"Meters\"`, `\"Miles\"`). Null when FitEpic.Api.Models.Request.WorkoutExerciseLogRequest.ActualDistance is null.",
+            "nullable": true
+          },
+          "actualCalories": {
+            "type": "number",
+            "description": "Calories achieved on an erg machine. Null when not applicable.",
+            "format": "double",
+            "nullable": true
+          },
+          "actualDurationSeconds": {
+            "type": "integer",
+            "description": "Actual duration in whole seconds. Used when `perRoundMetric = Duration`.\r\nNull when not applicable. The mobile client is responsible for converting to and from `TimeSpan`.",
+            "format": "int32",
+            "nullable": true
+          },
+          "roundNumber": {
+            "type": "integer",
+            "description": "1-based round number for per-round log entries. For exercises with multiple rounds\r\nthe mobile client creates one log entry per round, each with a unique `Id` and the\r\nsame `OrderIndex`. Null for non-round-based exercises.",
+            "format": "int32",
+            "nullable": true
+          },
+          "setNumber": {
+            "type": "integer",
+            "description": "1-based set number for per-set log entries on straight-set workouts. When tracking\r\nper-set results, the mobile client sends one log entry per set, each with a unique `Id`,\r\nthe same `OrderIndex`, and a `SetNumber` identifying which set it represents.\r\nNull for aggregate single-entry logging and non-set-based exercises.",
+            "format": "int32",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "description": "Free-form notes about this specific exercise log entry. When `perRoundMetric = CustomValue`,\r\nthe mobile client stores the per-round custom result here. Null if not provided.",
+            "nullable": true
+          },
+          "orderIndex": {
+            "type": "integer",
+            "description": "Zero-based position of this exercise within the workout sequence.",
+            "format": "int32"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "The UTC timestamp of the most recent local modification. Used for Last-Write-Wins conflict resolution.",
+            "format": "date-time"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "Whether this log entry has been soft-deleted on the mobile client."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single exercise log entry within a FitEpic.Api.Models.Request.ScheduledWorkoutRequest payload,\r\ncapturing the athlete's actual performance for one exercise."
+      },
+      "WorkoutExerciseLogResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for this log entry (mobile-generated UUID).",
+            "nullable": true,
+            "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "scheduledWorkoutId": {
+            "type": "string",
+            "description": "The ID of the parent scheduled workout this log entry belongs to.",
+            "nullable": true,
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "workoutExerciseId": {
+            "type": "string",
+            "description": "The ID of the `WorkoutExercise` this log entry tracks. Null if not linked to a specific exercise definition.",
+            "nullable": true
+          },
+          "exerciseName": {
+            "type": "string",
+            "description": "The exercise name carried over from the parent `WorkoutExercise` definition.\r\nStored as a denormalized snapshot so performance history remains readable without\r\njoining back to the workout.",
+            "nullable": true,
+            "example": "Thruster"
+          },
+          "actualReps": {
+            "type": "string",
+            "description": "Actual reps completed as a free-form string (e.g., `\"21,15,9\"`, `\"10\"`, `\"Max\"`).\r\nAlso used as the storage field when `perRoundMetric = CustomValue` — the mobile client\r\nstores the per-round custom result here as a plain numeric string (e.g., `\"42\"`).\r\nNull when not applicable.",
+            "nullable": true
+          },
+          "actualWeightLbs": {
+            "type": "number",
+            "description": "Actual load used in lbs. Null if not tracked.",
+            "format": "double",
+            "nullable": true,
+            "example": 95.0
+          },
+          "actualDistance": {
+            "type": "number",
+            "description": "Actual distance achieved. Always paired with FitEpic.Api.Models.Response.WorkoutExerciseLogResponse.ActualDistanceUnit.\r\nNull when not applicable.",
+            "format": "double",
+            "nullable": true
+          },
+          "actualDistanceUnit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DistanceUnit"
+              }
+            ],
+            "description": "Unit for FitEpic.Api.Models.Response.WorkoutExerciseLogResponse.ActualDistance. One of `\"Meters\"`, `\"Kilometers\"`,\r\n`\"Miles\"`, or `\"Feet\"`. Null when FitEpic.Api.Models.Response.WorkoutExerciseLogResponse.ActualDistance is null.",
+            "nullable": true
+          },
+          "actualCalories": {
+            "type": "number",
+            "description": "Calories achieved on an erg machine. Null when not applicable.",
+            "format": "double",
+            "nullable": true
+          },
+          "actualDurationSeconds": {
+            "type": "integer",
+            "description": "Actual duration in whole seconds. Used when `perRoundMetric = Duration`.\r\nNull when not applicable. The mobile client is responsible for converting to and from `TimeSpan`.",
+            "format": "int32",
+            "nullable": true
+          },
+          "roundNumber": {
+            "type": "integer",
+            "description": "1-based round number for per-round log entries. For exercises with multiple rounds\r\nthe mobile client creates one log entry per round, each with a unique `Id` and the\r\nsame `OrderIndex`. Null for non-round-based exercises.",
+            "format": "int32",
+            "nullable": true
+          },
+          "setNumber": {
+            "type": "integer",
+            "description": "1-based set number for per-set log entries on straight-set workouts. When tracking\r\nper-set results, the mobile client sends one log entry per set, each with a unique `Id`,\r\nthe same `OrderIndex`, and a `SetNumber` identifying which set it represents.\r\nNull for aggregate single-entry logging and non-set-based exercises.",
+            "format": "int32",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "description": "Free-form notes about this exercise log entry. When `perRoundMetric = CustomValue`,\r\nthe mobile client stores the per-round custom result here. Null if not provided.",
+            "nullable": true
+          },
+          "orderIndex": {
+            "type": "integer",
+            "description": "Zero-based position of this exercise within the workout sequence.",
+            "format": "int32"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "The UTC timestamp of the most recent server-side modification.",
+            "format": "date-time",
+            "example": "2025-07-20T18:00:00Z"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "`true` if this log entry has been soft-deleted. The mobile client must remove this\r\n            entry from its local store when this field is `true`."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single exercise log entry within a FitEpic.Api.Models.Response.ScheduledWorkoutResponse, representing\r\nthe athlete's actual performance for one exercise. Includes soft-deleted entries so the mobile\r\nclient can remove them from its local store."
+      },
+      "WorkoutExerciseRequest": {
+        "required": [
+          "id",
+          "userEnteredExerciseName",
+          "workoutId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The mobile-generated UUID that uniquely identifies this exercise entry.",
+            "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "workoutId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The ID of the parent workout that this exercise belongs to.",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "standardExerciseId": {
+            "type": "string",
+            "description": "The ID of the matched `StandardExercise` record. Null if no match was found.",
+            "nullable": true
+          },
+          "userEnteredExerciseName": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The exercise name exactly as entered by the athlete in the raw workout text."
+          },
+          "sets": {
+            "type": "integer",
+            "description": "Number of sets prescribed. Null if not specified.",
+            "format": "int32",
+            "nullable": true
+          },
+          "reps": {
+            "type": "string",
+            "description": "Rep scheme as a string (e.g., \"21-15-9\", \"10\", \"Max\"). Null if not specified.",
+            "nullable": true
+          },
+          "targetWeight": {
+            "type": "number",
+            "description": "Prescribed load in lbs. Null if not specified.",
+            "format": "double",
+            "nullable": true
+          },
+          "duration": {
+            "type": "string",
+            "description": "Prescribed work interval formatted as `hh:mm:ss` (e.g., `\"00:01:30\"` for 1 min 30 sec).\r\nNull for rep-based exercises.",
+            "format": "date-span",
+            "nullable": true,
+            "example": "00:01:30"
+          },
+          "targetDistance": {
+            "type": "number",
+            "description": "Prescribed distance value. Always paired with FitEpic.Api.Models.Request.WorkoutExerciseRequest.TargetDistanceUnit.\r\nNull when no distance is specified.",
+            "format": "double",
+            "nullable": true
+          },
+          "targetDistanceUnit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DistanceUnit"
+              }
+            ],
+            "description": "Unit for FitEpic.Api.Models.Request.WorkoutExerciseRequest.TargetDistance. Must be a valid FitEpic.Services.ServiceModels.DistanceUnit string value\r\n(e.g., `\"Meters\"`, `\"Miles\"`). Null when FitEpic.Api.Models.Request.WorkoutExerciseRequest.TargetDistance is null.",
+            "nullable": true
+          },
+          "targetCalories": {
+            "type": "number",
+            "description": "Prescribed calorie target (e.g., `15` for \"15 Cal Row\"). Null when not specified.",
+            "format": "double",
+            "nullable": true
+          },
+          "perRoundMetric": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PerRoundMetric"
+              }
+            ],
+            "description": "The metric the athlete records per round for this exercise. Null when no per-round recording\r\nis required (i.e., for all non-Intervals exercises or Intervals exercises with no explicit metric).",
+            "nullable": true
+          },
+          "measurementType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MeasurementType"
+              }
+            ],
+            "description": "The primary measurement the athlete records when logging this exercise (e.g., `Weight`,\r\n`Reps`, `Distance`). `None` indicates no specific measurement was identified\r\nand the athlete has not yet selected one."
+          },
+          "orderIndex": {
+            "type": "integer",
+            "description": "Zero-based position of this exercise within the workout sequence.",
+            "format": "int32"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "The UTC timestamp of the most recent local modification. Used for Last-Write-Wins conflict resolution.",
+            "format": "date-time"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "Whether this exercise has been soft-deleted on the mobile client."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single exercise entry within a FitEpic.Api.Models.Request.WorkoutRequest payload."
+      },
+      "WorkoutExerciseResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for this exercise entry (mobile-generated UUID).",
+            "nullable": true,
+            "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "workoutId": {
+            "type": "string",
+            "description": "The ID of the parent workout that this exercise belongs to.",
+            "nullable": true,
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "standardExerciseId": {
+            "type": "string",
+            "description": "The ID of the matched `StandardExercise` record. Null if no match was found.",
+            "nullable": true
+          },
+          "userEnteredExerciseName": {
+            "type": "string",
+            "description": "The exercise name exactly as entered by the athlete in the raw workout text.",
+            "nullable": true,
+            "example": "Thruster"
+          },
+          "sets": {
+            "type": "integer",
+            "description": "Number of sets prescribed. Null if not specified.",
+            "format": "int32",
+            "nullable": true
+          },
+          "reps": {
+            "type": "string",
+            "description": "Rep scheme as a string (e.g., \"21-15-9\", \"10\", \"Max\"). Null if not specified.",
+            "nullable": true
+          },
+          "targetWeight": {
+            "type": "number",
+            "description": "Prescribed load in lbs. Null if not specified.",
+            "format": "double",
+            "nullable": true,
+            "example": 95.0
+          },
+          "duration": {
+            "type": "string",
+            "description": "Prescribed work interval formatted as `hh:mm:ss` (e.g., `\"00:01:30\"` for 1 min 30 sec).\r\nNull for rep-based exercises.",
+            "format": "date-span",
+            "nullable": true,
+            "example": "00:01:30"
+          },
+          "targetDistance": {
+            "type": "number",
+            "description": "Prescribed distance value. Always paired with FitEpic.Api.Models.Response.WorkoutExerciseResponse.TargetDistanceUnit.\r\nNull when no distance is specified.",
+            "format": "double",
+            "nullable": true
+          },
+          "targetDistanceUnit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DistanceUnit"
+              }
+            ],
+            "description": "Unit for FitEpic.Api.Models.Response.WorkoutExerciseResponse.TargetDistance. One of `\"Meters\"`, `\"Kilometers\"`,\r\n`\"Miles\"`, or `\"Feet\"`. Null when FitEpic.Api.Models.Response.WorkoutExerciseResponse.TargetDistance is null.",
+            "nullable": true
+          },
+          "targetCalories": {
+            "type": "number",
+            "description": "Prescribed calorie target (e.g., `15` for \"15 Cal Row\"). Null when not specified.",
+            "format": "double",
+            "nullable": true
+          },
+          "perRoundMetric": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PerRoundMetric"
+              }
+            ],
+            "description": "The per-round metric the athlete records for this exercise. One of `Weight`, `Duration`,\r\n`Distance`, `Calories`, `Reps`, or `CustomValue`. Null when per-round\r\nrecording is not applicable.",
+            "nullable": true
+          },
+          "measurementType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MeasurementType"
+              }
+            ],
+            "description": "The primary measurement the athlete records when logging this exercise (e.g., `Weight`,\r\n`Reps`, `Distance`). `None` indicates no specific measurement was identified\r\nand the athlete has not yet selected one."
+          },
+          "orderIndex": {
+            "type": "integer",
+            "description": "Zero-based position of this exercise within the workout sequence.",
+            "format": "int32"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "The UTC timestamp of the most recent server-side modification.",
+            "format": "date-time",
+            "example": "2025-01-15T08:30:00Z"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "`true` if this exercise entry has been soft-deleted. The mobile client must remove\r\n            this entry from the workout's local exercise list when this field is `true`."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single exercise entry within a FitEpic.Api.Models.Response.WorkoutResponse. Includes soft-deleted entries\r\nso the mobile client can remove them from its local store."
+      },
+      "WorkoutOrigin": {
+        "enum": [
+          "Personal",
+          "Programming"
+        ],
+        "type": "string"
+      },
+      "WorkoutParseFailureReason": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "WorkoutReactionsResponse": {
+        "type": "object",
+        "properties": {
+          "workoutLogId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReactionResponse"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkoutRequest": {
+        "required": [
+          "athleteId",
+          "exercises",
+          "id",
+          "workoutType"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The mobile-generated UUID that uniquely identifies this workout.",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "athleteId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The ID of the athlete who owns this workout.",
+            "example": "a87ff679-a2f3-4e61-8eb5-59fd2b8b45e5"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name for the workout (e.g., \"Fran\", \"Monday Strength\"). Null if not provided.",
+            "nullable": true
+          },
+          "instructions": {
+            "type": "string",
+            "description": "Free-text instructions or notes for the workout. Null if not provided.",
+            "nullable": true
+          },
+          "rawText": {
+            "type": "string",
+            "description": "The original raw text the athlete entered (preserved for re-parsing). Null if not set.",
+            "nullable": true
+          },
+          "workoutType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutType"
+              }
+            ],
+            "description": "The structural type of this workout (e.g., `Intervals`, `AMRAP`, `ForTime`)."
+          },
+          "scoreType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutScoreType"
+              }
+            ],
+            "description": "How the workout result is measured and scored."
+          },
+          "scoreLabel": {
+            "type": "string",
+            "description": "Label describing the score (e.g., \"Total Reps\", \"Time\"). Null if not provided.",
+            "nullable": true
+          },
+          "roundCount": {
+            "type": "integer",
+            "description": "Number of prescribed rounds. Null for all workout types except `Intervals`.",
+            "format": "int32",
+            "nullable": true
+          },
+          "duration": {
+            "type": "string",
+            "description": "Overall workout duration (time cap or total prescribed work). Null when no overall\r\nworkout duration is specified — typical for StraightSets, open ForTime with no cap,\r\nor workouts whose duration depends solely on athlete pace. Mobile clients may set\r\nthis directly when an athlete enters a duration manually, or round-trip the\r\nserver-parsed value returned from `POST /workouts/parse`.",
+            "format": "date-span",
+            "nullable": true
+          },
+          "origin": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutOrigin"
+              }
+            ],
+            "description": "Indicates whether this workout was created for the athlete's own training (`Personal`)\r\nor while programming for other athletes (`Programming`). Defaults to `Personal`."
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutExerciseRequest"
+            },
+            "description": "The exercises that make up this workout."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The UTC timestamp when the workout was first created on the mobile client.",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "The UTC timestamp of the most recent local modification. Used for Last-Write-Wins conflict resolution.",
+            "format": "date-time"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "Whether this workout has been soft-deleted on the mobile client."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The workout payload sent as part of a batch sync request."
+      },
+      "WorkoutResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for this workout (mobile-generated UUID).",
+            "nullable": true,
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "athleteId": {
+            "type": "string",
+            "description": "The ID of the athlete who owns this workout.",
+            "nullable": true,
+            "example": "a87ff679-a2f3-4e61-8eb5-59fd2b8b45e5"
+          },
+          "name": {
+            "type": "string",
+            "description": "Optional display name for the workout (e.g., \"Fran\", \"Monday Strength\"). Null if not set.",
+            "nullable": true
+          },
+          "instructions": {
+            "type": "string",
+            "description": "Optional free-text instructions or notes for the workout. Null if not set.",
+            "nullable": true
+          },
+          "rawText": {
+            "type": "string",
+            "description": "The original raw text that was used to create this workout. Null if created manually.",
+            "nullable": true
+          },
+          "workoutType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutType"
+              }
+            ],
+            "description": "The structural type of this workout (e.g., `Intervals`, `AMRAP`, `ForTime`).\r\nSerialized as a string enum value.",
+            "example": "Intervals"
+          },
+          "scoreType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutScoreType"
+              }
+            ],
+            "description": "How the workout result is measured and scored. Serialized as a string enum value.",
+            "example": "TimeToComplete"
+          },
+          "scoreLabel": {
+            "type": "string",
+            "description": "Optional label describing the score (e.g., \"Total Reps\"). Null if not set.",
+            "nullable": true
+          },
+          "roundCount": {
+            "type": "integer",
+            "description": "Number of prescribed rounds. Null for all workout types except `Intervals`.",
+            "format": "int32",
+            "nullable": true
+          },
+          "duration": {
+            "type": "string",
+            "description": "Overall workout duration (time cap or total prescribed work). Null when no overall workout\r\nduration is specified — typical for StraightSets, open ForTime with no cap, or workouts\r\nwhose duration depends solely on athlete pace. Mobile clients use this value to compute\r\nmetrics for completed scheduled workouts and must treat null as \"no duration prescribed.\"",
+            "format": "date-span",
+            "nullable": true,
+            "example": "00:20:00"
+          },
+          "origin": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutOrigin"
+              }
+            ],
+            "description": "Indicates whether this workout was created for the athlete's own training (`Personal`)\r\nor while programming for other athletes (`Programming`).",
+            "example": "Personal"
+          },
+          "isOwner": {
+            "type": "boolean",
+            "description": "`true` if the authenticated athlete owns this workout. `false` if the workout belongs\r\n            to a coach but is included because it is referenced by a scheduled workout assigned to this athlete.\r\n            Non-owned workouts should be treated as read-only on the mobile client."
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutExerciseResponse"
+            },
+            "description": "The exercises that make up this workout. Always present; may be empty for soft-deleted records.",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The UTC timestamp when this workout was first created.",
+            "format": "date-time",
+            "example": "2025-01-10T09:00:00Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "The UTC timestamp of the most recent server-side modification. Used by the mobile client as the\r\n`since` cursor for subsequent delta pulls.",
+            "format": "date-time",
+            "example": "2025-01-15T08:30:00Z"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "`true` if this workout has been soft-deleted. The mobile client must remove this record\r\n            from its local store when this field is `true`."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a workout record returned by the delta pull endpoint. Includes soft-deleted records so the\r\nmobile client can remove them from its local store."
+      },
+      "WorkoutResponsePagedResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutResponse"
+            },
+            "description": "The items returned for the current page.",
+            "nullable": true
+          },
+          "page": {
+            "type": "integer",
+            "description": "The current 1-based page number that was returned.",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "The maximum number of items per page as requested.",
+            "format": "int32",
+            "example": 100
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "The total number of items matching the query across all pages.",
+            "format": "int32",
+            "example": 847
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "The total number of pages available given FitEpic.Api.Models.Response.PagedResponse`1.TotalCount and FitEpic.Api.Models.Response.PagedResponse`1.PageSize.\r\nThe mobile client should continue requesting incrementing pages until FitEpic.Api.Models.Response.PagedResponse`1.Page equals FitEpic.Api.Models.Response.PagedResponse`1.TotalPages.",
+            "format": "int32",
+            "readOnly": true,
+            "example": 9
+          }
+        },
+        "additionalProperties": false,
+        "description": "A paginated response wrapper returned by Delta Pull endpoints.\r\nThe mobile client uses FitEpic.Api.Models.Response.PagedResponse`1.Page, FitEpic.Api.Models.Response.PagedResponse`1.PageSize, and FitEpic.Api.Models.Response.PagedResponse`1.TotalPages\r\nto loop through all pages during an initial bootstrap sync or subsequent delta pulls."
+      },
+      "WorkoutScoreType": {
+        "enum": [
+          "None",
+          "TimeToComplete",
+          "TimeCapPlusReps",
+          "TotalReps",
+          "RepsPerRound",
+          "HeaviestLoad",
+          "TotalLoad",
+          "TimeAndLoad",
+          "RepsAndLoad",
+          "PointsSystem",
+          "RoundsAndReps",
+          "Meters",
+          "Calories",
+          "Miles",
+          "Feet",
+          "TieBreakTime",
+          "CustomNumeric"
+        ],
+        "type": "string"
+      },
+      "WorkoutType": {
+        "enum": [
+          "StraightSets",
+          "AMRAP",
+          "ForTime",
+          "EMOM",
+          "Tabata",
+          "Circuit",
+          "Chipper",
+          "Intervals",
+          "Other"
+        ],
+        "type": "string"
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Enter your JWT token.",
+        "scheme": "Bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": [ ]
+    }
+  ],
+  "tags": [
+    {
+      "name": "AthleteProfiles"
+    },
+    {
+      "name": "ConnectionInvites"
+    },
+    {
+      "name": "Connections"
+    },
+    {
+      "name": "FitEpic.Api"
+    },
+    {
+      "name": "ScheduledWorkouts"
+    },
+    {
+      "name": "Social"
+    },
+    {
+      "name": "StandardExercises"
+    },
+    {
+      "name": "User"
+    },
+    {
+      "name": "WeatherForecast"
+    },
+    {
+      "name": "Workouts"
+    }
+  ]
+}

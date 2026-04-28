@@ -1,0 +1,156 @@
+@use '@angular/material' as mat;
+@use 'tokens' as fe;
+
+$fe-primary-palette: (
+  0: #000000,
+  10: #001A80,
+  20: #0035CC,
+  25: #0040E5,
+  30: #0B4CFF,
+  35: #2A60FF,
+  40: #4D78FF,
+  50: #6B96FF,
+  60: #8AAEFF,
+  70: #A8C3FF,
+  80: #C2D4FF,
+  90: #D6E0FF,
+  95: #EAF0FF,
+  98: #F7F9FF,
+  99: #FCFDFF,
+  100: #FFFFFF,
+  secondary: (
+    0: #000000,
+    10: #0D1A3A,
+    20: #1B2D5C,
+    25: #233673,
+    30: #2A4189,
+    35: #324DA0,
+    40: #3A59B7,
+    50: #5274D8,
+    60: #6B8EF1,
+    70: #8AA8FF,
+    80: #A8BDFF,
+    90: #D6E0FF,
+    95: #EAF0FF,
+    98: #F7F9FF,
+    99: #FCFDFF,
+    100: #FFFFFF,
+  ),
+  tertiary: (
+    0: #000000,
+    10: #3A001E,
+    20: #5C0036,
+    25: #730043,
+    30: #8B0051,
+    35: #A30060,
+    40: #BC006F,
+    50: #D600AA,
+    60: #F23BC4,
+    70: #FF7AD9,
+    80: #FFB1E7,
+    90: #FFD8F2,
+    95: #FFEAF8,
+    98: #FFF7FC,
+    99: #FFFCFE,
+    100: #FFFFFF,
+  ),
+  neutral: (
+    0: #000000,
+    10: #141414,
+    20: #212121,
+    25: #2C2C2C,
+    30: #363636,
+    35: #404040,
+    40: #4F4F4F,
+    50: #6E6E6E,
+    60: #919191,
+    70: #ACACAC,
+    80: #C8C8C8,
+    90: #E1E1E1,
+    95: #EFEFEF,
+    98: #F8F8F8,
+    99: #FCFCFC,
+    100: #FFFFFF,
+  ),
+  neutral-variant: (
+    0: #000000,
+    10: #141414,
+    20: #212121,
+    25: #2C2C2C,
+    30: #363636,
+    35: #404040,
+    40: #4F4F4F,
+    50: #6E6E6E,
+    60: #919191,
+    70: #ACACAC,
+    80: #C8C8C8,
+    90: #E1E1E1,
+    95: #EFEFEF,
+    98: #F8F8F8,
+    99: #FCFCFC,
+    100: #FFFFFF,
+  ),
+  error: (
+    0: #000000,
+    10: #410002,
+    20: #690005,
+    25: #7E0007,
+    30: #93000A,
+    35: #A80710,
+    40: #BA1A1A,
+    50: #DC3545,
+    60: #FF5449,
+    70: #FF897D,
+    80: #FFB4AB,
+    90: #FFDAD6,
+    95: #FFEDEA,
+    98: #FFF8F7,
+    99: #FFFBFF,
+    100: #FFFFFF,
+  ),
+);
+
+html {
+  color-scheme: light;
+
+  @include mat.theme((
+    color: (
+      primary: $fe-primary-palette,
+      tertiary: $fe-primary-palette,
+      theme-type: light,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+html.fe-dark,
+html[data-fe-theme='dark'] {
+  color-scheme: dark;
+
+  @include mat.theme((
+    color: (
+      primary: $fe-primary-palette,
+      tertiary: $fe-primary-palette,
+      theme-type: dark,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.fe-light):not([data-fe-theme='light']) {
+    color-scheme: dark;
+
+    @include mat.theme((
+      color: (
+        primary: $fe-primary-palette,
+        tertiary: $fe-primary-palette,
+        theme-type: dark,
+      ),
+      typography: Roboto,
+      density: 0,
+    ));
+  }
+}

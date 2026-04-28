@@ -1,0 +1,43 @@
+:host {
+  display: block;
+  min-height: 100%;
+}
+
+.auth-shell {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(180deg, var(--fe-secondary) 0%, var(--fe-bg) 60%);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+
+  form {
+    display: contents;
+  }
+
+  mat-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 8px;
+  }
+
+  mat-form-field {
+    width: 100%;
+  }
+
+  mat-card-actions {
+    gap: 8px;
+  }
+}
+
+.auth-error {
+  color: var(--fe-danger);
+  margin: 4px 0 0;
+  font-size: 13px;
+}

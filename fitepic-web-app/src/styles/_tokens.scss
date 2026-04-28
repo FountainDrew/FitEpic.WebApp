@@ -1,0 +1,87 @@
+@use 'sass:map';
+
+$fe-palette: (
+  primary: #0B4CFF,
+  primary-dark: #6B96FF,
+  primary-dark-text: #0D1A3A,
+  secondary: #D6E0FF,
+  secondary-dark-text: #4D78FF,
+  tertiary: #0035CC,
+  magenta: #D600AA,
+  midnight-blue: #001A80,
+  off-black: #1F1F1F,
+  danger: #DC3545,
+  danger-dark: #FF6B6B,
+  white: #FFFFFF,
+  black: #000000,
+  gray-100: #E1E1E1,
+  gray-200: #C8C8C8,
+  gray-300: #ACACAC,
+  gray-400: #919191,
+  gray-500: #6E6E6E,
+  gray-600: #404040,
+  gray-900: #212121,
+  gray-950: #141414,
+);
+
+@function fe-color($name) {
+  @return map.get($fe-palette, $name);
+}
+
+:root {
+  --fe-primary: #{map.get($fe-palette, primary)};
+  --fe-primary-dark: #{map.get($fe-palette, primary-dark)};
+  --fe-primary-dark-text: #{map.get($fe-palette, primary-dark-text)};
+  --fe-secondary: #{map.get($fe-palette, secondary)};
+  --fe-secondary-dark-text: #{map.get($fe-palette, secondary-dark-text)};
+  --fe-tertiary: #{map.get($fe-palette, tertiary)};
+  --fe-magenta: #{map.get($fe-palette, magenta)};
+  --fe-midnight-blue: #{map.get($fe-palette, midnight-blue)};
+  --fe-off-black: #{map.get($fe-palette, off-black)};
+  --fe-danger: #{map.get($fe-palette, danger)};
+  --fe-danger-dark: #{map.get($fe-palette, danger-dark)};
+  --fe-white: #{map.get($fe-palette, white)};
+  --fe-black: #{map.get($fe-palette, black)};
+  --fe-gray-100: #{map.get($fe-palette, gray-100)};
+  --fe-gray-200: #{map.get($fe-palette, gray-200)};
+  --fe-gray-300: #{map.get($fe-palette, gray-300)};
+  --fe-gray-400: #{map.get($fe-palette, gray-400)};
+  --fe-gray-500: #{map.get($fe-palette, gray-500)};
+  --fe-gray-600: #{map.get($fe-palette, gray-600)};
+  --fe-gray-900: #{map.get($fe-palette, gray-900)};
+  --fe-gray-950: #{map.get($fe-palette, gray-950)};
+
+  --fe-bg: var(--fe-white);
+  --fe-surface: var(--fe-white);
+  --fe-surface-alt: var(--fe-gray-100);
+  --fe-border: var(--fe-gray-200);
+  --fe-text: var(--fe-primary-dark-text);
+  --fe-text-muted: var(--fe-gray-500);
+  --fe-accent: var(--fe-primary);
+  --fe-accent-contrast: var(--fe-white);
+}
+
+:root.fe-dark,
+[data-fe-theme='dark'] {
+  --fe-bg: var(--fe-gray-950);
+  --fe-surface: var(--fe-gray-900);
+  --fe-surface-alt: var(--fe-gray-600);
+  --fe-border: var(--fe-gray-600);
+  --fe-text: var(--fe-white);
+  --fe-text-muted: var(--fe-gray-400);
+  --fe-accent: var(--fe-primary-dark);
+  --fe-accent-contrast: var(--fe-primary-dark-text);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.fe-light):not([data-fe-theme='light']) {
+    --fe-bg: var(--fe-gray-950);
+    --fe-surface: var(--fe-gray-900);
+    --fe-surface-alt: var(--fe-gray-600);
+    --fe-border: var(--fe-gray-600);
+    --fe-text: var(--fe-white);
+    --fe-text-muted: var(--fe-gray-400);
+    --fe-accent: var(--fe-primary-dark);
+    --fe-accent-contrast: var(--fe-primary-dark-text);
+  }
+}
