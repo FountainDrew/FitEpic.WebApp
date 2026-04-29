@@ -1515,6 +1515,229 @@
         }
       }
     },
+    "/api/webapp/athletes/profile/v1": {
+      "get": {
+        "tags": [
+          "WebApp - Athletes"
+        ],
+        "summary": "Get the authenticated athlete's self-profile.",
+        "description": "Possible `error.code` values (see `WebAppErrorCode`):\r\n<list type=\"bullet\"><item><description>`UNAUTHENTICATED` (401)</description></item><item><description>`PROFILE_NOT_FOUND` (404)</description></item></list>",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAthleteProfileResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "WebApp - Athletes"
+        ],
+        "summary": "Update the authenticated athlete's self-profile (display name + timezone).",
+        "description": "Possible `error.code` values (see `WebAppErrorCode`):\r\n<list type=\"bullet\"><item><description>`VALIDATION_FAILED` (400) — model-state error (e.g. missing or oversized `displayName`); `error.details` is keyed by field name.</description></item><item><description>`INVALID_TIMEZONE` (400) — supplied `timezone` is not a recognized IANA identifier.</description></item><item><description>`UNAUTHENTICATED` (401)</description></item><item><description>`PROFILE_NOT_FOUND` (404)</description></item></list>",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UpdateMyAthleteProfileRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UpdateMyAthleteProfileRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UpdateMyAthleteProfileRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyAthleteProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webapp/dashboards/weekly-stats/v1": {
+      "get": {
+        "tags": [
+          "WebApp - Dashboards"
+        ],
+        "summary": "Weekly stats and streak for the authenticated athlete. Week boundaries are computed\r\nin the athlete's profile timezone (Monday 00:00 through Sunday 23:59:59 local).",
+        "description": "Possible `error.code` values on non-2xx responses (see `WebAppErrorCode` for the full enumeration):\r\n<list type=\"bullet\"><item><description>`PROFILE_TIMEZONE_REQUIRED` (400) — athlete has not set a profile timezone.</description></item><item><description>`INVALID_TIMEZONE` (400) — stored timezone is not recognized on the server.</description></item><item><description>`PROFILE_NOT_FOUND` (404) — athlete profile record is missing.</description></item><item><description>`UNAUTHENTICATED` (401) — token missing or invalid.</description></item></list>",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyStatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webapp/dashboards/workouts/v1": {
+      "get": {
+        "tags": [
+          "WebApp - Dashboards"
+        ],
+        "summary": "Workout cards for the dashboard, bucketed into yesterday, today, tomorrow, and a 7-day future window\r\n(all calendar dates resolved in the athlete's profile timezone). Dismissed workouts are excluded.",
+        "description": "Possible `error.code` values on non-2xx responses (see `WebAppErrorCode` for the full enumeration):\r\n<list type=\"bullet\"><item><description>`PROFILE_TIMEZONE_REQUIRED` (400) — athlete has not set a profile timezone.</description></item><item><description>`INVALID_TIMEZONE` (400) — stored timezone is not recognized on the server.</description></item><item><description>`PROFILE_NOT_FOUND` (404) — athlete profile record is missing.</description></item><item><description>`UNAUTHENTICATED` (401) — token missing or invalid.</description></item></list>",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardWorkoutsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/workouts/parse": {
       "post": {
         "tags": [
@@ -2269,6 +2492,176 @@
         "additionalProperties": false,
         "description": "Represents a single connection invite to be created during a sync operation.\r\nThe requesting athlete provides the granting athlete's email address;\r\nthe API resolves it to an athlete ID server-side."
       },
+      "DashboardWorkoutCardResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "GUID of the scheduled workout.",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Workout name (e.g. \"Upper Body\").",
+            "nullable": true
+          },
+          "workoutType": {
+            "type": "string",
+            "description": "Display label for the workout type, e.g. \"Straight Sets\", \"AMRAP\", \"For Time\".",
+            "nullable": true
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "description": "Duration in whole minutes. Athlete-logged when present, else prescribed. Null if neither is set.",
+            "format": "int32",
+            "nullable": true
+          },
+          "exerciseCount": {
+            "type": "integer",
+            "description": "Number of (non-soft-deleted) exercises on the workout.",
+            "format": "int32"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScheduledWorkoutStatus"
+              }
+            ],
+            "description": "Status of the scheduled workout. Only `Pending` and `Completed` are returned."
+          },
+          "scheduledDate": {
+            "type": "string",
+            "description": "Calendar date the workout is scheduled for, in the athlete's local timezone.",
+            "format": "date"
+          },
+          "score": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DashboardWorkoutScoreResponse"
+              }
+            ],
+            "description": "Score block. Populated only when FitEpic.Api.Models.WebApp.Response.DashboardWorkoutCardResponse.Status is `Completed`, the score type is\r\nnot `None`, and a score result is recorded. Null otherwise.",
+            "nullable": true
+          },
+          "rawText": {
+            "type": "string",
+            "description": "Freestyle / unparsed workout description. Used as a body fallback when FitEpic.Api.Models.WebApp.Response.DashboardWorkoutCardResponse.Exercises is empty.",
+            "nullable": true
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardWorkoutExerciseResponse"
+            },
+            "description": "Parsed exercise list. May be empty. No truncation; full list is returned.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DashboardWorkoutExerciseResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Exercise name (standard exercise name when linked, else the user-entered name).",
+            "nullable": true
+          },
+          "summary": {
+            "type": "string",
+            "description": "Pre-formatted per-exercise summary line (e.g. \"3 × 8 @ 135 lbs\", \"3 × 4:32\", \"3 × 5.5 mi\").",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DashboardWorkoutScoreResponse": {
+        "type": "object",
+        "properties": {
+          "scoreType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutScoreType"
+              }
+            ],
+            "description": "The score type enum value, serialized as its name (e.g. \"TimeToComplete\")."
+          },
+          "scoreResult": {
+            "type": "string",
+            "description": "Raw score value as recorded (free-form string interpreted per FitEpic.Api.Models.WebApp.Response.DashboardWorkoutScoreResponse.ScoreType).",
+            "nullable": true
+          },
+          "displayValue": {
+            "type": "string",
+            "description": "Pre-formatted display string, ready to render verbatim.",
+            "nullable": true,
+            "example": "Score: 23:45 Time to Complete"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DashboardWorkoutsResponse": {
+        "type": "object",
+        "properties": {
+          "yesterdayDate": {
+            "type": "string",
+            "description": "Yesterday's calendar date in the athlete's local timezone.",
+            "format": "date",
+            "example": "2026-04-27"
+          },
+          "todayDate": {
+            "type": "string",
+            "description": "Today's calendar date in the athlete's local timezone.",
+            "format": "date",
+            "example": "2026-04-28"
+          },
+          "tomorrowDate": {
+            "type": "string",
+            "description": "Tomorrow's calendar date in the athlete's local timezone.",
+            "format": "date",
+            "example": "2026-04-29"
+          },
+          "futureWindowEnd": {
+            "type": "string",
+            "description": "Inclusive end of the future window — seven calendar days after FitEpic.Api.Models.WebApp.Response.DashboardWorkoutsResponse.TomorrowDate.",
+            "format": "date",
+            "example": "2026-05-06"
+          },
+          "yesterday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardWorkoutCardResponse"
+            },
+            "description": "Cards scheduled for yesterday. Suppressed at render time when empty.",
+            "nullable": true
+          },
+          "today": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardWorkoutCardResponse"
+            },
+            "description": "Cards scheduled for today. Always rendered (empty list = empty-state body on the client).",
+            "nullable": true
+          },
+          "tomorrow": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardWorkoutCardResponse"
+            },
+            "description": "Cards scheduled for tomorrow. Always rendered (empty list = empty-state body on the client).",
+            "nullable": true
+          },
+          "future": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardWorkoutCardResponse"
+            },
+            "description": "Cards scheduled in the seven calendar days after tomorrow.\r\nSorted by FitEpic.Api.Models.WebApp.Response.DashboardWorkoutCardResponse.ScheduledDate ascending, then by name.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "DistanceUnit": {
         "enum": [
           "Meters",
@@ -2288,6 +2681,31 @@
           "Reps"
         ],
         "type": "string"
+      },
+      "MyAthleteProfileResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the athlete.",
+            "nullable": true,
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "The athlete's display name.",
+            "nullable": true,
+            "example": "Drew Engelmeyer"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA timezone identifier; null when the athlete has not yet set one.",
+            "nullable": true,
+            "example": "America/Chicago"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The authenticated athlete's self-profile (Web App surface). Distinct from\r\n`AthleteProfileResponse`, which represents a connected athlete's display\r\ndata on the Mobile surface."
       },
       "ParseWorkoutErrorResponse": {
         "type": "object",
@@ -3045,6 +3463,28 @@
         "additionalProperties": false,
         "description": "Request body for toggling a reaction on a completed workout."
       },
+      "UpdateMyAthleteProfileRequest": {
+        "required": [
+          "displayName"
+        ],
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string",
+            "description": "The athlete's display name. Required, max 100 characters.",
+            "example": "Drew Engelmeyer"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA timezone identifier (e.g. \"America/Chicago\"). Pass null to clear.",
+            "nullable": true,
+            "example": "America/Chicago"
+          }
+        },
+        "additionalProperties": false
+      },
       "WeatherForecast": {
         "type": "object",
         "properties": {
@@ -3064,6 +3504,131 @@
           "summary": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebAppErrorBody": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WebAppErrorCode"
+              }
+            ],
+            "description": "Stable machine-readable error code. Clients should switch on this value."
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message. Not stable; do not match on this.",
+            "nullable": true
+          },
+          "details": {
+            "description": "Optional structured details (e.g., per-field validation messages).",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebAppErrorCode": {
+        "enum": [
+          "UNAUTHENTICATED",
+          "VALIDATION_FAILED",
+          "PROFILE_NOT_FOUND",
+          "PROFILE_TIMEZONE_REQUIRED",
+          "INVALID_TIMEZONE"
+        ],
+        "type": "string"
+      },
+      "WebAppErrorEnvelope": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WebAppErrorBody"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Shape returned by /api/webapp/... endpoints for any non-2xx response."
+      },
+      "WeeklyStatsCardsResponse": {
+        "type": "object",
+        "properties": {
+          "workoutsCompleted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "workoutsScheduled": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalDurationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalWeightLiftedLbs": {
+            "type": "number",
+            "format": "double"
+          },
+          "exercisesPerformed": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WeeklyStatsResponse": {
+        "type": "object",
+        "properties": {
+          "weekStart": {
+            "type": "string",
+            "description": "Monday of the week (in athlete's local timezone), as a date.",
+            "format": "date",
+            "example": "2026-04-27"
+          },
+          "weekEnd": {
+            "type": "string",
+            "description": "Sunday of the week (in athlete's local timezone), as a date.",
+            "format": "date",
+            "example": "2026-05-03"
+          },
+          "stats": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WeeklyStatsCardsResponse"
+              }
+            ],
+            "nullable": true
+          },
+          "streak": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WeeklyStatsStreakResponse"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WeeklyStatsStreakResponse": {
+        "type": "object",
+        "properties": {
+          "currentStreakDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completedInLast7Days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasHistory": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -3887,6 +4452,12 @@
     },
     {
       "name": "WeatherForecast"
+    },
+    {
+      "name": "WebApp - Athletes"
+    },
+    {
+      "name": "WebApp - Dashboards"
     },
     {
       "name": "Workouts"

@@ -12,3 +12,33 @@ body {
   background-color: var(--fe-bg);
   color: var(--fe-text);
 }
+
+.mat-mdc-menu-panel {
+  --mat-menu-container-color: var(--fe-surface);
+  background-color: var(--fe-surface);
+  color: var(--fe-text);
+}
+
+.skeleton {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--fe-surface-alt) 0%,
+    color-mix(in srgb, var(--fe-surface-alt) 55%, var(--fe-text) 15%) 50%,
+    var(--fe-surface-alt) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

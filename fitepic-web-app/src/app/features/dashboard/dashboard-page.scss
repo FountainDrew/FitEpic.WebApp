@@ -4,3 +4,259 @@
   font-weight: 500;
   color: var(--fe-text);
 }
+
+.skeleton-streak {
+  width: 140px;
+  height: 36px;
+  border-radius: 999px;
+}
+
+.skeleton-week-range {
+  width: 220px;
+  height: 14px;
+}
+
+.skeleton-stat-label {
+  width: 65%;
+  height: 12px;
+  margin-bottom: 12px;
+}
+
+.skeleton-stat-value {
+  width: 50%;
+  height: 30px;
+}
+
+.skeleton-stat-value-lg {
+  width: 55%;
+  height: 38px;
+}
+
+.skeleton-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.skeleton-section-date {
+  width: 160px;
+  height: 13px;
+}
+
+.workout-card-skeleton {
+  background-color: var(--fe-surface);
+  border: 1px solid var(--fe-border);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.18),
+    0 6px 16px rgba(0, 0, 0, 0.12);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.workout-card-skeleton-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.skeleton-card-title {
+  width: 60%;
+  height: 18px;
+}
+
+.skeleton-card-badge {
+  width: 70px;
+  height: 18px;
+  border-radius: 999px;
+}
+
+.skeleton-card-meta {
+  width: 75%;
+  height: 12px;
+  margin-bottom: 6px;
+}
+
+.skeleton-card-line {
+  width: 100%;
+  height: 14px;
+
+  &.short {
+    width: 60%;
+  }
+}
+
+.week-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.week-range {
+  font-size: 14px;
+  color: var(--fe-text-muted, var(--fe-text));
+  opacity: 0.85;
+}
+
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--fe-surface-alt, rgba(0, 0, 0, 0.04));
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--fe-text);
+  box-shadow: 0 0 0 1px var(--fe-border, transparent);
+
+  mat-icon {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+  }
+}
+
+.streak-badge.streak-active {
+  background: color-mix(in srgb, var(--fe-primary) 18%, transparent);
+  color: var(--fe-primary);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--fe-primary) 40%, transparent),
+    0 4px 14px color-mix(in srgb, var(--fe-primary) 25%, transparent);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  height: 100%;
+}
+
+.stat-card-featured {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--fe-primary) 30%, transparent);
+}
+
+.stat-card-featured .stat-value {
+  font-size: 40px;
+}
+
+.progress-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.progress-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--fe-primary) 40%, transparent);
+  background: transparent;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.progress-dot.filled {
+  background: var(--fe-primary);
+  border-color: var(--fe-primary);
+}
+
+.error-card {
+  margin-bottom: 16px;
+
+  p {
+    margin: 0 0 8px;
+  }
+}
+
+.workout-section {
+  margin-top: 32px;
+}
+
+.workout-section-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  margin-bottom: 12px;
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--fe-text);
+  }
+}
+
+.workout-section-date {
+  font-size: 13px;
+  color: var(--fe-text);
+  opacity: 0.65;
+}
+
+.workout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.workout-empty {
+  padding: 16px;
+  border: 1px dashed var(--fe-border);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--fe-text);
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.future-group {
+  margin-top: 16px;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.future-group-date {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fe-text);
+  opacity: 0.85;
+}
+
+.stat-label {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fe-text);
+  opacity: 0.7;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 500;
+  color: var(--fe-text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.stat-suffix {
+  font-size: 14px;
+  font-weight: 400;
+  opacity: 0.65;
+}

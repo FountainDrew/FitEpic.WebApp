@@ -53,6 +53,14 @@ export type { GetWeatherForecast$Plain$Params as GetWeatherForecast$Plain$Params
 export { getWeatherForecast$Plain as getWeatherForecast$Plain } from './fn/weather-forecast/get-weather-forecast-plain';
 export type { GetWeatherForecast$Json$Params as GetWeatherForecast$Json$Params } from './fn/weather-forecast/get-weather-forecast-json';
 export { getWeatherForecast$Json as getWeatherForecast$Json } from './fn/weather-forecast/get-weather-forecast-json';
+export type { ApiWebappAthletesProfileV1Get$Params as ApiWebappAthletesProfileV1Get$Params } from './fn/web-app-athletes/api-webapp-athletes-profile-v-1-get';
+export { apiWebappAthletesProfileV1Get as apiWebappAthletesProfileV1Get } from './fn/web-app-athletes/api-webapp-athletes-profile-v-1-get';
+export type { ApiWebappAthletesProfileV1Put$Params as ApiWebappAthletesProfileV1Put$Params } from './fn/web-app-athletes/api-webapp-athletes-profile-v-1-put';
+export { apiWebappAthletesProfileV1Put as apiWebappAthletesProfileV1Put } from './fn/web-app-athletes/api-webapp-athletes-profile-v-1-put';
+export type { ApiWebappDashboardsWeeklyStatsV1Get$Params as ApiWebappDashboardsWeeklyStatsV1Get$Params } from './fn/web-app-dashboards/api-webapp-dashboards-weekly-stats-v-1-get';
+export { apiWebappDashboardsWeeklyStatsV1Get as apiWebappDashboardsWeeklyStatsV1Get } from './fn/web-app-dashboards/api-webapp-dashboards-weekly-stats-v-1-get';
+export type { ApiWebappDashboardsWorkoutsV1Get$Params as ApiWebappDashboardsWorkoutsV1Get$Params } from './fn/web-app-dashboards/api-webapp-dashboards-workouts-v-1-get';
+export { apiWebappDashboardsWorkoutsV1Get as apiWebappDashboardsWorkoutsV1Get } from './fn/web-app-dashboards/api-webapp-dashboards-workouts-v-1-get';
 export type { WorkoutsParsePost$Params as WorkoutsParsePost$Params } from './fn/workouts/workouts-parse-post';
 export { workoutsParsePost as workoutsParsePost } from './fn/workouts/workouts-parse-post';
 export type { WorkoutsSyncPost$Params as WorkoutsSyncPost$Params } from './fn/workouts/workouts-sync-post';

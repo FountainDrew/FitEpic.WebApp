@@ -1,0 +1,36 @@
+.page-title {
+  margin: 0 0 16px;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--fe-text);
+}
+
+.skeleton-card-title {
+  display: inline-block;
+  width: 160px;
+  height: 22px;
+}
+
+.skeleton-field {
+  width: 100%;
+  max-width: 480px;
+  height: 56px;
+  border-radius: 6px;
+}
+
+.reason-card {
+  margin-bottom: 16px;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 480px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}

@@ -1,15 +1,200 @@
 <h1 class="page-title">Dashboard</h1>
 
-<mat-card>
-  <mat-card-header>
-    <mat-card-title>Welcome back</mat-card-title>
-    @if (user(); as u) {
-      <mat-card-subtitle>
-        Signed in as {{ u.name || u.email }} · token expires {{ u.expiresAt | date:'short' }}
-      </mat-card-subtitle>
+@if (statsLoading()) {
+  <section class="week-header" aria-hidden="true">
+    <span class="skeleton skeleton-streak"></span>
+    <span class="skeleton skeleton-week-range"></span>
+  </section>
+  <section class="stats-grid" aria-hidden="true">
+    <mat-card class="stat-card stat-card-featured">
+      <mat-card-content>
+        <span class="skeleton skeleton-stat-label"></span>
+        <span class="skeleton skeleton-stat-value-lg"></span>
+        <div class="progress-dots">
+          <span class="skeleton skeleton-dot"></span>
+          <span class="skeleton skeleton-dot"></span>
+          <span class="skeleton skeleton-dot"></span>
+          <span class="skeleton skeleton-dot"></span>
+          <span class="skeleton skeleton-dot"></span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+    @for (_ of [0, 1, 2]; track $index) {
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <span class="skeleton skeleton-stat-label"></span>
+          <span class="skeleton skeleton-stat-value"></span>
+        </mat-card-content>
+      </mat-card>
     }
-  </mat-card-header>
-  <mat-card-content>
-    <p>Phase 4 admin shell is live. Real dashboard content will land in a later phase.</p>
-  </mat-card-content>
-</mat-card>
+  </section>
+} @else if (statsError()) {
+  <mat-card class="error-card">
+    <mat-card-content>
+      <p>{{ statsError() }}</p>
+      <button mat-button color="primary" (click)="retryStats()">Retry</button>
+    </mat-card-content>
+  </mat-card>
+} @else if (stats(); as s) {
+  <section class="week-header">
+    @if (s.streak?.hasHistory) {
+      @if ((s.streak?.currentStreakDays ?? 0) > 0) {
+        <div class="streak-badge streak-active">
+          <mat-icon>local_fire_department</mat-icon>
+          <span>{{ s.streak?.currentStreakDays }} day streak</span>
+        </div>
+      } @else {
+        <div class="streak-badge">
+          <mat-icon>event_available</mat-icon>
+          <span>{{ s.streak?.completedInLast7Days }} of last 7 days</span>
+        </div>
+      }
+    }
+    <div class="week-range">
+      Week of {{ s.weekStart | date:'mediumDate' }} – {{ s.weekEnd | date:'mediumDate' }}
+    </div>
+  </section>
+
+  <section class="stats-grid">
+    <mat-card class="stat-card stat-card-featured">
+      <mat-card-content>
+        <div class="stat-label">Workouts completed</div>
+        <div class="stat-value">
+          {{ s.stats?.workoutsCompleted ?? 0 }}
+          <span class="stat-suffix">of {{ s.stats?.workoutsScheduled ?? 0 }}</span>
+        </div>
+        @if (progressDots().length) {
+          <div class="progress-dots" aria-hidden="true">
+            @for (filled of progressDots(); track $index) {
+              <span class="progress-dot" [class.filled]="filled"></span>
+            }
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-label">Total workout time</div>
+        <div class="stat-value">{{ formatDuration(s.stats?.totalDurationMinutes) }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-label">Weight lifted</div>
+        <div class="stat-value">
+          {{ s.stats?.totalWeightLiftedLbs ?? 0 | number:'1.0-0' }}
+          <span class="stat-suffix">lbs</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-label">Exercises performed</div>
+        <div class="stat-value">{{ s.stats?.exercisesPerformed ?? 0 }}</div>
+      </mat-card-content>
+    </mat-card>
+  </section>
+}
+
+@if (workoutsLoading()) {
+  @for (label of ['Today', 'Tomorrow']; track label) {
+    <section class="workout-section" aria-hidden="true">
+      <header class="workout-section-header">
+        <h2>{{ label }}</h2>
+        <span class="skeleton skeleton-section-date"></span>
+      </header>
+      <div class="workout-grid">
+        @for (_ of [0, 1]; track $index) {
+          <div class="workout-card-skeleton">
+            <div class="workout-card-skeleton-header">
+              <span class="skeleton skeleton-card-title"></span>
+              <span class="skeleton skeleton-card-badge"></span>
+            </div>
+            <span class="skeleton skeleton-card-meta"></span>
+            <span class="skeleton skeleton-card-line"></span>
+            <span class="skeleton skeleton-card-line"></span>
+            <span class="skeleton skeleton-card-line short"></span>
+          </div>
+        }
+      </div>
+    </section>
+  }
+} @else if (workoutsError()) {
+  <mat-card class="error-card">
+    <mat-card-content>
+      <p>{{ workoutsError() }}</p>
+      <button mat-button color="primary" (click)="retryWorkouts()">Retry</button>
+    </mat-card-content>
+  </mat-card>
+} @else if (workouts(); as w) {
+  <section class="workout-section">
+    <header class="workout-section-header">
+      <h2>Today</h2>
+      <span class="workout-section-date">{{ w.todayDate | date:'EEEE, MMM d' }}</span>
+    </header>
+    @if (w.today && w.today.length > 0) {
+      <div class="workout-grid">
+        @for (card of w.today; track card.id) {
+          <app-workout-card [card]="card" />
+        }
+      </div>
+    } @else {
+      <div class="workout-empty">No workouts scheduled today.</div>
+    }
+  </section>
+
+  <section class="workout-section">
+    <header class="workout-section-header">
+      <h2>Tomorrow</h2>
+      <span class="workout-section-date">{{ w.tomorrowDate | date:'EEEE, MMM d' }}</span>
+    </header>
+    @if (w.tomorrow && w.tomorrow.length > 0) {
+      <div class="workout-grid">
+        @for (card of w.tomorrow; track card.id) {
+          <app-workout-card [card]="card" />
+        }
+      </div>
+    } @else {
+      <div class="workout-empty">No workouts scheduled for tomorrow.</div>
+    }
+  </section>
+
+  @if (w.yesterday && w.yesterday.length > 0) {
+    <section class="workout-section">
+      <header class="workout-section-header">
+        <h2>Yesterday</h2>
+        <span class="workout-section-date">{{ w.yesterdayDate | date:'EEEE, MMM d' }}</span>
+      </header>
+      <div class="workout-grid">
+        @for (card of w.yesterday; track card.id) {
+          <app-workout-card [card]="card" />
+        }
+      </div>
+    </section>
+  }
+
+  @if (futureGroups().length > 0) {
+    <section class="workout-section">
+      <header class="workout-section-header">
+        <h2>Future</h2>
+        <span class="workout-section-date">through {{ w.futureWindowEnd | date:'mediumDate' }}</span>
+      </header>
+      @for (group of futureGroups(); track group.date) {
+        <div class="future-group">
+          <h3 class="future-group-date">{{ group.date | date:'EEEE, MMM d' }}</h3>
+          <div class="workout-grid">
+            @for (card of group.cards; track card.id) {
+              <app-workout-card [card]="card" />
+            }
+          </div>
+        </div>
+      }
+    </section>
+  }
+}
+
+<app-workout-drawer />
+

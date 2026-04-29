@@ -1,0 +1,48 @@
+<mat-card
+  class="workout-card"
+  role="button"
+  tabindex="0"
+  (click)="open()"
+  (keydown)="onKeydown($event)"
+  [attr.aria-label]="'View details for ' + card().name"
+>
+  <mat-card-content>
+    <header class="workout-card-header">
+      <h3 class="workout-card-title">{{ card().name }}</h3>
+      @if (card().status === 'Completed') {
+        <span class="status-badge status-completed">Completed</span>
+      } @else if (card().status === 'Pending') {
+        <span class="status-badge status-pending">Pending</span>
+      }
+    </header>
+
+    @if (metaLine()) {
+      <div class="workout-card-meta">{{ metaLine() }}</div>
+    }
+
+    <div class="workout-card-body">
+      @switch (bodyMode()) {
+        @case ('raw') {
+          <pre class="raw-text">{{ card().rawText }}</pre>
+        }
+        @case ('exercises') {
+          <ul class="exercise-list">
+            @for (ex of card().exercises; track $index) {
+              <li class="exercise-item">
+                <span class="exercise-name">{{ ex.name }}</span>
+                <span class="exercise-summary">{{ ex.summary }}</span>
+              </li>
+            }
+          </ul>
+        }
+        @default {
+          <div class="placeholder">No additional workout info available.</div>
+        }
+      }
+    </div>
+
+    @if (card().score?.displayValue) {
+      <div class="workout-card-score">{{ card().score!.displayValue }}</div>
+    }
+  </mat-card-content>
+</mat-card>

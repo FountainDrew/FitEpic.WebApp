@@ -1,0 +1,74 @@
+@if (service.workout(); as w) {
+  <div class="drawer-backdrop" (click)="close()" aria-hidden="true"></div>
+  <aside
+    class="drawer"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="'drawer-title'"
+  >
+    <header class="drawer-header">
+      <div class="drawer-header-text">
+        <h2 id="drawer-title" class="drawer-title">{{ w.name }}</h2>
+        <div class="drawer-subtitle">
+          @if (w.status === 'Completed') {
+            <span class="status-badge status-completed">Completed</span>
+          } @else if (w.status === 'Pending') {
+            <span class="status-badge status-pending">Pending</span>
+          }
+          @if (metaLine()) {
+            <span class="drawer-meta">{{ metaLine() }}</span>
+          }
+        </div>
+      </div>
+      <button mat-icon-button (click)="close()" aria-label="Close">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <div class="drawer-body">
+      @if (hasRawText()) {
+        <section class="drawer-section">
+          <h3 class="section-title">Description</h3>
+          <pre class="raw-text">{{ w.rawText }}</pre>
+        </section>
+      }
+
+      @if (hasExercises()) {
+        <section class="drawer-section">
+          <h3 class="section-title">Exercises</h3>
+          <ul class="exercise-list">
+            @for (ex of w.exercises; track $index) {
+              <li class="exercise-item">
+                <div class="exercise-prescribed">
+                  <span class="exercise-name">{{ ex.name }}</span>
+                  <span class="exercise-summary">{{ ex.summary }}</span>
+                </div>
+                @if (isCompleted()) {
+                  <ul class="exercise-logs">
+                    <li class="exercise-log-placeholder">
+                      <mat-icon class="log-icon">history</mat-icon>
+                      <span>Logged sets will appear here</span>
+                    </li>
+                  </ul>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (!hasRawText() && !hasExercises()) {
+        <section class="drawer-section">
+          <div class="placeholder">No additional workout info available.</div>
+        </section>
+      }
+
+      @if (w.score?.displayValue) {
+        <section class="drawer-section">
+          <h3 class="section-title">Score</h3>
+          <div class="drawer-score">{{ w.score!.displayValue }}</div>
+        </section>
+      }
+    </div>
+  </aside>
+}
