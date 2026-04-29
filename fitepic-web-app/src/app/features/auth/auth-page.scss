@@ -6,15 +6,77 @@
 .auth-shell {
   min-height: 100dvh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: linear-gradient(180deg, var(--fe-secondary) 0%, var(--fe-bg) 60%);
+  color: var(--fe-white);
+
+  background:
+    radial-gradient(
+      ellipse 90% 50% at 50% 0%,
+      color-mix(in srgb, var(--fe-primary) 32%, transparent) 0%,
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 70% 60% at 100% 100%,
+      color-mix(in srgb, var(--fe-magenta) 20%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(180deg, #0a1330 0%, #050917 100%);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 32px;
+  color: var(--fe-white);
+}
+
+.auth-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--fe-primary);
+  color: var(--fe-white);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--fe-primary) 55%, transparent);
+}
+
+.auth-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.auth-brand-name {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.auth-brand-tagline {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.7;
+  letter-spacing: 0.02em;
 }
 
 .auth-card {
   width: 100%;
   max-width: 420px;
+  background: var(--fe-surface);
+  border: 1px solid color-mix(in srgb, var(--fe-white) 12%, transparent);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 24px 60px rgba(0, 0, 0, 0.4);
 
   form {
     display: contents;

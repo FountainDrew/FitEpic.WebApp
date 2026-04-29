@@ -26,6 +26,13 @@
     </header>
 
     <div class="drawer-body">
+      @if (durationDisplay()) {
+        <div class="duration-pill">
+          <mat-icon>schedule</mat-icon>
+          <span>{{ durationDisplay() }}</span>
+        </div>
+      }
+
       @if (hasRawText()) {
         <section class="drawer-section">
           <h3 class="section-title">Description</h3>
@@ -35,20 +42,33 @@
 
       @if (hasExercises()) {
         <section class="drawer-section">
-          <h3 class="section-title">Exercises</h3>
+          <h3 class="section-title">{{ isCompleted() ? 'Exercise Logs' : 'Exercises' }}</h3>
           <ul class="exercise-list">
             @for (ex of w.exercises; track $index) {
               <li class="exercise-item">
                 <div class="exercise-prescribed">
                   <span class="exercise-name">{{ ex.name }}</span>
-                  <span class="exercise-summary">{{ ex.summary }}</span>
+                  @if (ex.summary) {
+                    <span class="exercise-summary">{{ ex.summary }}</span>
+                  }
                 </div>
-                @if (isCompleted()) {
+                @if (ex.logs && ex.logs.length > 0) {
                   <ul class="exercise-logs">
-                    <li class="exercise-log-placeholder">
-                      <mat-icon class="log-icon">history</mat-icon>
-                      <span>Logged sets will appear here</span>
-                    </li>
+                    @for (log of ex.logs; track $index) {
+                      <li class="exercise-log">
+                        <div class="exercise-log-row">
+                          @if (setLabel(log); as label) {
+                            <span class="exercise-log-label">{{ label }}</span>
+                          }
+                          @if (log.summary) {
+                            <span class="exercise-log-summary">{{ log.summary }}</span>
+                          }
+                        </div>
+                        @if (log.notes) {
+                          <div class="exercise-log-notes">"{{ log.notes }}"</div>
+                        }
+                      </li>
+                    }
                   </ul>
                 }
               </li>

@@ -2571,6 +2571,42 @@
             "type": "string",
             "description": "Pre-formatted per-exercise summary line (e.g. \"3 × 8 @ 135 lbs\", \"3 × 4:32\", \"3 × 5.5 mi\").",
             "nullable": true
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardWorkoutLogResponse"
+            },
+            "description": "Athlete's logged sets for this exercise. Populated only when the parent card has\r\n`Status == Completed` and at least one log exists. `null` otherwise.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DashboardWorkoutLogResponse": {
+        "type": "object",
+        "properties": {
+          "setNumber": {
+            "type": "integer",
+            "description": "Set ordinal within the exercise. Null when the athlete didn't record a set number.",
+            "format": "int32",
+            "nullable": true
+          },
+          "roundNumber": {
+            "type": "integer",
+            "description": "Round ordinal (relevant for AMRAP/EMOM workouts). Null otherwise.",
+            "format": "int32",
+            "nullable": true
+          },
+          "summary": {
+            "type": "string",
+            "description": "Pre-formatted per-log summary (e.g. \"8 @ 135 lbs\", \"4:32\", \"500 m\"). Empty string\r\nwhen no actuals were recorded — render the row anyway so FitEpic.Api.Models.WebApp.Response.DashboardWorkoutLogResponse.Notes /\r\nFitEpic.Api.Models.WebApp.Response.DashboardWorkoutLogResponse.SetNumber / FitEpic.Api.Models.WebApp.Response.DashboardWorkoutLogResponse.RoundNumber remain visible.",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "description": "Athlete-entered free-text note for this set, or null.",
+            "nullable": true
           }
         },
         "additionalProperties": false

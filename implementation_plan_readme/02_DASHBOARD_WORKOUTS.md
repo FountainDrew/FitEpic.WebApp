@@ -23,6 +23,33 @@ If the Web App later needs a precise completion time (e.g. a "completed at 7:42 
 
 ---
 
+## Addendum — 2026-04-29 (API team — athlete logs on completed cards)
+
+Completed scheduled workouts now expose the athlete's logged sets so the Web App can render results alongside the prescription. The shape:
+
+- A new `logs` array hangs off each entry in the existing `exercises` array. Populated only when the parent card has `status === "Completed"` and at least one log exists for that exercise. Omitted (or `null`) otherwise.
+- **Ad-hoc logs** — if the athlete logged an exercise that wasn't in the prescription (no `WorkoutExerciseId`), the server appends a synthetic entry to the `exercises` array with `summary: ""` and the logs attached. `exerciseCount` reflects the union of prescribed + ad-hoc, matching what the athlete actually did.
+- **No truncation.** A long EMOM might produce 60+ log rows; the full list is returned. UI design has accounted for this.
+
+Each log entry:
+
+```json
+{
+  "setNumber": 1,
+  "roundNumber": null,
+  "summary": "8 @ 135 lbs",
+  "notes": "felt heavy"
+}
+```
+
+- `setNumber` / `roundNumber` are the raw values from the log row (`SetNumber` / `RoundNumber`). Either may be `null`. `roundNumber` is mainly relevant for AMRAP/EMOM workouts.
+- `summary` is server-formatted from the actuals; format mirrors the prescription summary rules (per `MeasurementType`) but applied to the `Actual*` fields and **without** the `sets ×` prefix — each log line is one set/round.
+- `notes` is the athlete-entered free-text note for that set, or `null`.
+
+See §1.1 for the per-log summary format, §2.1 for the full updated schema, and §6.10 for the API implementation plan.
+
+---
+
 ## Addendum — 2026-04-28 (Web App team — body-picker flipped)
 
 **Body-picker priority is reversed.** The previous spec preferred the parsed `exercises` list and fell back to `rawText`. That order is now flipped:
@@ -87,6 +114,19 @@ Driven by the exercise's `MeasurementType` (`Reps` | `Time` | `Distance` | `Calo
 
 **Empty `summary`.** When the exercise has no recorded set count (`Sets` is null or `0`), the server returns `summary: ""`. The Web App should suppress the summary line entirely in that case rather than rendering an empty pill — the exercise still appears in the list (its `name` is shown), just without a per-line summary underneath.
 
+#### Per-log summary format (Completed cards only)
+
+When the parent card is `Completed`, each exercise entry may carry a `logs` array. Each log's `summary` is server-formatted from the recorded actuals using the same `MeasurementType`-driven rules as the prescription summary, but **without** the `sets ×` prefix — each log line represents one set/round:
+
+- **Reps (default)**: `{actualReps}`, optionally `{actualReps} @ {actualWeightLbs} lbs`. Examples: `8`, `8 @ 135 lbs`.
+- **Time**: `{h:mm:ss or m:ss}` formatted from `ActualDurationSeconds`. Examples: `4:32`, `1:23:45`.
+- **Distance**: `{actualDistance} {unit}` (unit from `ActualDistanceUnit`). Examples: `5.5 mi`, `500 m`.
+- **Calories**: `{actualCalories} cal`. Example: `50 cal`.
+
+Measurement type detection: when the log row has a `WorkoutExerciseId`, the server uses the parent exercise's `MeasurementType`. For ad-hoc logs (no `WorkoutExerciseId`), the server falls back to detection by which `Actual*` field is populated.
+
+If none of the actuals are populated, the per-log `summary` is `""`. The `notes` (if any) and `setNumber` / `roundNumber` are still returned and the row should still render.
+
 ### 1.2 Empty states
 
 - **Today** — always renders. Empty body text: "No workouts scheduled today."
@@ -131,8 +171,16 @@ Returns the four workout sections in a single response.
   "score": null,
   "rawText": null,
   "exercises": [
-    { "name": "Bench Press", "summary": "3 × 8 @ 135 lbs" },
-    { "name": "Pull-ups", "summary": "3 × 10" }
+    {
+      "name": "Bench Press",
+      "summary": "3 × 8 @ 135 lbs",
+      "logs": [
+        { "setNumber": 1, "roundNumber": null, "summary": "8 @ 135 lbs", "notes": null },
+        { "setNumber": 2, "roundNumber": null, "summary": "8 @ 135 lbs", "notes": null },
+        { "setNumber": 3, "roundNumber": null, "summary": "6 @ 145 lbs", "notes": "felt heavy" }
+      ]
+    },
+    { "name": "Pull-ups", "summary": "3 × 10", "logs": null }
   ]
 }
 ```
@@ -159,7 +207,7 @@ Field types:
   | `Intervals` | `"Intervals"` |
   | `Other` | `"Other"` |
 - `durationMinutes` — integer; `null` if no duration recorded. Sourced from `ScheduledWorkout.Duration` (the athlete-logged actual duration) when present, otherwise from `Workout.Duration` (the prescribed value). In practice this means Completed cards show the actual time the athlete logged, and Pending cards show the prescribed/planned duration.
-- `exerciseCount` — integer; equal to `exercises.length`. Even raw-text / freestyle workouts that happen to have parsed exercises report a non-zero count. The meta line drops the segment when `0`.
+- `exerciseCount` — integer; equal to `exercises.length` *after* any synthetic ad-hoc entries (Completed cards) are appended — i.e. the count of distinct exercises the athlete actually performed (or that were prescribed for Pending cards). Even raw-text / freestyle workouts that happen to have parsed exercises report a non-zero count. The meta line drops the segment when `0`.
 - `status` — `"Pending"` | `"Completed"`. The underlying `ScheduledWorkoutStatus` enum also has `Dismissed`, but those cards are filtered out server-side (see §2.1 behavior) and never appear in any of the four sections.
 - `scheduledDate` — ISO date in athlete timezone. For Completed cards this is also the date the workout was performed; the response does not include a precise completion timestamp (see Addendum).
 - `score` — object or `null`. Populated **only** when `status === "Completed"`, `scoreResult` is non-empty, and `scoreType !== "None"`. Otherwise `null`.
@@ -194,8 +242,10 @@ Field types:
     | `TieBreakTime` | `"Tie-Break Time"` |
     | `CustomNumeric` | `Workout.ScoreLabel` (free-form unit label set on the workout); falls back to `"Custom"` if `ScoreLabel` is missing |
 - `rawText` — string or `null`. The freestyle / unparsed description of a workout (e.g. an AMRAP description). Used as a body fallback when `exercises` is empty.
-- `exercises` — array of `{ "name": string, "summary": string }`; may be empty. List ordering matches `WorkoutExercise.OrderIndex` ascending. Soft-deleted exercises are excluded. The summary is pre-formatted server-side per the rules in §1.1. **No truncation** — the API returns the full list and the client renders it all.
-  - `name` — prefer the linked standard exercise's name when `WorkoutExercise.StandardExerciseId` is populated; otherwise fall back to `WorkoutExercise.UserEnteredExerciseName`.
+- `exercises` — array of `{ "name": string, "summary": string, "logs": DashboardWorkoutLog[] | null }`; may be empty. List ordering matches `WorkoutExercise.OrderIndex` ascending. Soft-deleted exercises (and soft-deleted logs) are excluded. The prescription summary is pre-formatted server-side per the rules in §1.1. **No truncation** — the API returns the full list (prescribed exercises + ad-hoc logs + every log row) and the client renders it all.
+  - `name` — prefer the linked standard exercise's name when `WorkoutExercise.StandardExerciseId` is populated; otherwise fall back to `WorkoutExercise.UserEnteredExerciseName`. For synthetic ad-hoc entries (logs that have no `WorkoutExerciseId`), `name` is the `ExerciseName` recorded on the log row.
+  - `summary` — prescription summary, server-formatted per §1.1. Empty string (`""`) for ad-hoc entries (no prescription) or when `Sets` is null/0.
+  - `logs` — populated only when the parent card has `status === "Completed"` and at least one log exists for the exercise. `null` (or omitted) otherwise. Each log entry: `{ "setNumber": int|null, "roundNumber": int|null, "summary": string, "notes": string|null }`. Logs are ordered by `OrderIndex` ascending (then `SetNumber` ascending as a tiebreaker). Per-log `summary` is server-formatted per §1.1's per-log rules. Empty string when no actuals were recorded (the row should still render so `notes` and `setNumber`/`roundNumber` are visible).
 
 The Web App's body-picking rule is documented in §1.1 (prefer `exercises`, fall back to `rawText`, fall back to a placeholder).
 
@@ -359,6 +409,56 @@ public async Task<IActionResult> GetDashboardWorkoutsV1(CancellationToken ct)
 - The Mobile rename + re-mount (§4) — separate change.
 - Any new schema columns. The existing `ScheduledWorkout`/`Workout`/`WorkoutExercise` columns are sufficient given the decisions above.
 
+### 6.10 Athlete logs on completed cards (incremental)
+
+Adds the `logs` array on each `exercises` entry per the 2026-04-29 addendum. Layered on top of the §6.1–§6.4 implementation; no schema changes.
+
+**New files**
+
+| Layer | File |
+|---|---|
+| Service model | `FitEpic.Api.ServiceModels/WebApp/DashboardWorkoutLog.cs` |
+| Per-log summary helper | `FitEpic.Services/WebApp/WorkoutLogSummaryBuilder.cs` |
+
+**Edits to existing files**
+
+| File | Change |
+|---|---|
+| `FitEpic.Api.ServiceModels/WebApp/DashboardWorkoutExercise.cs` | Add `List<DashboardWorkoutLog>? Logs { get; set; }`. |
+| `FitEpic.Api/Models/WebApp/Response/DashboardWorkoutsResponse.cs` | Add `DashboardWorkoutLogResponse` type and a nullable `Logs` list on `DashboardWorkoutExerciseResponse`. |
+| `FitEpic.Services/Abstractions/Repositories/WebApp/IWebAppDashboardRepository.cs` | Add `DashboardScheduledWorkoutLogRaw` POCO; widen `DashboardScheduledWorkoutRaw` to optionally carry the raw log rows for that scheduled workout (or return them as a sibling `Dictionary<string, List<…>>` keyed by `ScheduledWorkoutId` from the same method). |
+| `FItEpic.Api.Repositories/Repositories/WebApp/WebAppDashboardRepository.cs` | Add a fourth roundtrip: pull `WorkoutExerciseLogs` where `!IsDeleted` and `ScheduledWorkoutId` is in the set of *Completed* scheduled workouts in the date range. Project to `DashboardScheduledWorkoutLogRaw` (id, scheduledWorkoutId, workoutExerciseId, exerciseName, set/round/order, all `Actual*` fields, notes). Attach to the matching `DashboardScheduledWorkoutRaw` rows. |
+| `FitEpic.Services/WebApp/WebAppDashboardService.cs` | In `BuildCard`, when status is Completed: group logs by `WorkoutExerciseId`; attach to the matching `DashboardWorkoutExercise`; for logs with no `WorkoutExerciseId`, group by `ExerciseName` and append synthetic `DashboardWorkoutExercise` entries (`Summary = ""`). Recompute `ExerciseCount` after appending. |
+
+**`WorkoutLogSummaryBuilder` rules**
+
+- Inputs: `(MeasurementType? parentType, DashboardScheduledWorkoutLogRaw log)`.
+- Selects measurement type via:
+  1. `parentType` when the log has a `WorkoutExerciseId` and we found the parent.
+  2. Detection fallback: `ActualDurationSeconds` populated → `Time`; `ActualDistance` populated → `Distance`; `ActualCalories` populated → `Calories`; otherwise `Reps` (default).
+- Formats per §1.1 per-log rules — no `sets ×` prefix, single-set form:
+  - `Reps`: `"{actualReps} @ {weight} lbs"` if weight present, else `"{actualReps}"`. Empty if `actualReps` blank and weight 0.
+  - `Time`: `"{m:ss}"` or `"{h:mm:ss}"` from `ActualDurationSeconds`.
+  - `Distance`: `"{actualDistance} {unitLabel}"` (units `m`/`km`/`mi`/`ft`).
+  - `Calories`: `"{actualCalories} cal"`.
+- Returns `""` when no relevant actuals were recorded.
+
+**Sort order within `logs`**
+
+Per the spec: `OrderIndex` ascending, then `SetNumber` ascending as a tiebreaker. `RoundNumber` is preserved as-is on the wire and not used for sort.
+
+**Repo query notes**
+
+- The existing query already filters scheduled workouts down to a small date window. The logs query is keyed by the same `ScheduledWorkoutId` set, so the additional roundtrip is bounded.
+- `dbContext.WorkoutExerciseLogs` is the DbSet (already used by Phase 1 for weight totals).
+- Soft-deleted logs (`IsDeleted == true`) are excluded.
+- Only fetch logs for *Completed* scheduled workouts to avoid pointless joins on Pending rows.
+
+**Out of scope for this incremental change**
+
+- Editing logs from the card (mutation) — Phase TBD.
+- Detail pages that aggregate logs across many sessions — Phase TBD.
+
 ---
 
 ## 7. Change log
@@ -381,3 +481,4 @@ public async Task<IActionResult> GetDashboardWorkoutsV1(CancellationToken ct)
 | 2026-04-28 | API team | Implemented §§6.1–6.4 (file layout, repo query, service orchestration, helper mappings) and verified §§6.5–6.7 (controller wired in §6.1; enums already carry `[JsonStringEnumConverter]` so serialization is correct; Swagger inherits `[Tags("WebApp - Dashboards")]` and picks up XML doc from the API project). Tests (§6.8) deferred. |
 | 2026-04-28 | API team | When `Sets` is null or 0, the server now returns `summary: ""` (was rendering a misleading `"1 set"`). Web App should suppress the summary line in that case. |
 | 2026-04-28 | Web App team | Flipped body-picker priority: prefer `rawText` over `exercises`. When `rawText` wins, the `exercises` array is still returned so the UI can offer a secondary view of the parsed list. See Addendum at top. No API contract change. |
+| 2026-04-29 | API team | Added athlete logs on completed cards. New `logs` array on each `exercises` entry; ad-hoc logs surface as synthetic exercise entries; `notes`, `setNumber`, `roundNumber` included; per-log `summary` formatted server-side via parent `MeasurementType` with detection fallback. Implementation plan in §6.10. |

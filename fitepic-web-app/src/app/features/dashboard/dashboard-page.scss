@@ -1,8 +1,23 @@
+.page-header {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
 .page-title {
-  margin: 0 0 16px;
+  margin: 0;
   font-size: 24px;
   font-weight: 500;
   color: var(--fe-text);
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fe-text);
+  opacity: 0.7;
 }
 
 .skeleton-streak {

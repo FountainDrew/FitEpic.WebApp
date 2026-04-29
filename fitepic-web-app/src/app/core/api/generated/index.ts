@@ -22,6 +22,7 @@ export type { ConnectionPermissionLevel } from './models/connection-permission-l
 export type { CreateAthleteConnectionInviteRequest } from './models/create-athlete-connection-invite-request';
 export type { DashboardWorkoutCardResponse } from './models/dashboard-workout-card-response';
 export type { DashboardWorkoutExerciseResponse } from './models/dashboard-workout-exercise-response';
+export type { DashboardWorkoutLogResponse } from './models/dashboard-workout-log-response';
 export type { DashboardWorkoutScoreResponse } from './models/dashboard-workout-score-response';
 export type { DashboardWorkoutsResponse } from './models/dashboard-workouts-response';
 export type { DistanceUnit } from './models/distance-unit';

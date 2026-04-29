@@ -2,6 +2,7 @@ import { Component, HostListener, computed, inject } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 
+import { DashboardWorkoutLogResponse } from '../../../core/api/generated/models/dashboard-workout-log-response';
 import { WorkoutDrawerService } from './workout-drawer.service';
 
 @Component({
@@ -18,12 +19,14 @@ export class WorkoutDrawer {
     if (!c) return '';
     const segments: string[] = [];
     if (c.workoutType) segments.push(c.workoutType);
-    const dur = this.formatDuration(c.durationMinutes);
-    if (dur) segments.push(dur);
     const count = c.exerciseCount ?? 0;
     if (count > 0) segments.push(count === 1 ? '1 exercise' : `${count} exercises`);
     return segments.join(' · ');
   });
+
+  protected readonly durationDisplay = computed(() =>
+    this.formatDuration(this.service.workout()?.durationMinutes),
+  );
 
   protected readonly hasExercises = computed(() => (this.service.workout()?.exercises?.length ?? 0) > 0);
   protected readonly hasRawText = computed(() => Boolean(this.service.workout()?.rawText?.trim()));
@@ -36,6 +39,15 @@ export class WorkoutDrawer {
 
   protected close(): void {
     this.service.close();
+  }
+
+  protected setLabel(log: DashboardWorkoutLogResponse): string {
+    const set = log.setNumber;
+    const round = log.roundNumber;
+    if (round != null && set != null) return `Round ${round} · Set ${set}`;
+    if (set != null) return `Set ${set}`;
+    if (round != null) return `Round ${round}`;
+    return '';
   }
 
   private formatDuration(minutes: number | null | undefined): string {

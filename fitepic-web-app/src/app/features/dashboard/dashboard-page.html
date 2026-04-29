@@ -1,9 +1,17 @@
-<h1 class="page-title">Dashboard</h1>
+<header class="page-header">
+  <h1 class="page-title">Dashboard</h1>
+  @if (stats(); as s) {
+    <p class="page-subtitle">
+      Week of {{ s.weekStart | date:'mediumDate' }} – {{ s.weekEnd | date:'mediumDate' }}
+    </p>
+  } @else if (statsLoading()) {
+    <span class="skeleton skeleton-week-range" aria-hidden="true"></span>
+  }
+</header>
 
 @if (statsLoading()) {
   <section class="week-header" aria-hidden="true">
     <span class="skeleton skeleton-streak"></span>
-    <span class="skeleton skeleton-week-range"></span>
   </section>
   <section class="stats-grid" aria-hidden="true">
     <mat-card class="stat-card stat-card-featured">
@@ -50,9 +58,6 @@
         </div>
       }
     }
-    <div class="week-range">
-      Week of {{ s.weekStart | date:'mediumDate' }} – {{ s.weekEnd | date:'mediumDate' }}
-    </div>
   </section>
 
   <section class="stats-grid">
