@@ -63,11 +63,13 @@ All business logic remains in the existing service layer (`FitEpic.Services`) an
 
 To enforce the separation cleanly and avoid leaving the Mobile contract spread across un-prefixed routes, the API team will:
 
-1. **Rename existing controllers** to make their Mobile scope explicit (e.g., `WorkoutsController` → `MobileWorkoutsController`). The auth controller is excluded.
-2. **Re-mount existing routes under `/api/mobile/...`** alongside their current paths. The existing un-prefixed and `/api/social/...` routes must continue to work so the live Mobile app does not break.
-3. **Plan deprecation of the old routes** once the Mobile app has migrated to the new `/api/mobile/...` paths. The Web App makes no requirements about that timeline.
+1. **Rename existing controllers** to make their Mobile scope explicit (e.g., `WorkoutsController` → `MobileWorkoutsController`). The auth controller is excluded. ✅ **Shipped 2026-04-29.**
+2. **Re-mount existing routes under `/api/mobile/...`** alongside their current paths. The existing un-prefixed and `/api/social/...` routes must continue to work so the live Mobile app does not break. ✅ **Shipped 2026-04-29** — every renamed controller carries both its legacy `[Route(...)]` and the new `[Route("api/mobile/...")]`.
+3. **Plan deprecation of the old routes** once the Mobile app has migrated to the new `/api/mobile/...` paths. The Web App makes no requirements about that timeline. *(Open — coordinate with the Mobile team.)*
 
 Establishing this convention now — early in the project — is much cheaper than retrofitting it after both clients have grown.
+
+**Status (2026-04-29):** The seven Mobile controllers (`AthleteProfiles`, `ConnectionInvites`, `Connections`, `ScheduledWorkouts`, `Social`, `StandardExercises`, `Workouts`) have been moved to `Controllers/Mobile/`, renamed with the `Mobile` prefix, tagged in Swagger as `Mobile - <Area>`, and now respond on both the legacy URL and the new `/api/mobile/...` URL. The shared `UserController` remains unchanged.
 
 ---
 
@@ -151,3 +153,4 @@ When a new phase is started, add a row here and create the corresponding `NN_<to
 | 2026-04-28 | Web App team | Restructured: phase-based scope tracking; specific endpoints moved to phase documents |
 | 2026-04-28 | Web App team | Routing conventions: `/api/webapp/...` prefix, plural resource roots, leaf-position version segment, kebab-case |
 | 2026-04-28 | Web App team | Locked for API team handoff |
+| 2026-04-29 | API team | Mobile controller rename + re-mount under `/api/mobile/...` shipped (§2.5 step 1 & 2). Legacy URLs preserved. Deprecation timeline (step 3) pending Mobile team coordination. |

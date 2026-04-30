@@ -277,7 +277,7 @@ The Web App's body-picking rule is documented in §1.1 (prefer `exercises`, fall
 - **FAB-style quick actions** ("Create Workout," "Schedule Workout") — separate phase.
 - **Trainer-programmed workout indicators** — to be specified when trainer flows are designed.
 - **Pagination** — `recentCompletions` returns the full set for the current week. If the volume becomes large enough to matter, pagination will be added in a follow-up.
-- **Mobile controller rename + re-mount under `/api/mobile/...`** — required by [WEB_APP_API_REQUIREMENTS.md](./WEB_APP_API_REQUIREMENTS.md) §2.5, but deferred from this phase. It's a sweeping refactor that's better as its own change and is not a prerequisite for the Phase 2 Web App work. The new `/api/webapp/dashboards/workouts/v1` endpoint added here lives under the Web App surface and is unaffected.
+- **Mobile controller rename + re-mount under `/api/mobile/...`** — required by [WEB_APP_API_REQUIREMENTS.md](./WEB_APP_API_REQUIREMENTS.md) §2.5; was deferred from this phase but **shipped 2026-04-29 as a separate change**. Legacy URLs still resolve, so the live Mobile app is unaffected. Deprecation of the legacy paths remains open (pending Mobile team migration).
 
 ---
 
