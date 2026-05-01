@@ -1,0 +1,51 @@
+@if (loading()) {
+  <mat-card class="quote-card quote-card-skeleton" aria-hidden="true">
+    <mat-card-content>
+      <span class="skeleton skeleton-quote-line"></span>
+      <span class="skeleton skeleton-quote-line"></span>
+      <span class="skeleton skeleton-quote-line short"></span>
+      <span class="skeleton skeleton-quote-author"></span>
+    </mat-card-content>
+  </mat-card>
+} @else if (!suppressed()) {
+  <mat-card class="quote-card">
+    <mat-card-content class="quote-card-content">
+      <blockquote class="quote-body">
+        <p class="quote-text">{{ text() }}</p>
+        @if (author()) {
+          <footer class="quote-author">— {{ author() }}</footer>
+        }
+      </blockquote>
+
+      <div class="quote-actions">
+        @if (!isPinned()) {
+          <button
+            mat-icon-button
+            type="button"
+            [disabled]="busy()"
+            matTooltip="New quote"
+            aria-label="Show a new quote"
+            (click)="onRefresh()"
+          >
+            <mat-icon>refresh</mat-icon>
+          </button>
+        }
+        <button
+          mat-icon-button
+          type="button"
+          [disabled]="busy()"
+          [matTooltip]="isPinned() ? 'Unpin quote' : 'Pin this quote'"
+          [attr.aria-label]="isPinned() ? 'Unpin quote' : 'Pin this quote'"
+          [attr.aria-pressed]="isPinned()"
+          (click)="onTogglePin()"
+        >
+          @if (isPinned()) {
+            <mat-icon class="pin-active">push_pin</mat-icon>
+          } @else {
+            <mat-icon fontSet="material-symbols-outlined">push_pin</mat-icon>
+          }
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+}

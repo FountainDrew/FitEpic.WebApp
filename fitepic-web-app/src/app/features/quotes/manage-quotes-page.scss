@@ -1,0 +1,133 @@
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--fe-text);
+  opacity: 0.75;
+  text-decoration: none;
+  transition: opacity 120ms ease;
+
+  mat-icon {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+  }
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+    color: var(--fe-primary);
+    text-decoration: underline;
+  }
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.page-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--fe-text);
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fe-text);
+  opacity: 0.7;
+  max-width: 60ch;
+}
+
+.loading-card,
+.error-card,
+.empty-card {
+  margin-bottom: 16px;
+
+  p {
+    margin: 0 0 8px;
+  }
+
+  .skeleton-line {
+    display: block;
+    width: 100%;
+    height: 14px;
+    margin-bottom: 8px;
+
+    &.short {
+      width: 60%;
+    }
+  }
+}
+
+.empty-card {
+  text-align: center;
+
+  .empty-hint {
+    opacity: 0.7;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+}
+
+.quote-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quote-row-card {
+  border-left: 3px solid color-mix(in srgb, var(--fe-primary) 40%, transparent);
+}
+
+.quote-row-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.quote-row-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.quote-row-text {
+  margin: 0 0 6px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--fe-text);
+  font-style: italic;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.quote-row-author {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fe-text);
+  opacity: 0.65;
+}
+
+.quote-row-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}

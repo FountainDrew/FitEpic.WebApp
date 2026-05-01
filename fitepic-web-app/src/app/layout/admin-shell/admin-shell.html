@@ -1,11 +1,10 @@
-<mat-sidenav-container class="shell" [hasBackdrop]="mode() === 'over'">
+<mat-sidenav-container class="shell" [hasBackdrop]="false" [autosize]="true">
   <mat-sidenav
     class="shell-sidenav"
     [class.collapsed]="collapsed()"
-    [mode]="mode()"
-    [opened]="opened()"
-    (openedChange)="mobileOpen.set($event)"
-    [disableClose]="mode() === 'side'"
+    mode="side"
+    [opened]="true"
+    [disableClose]="true"
   >
     <div class="shell-brand">
       <span class="shell-brand-mark" aria-hidden="true">FE</span>
@@ -23,7 +22,6 @@
           [routerLink]="item.route"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: item.route === '/' }"
-          (click)="onNavClick()"
           [matTooltip]="collapsed() ? item.label : ''"
           matTooltipPosition="right"
         >
@@ -41,7 +39,7 @@
       <button
         mat-icon-button
         (click)="toggleRail()"
-        [attr.aria-label]="mode() === 'over' ? 'Open menu' : (collapsed() ? 'Expand menu' : 'Collapse menu')"
+        [attr.aria-label]="collapsed() ? 'Expand menu' : 'Collapse menu'"
       >
         <mat-icon>menu</mat-icon>
       </button>
@@ -71,9 +69,9 @@
           </div>
           <mat-divider></mat-divider>
         }
-        <a mat-menu-item routerLink="/profile">
+        <a mat-menu-item routerLink="/settings">
           <mat-icon>account_circle</mat-icon>
-          <span>Profile</span>
+          <span>Profile Settings</span>
         </a>
         <button mat-menu-item (click)="signOut()">
           <mat-icon>logout</mat-icon>

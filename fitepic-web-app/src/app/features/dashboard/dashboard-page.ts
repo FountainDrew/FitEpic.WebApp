@@ -18,6 +18,7 @@ import { DashboardWorkoutCardResponse } from '../../core/api/generated/models/da
 import { DashboardWorkoutsResponse } from '../../core/api/generated/models/dashboard-workouts-response';
 import { getWebAppErrorCode } from '../../core/api/error-code';
 
+import { QuoteCard } from './quote-card/quote-card';
 import { WorkoutCard } from './workout-card/workout-card';
 import { WorkoutDrawer } from './workout-drawer/workout-drawer';
 
@@ -34,6 +35,7 @@ interface FutureGroup {
     MatCardModule,
     MatIconModule,
     MatButtonModule,
+    QuoteCard,
     WorkoutCard,
     WorkoutDrawer,
   ],
@@ -120,7 +122,7 @@ export class DashboardPage implements OnInit {
   /**
    * If the error is PROFILE_TIMEZONE_REQUIRED, attempt to auto-set from the
    * browser. Returns true when recovery succeeded and the caller should retry.
-   * Returns false (and routes the user to /profile) when recovery failed.
+   * Returns false (and routes the user to /settings) when recovery failed.
    */
   private async handleTimezoneRequired(err: unknown): Promise<boolean> {
     if (getWebAppErrorCode(err) !== 'PROFILE_TIMEZONE_REQUIRED') return false;
@@ -130,7 +132,7 @@ export class DashboardPage implements OnInit {
     } catch {
       // fall through to routing
     }
-    await this.router.navigate(['/profile'], {
+    await this.router.navigate(['/settings'], {
       queryParams: { reason: 'timezone-required', returnUrl: '/' },
     });
     return false;

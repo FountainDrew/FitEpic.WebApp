@@ -1,0 +1,102 @@
+<header class="page-header">
+  <h1 class="page-title">Profile Settings</h1>
+  <p class="page-subtitle">Manage your account, preferences, and personal content.</p>
+</header>
+
+@if (reason() === 'timezone-required') {
+  <mat-card class="reason-card">
+    <mat-card-content>
+      Set your timezone so we can show your weekly stats on the right calendar week.
+    </mat-card-content>
+  </mat-card>
+}
+
+<div class="settings-stack">
+  <!-- Profile section -->
+  <mat-card class="settings-section">
+    <mat-card-header>
+      <mat-card-title>Profile</mat-card-title>
+      <mat-card-subtitle>Your display name and timezone.</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      @if (profileLoading()) {
+        <div class="profile-form" aria-hidden="true">
+          <span class="skeleton skeleton-field"></span>
+          <span class="skeleton skeleton-field"></span>
+        </div>
+      } @else {
+        <form class="profile-form" (ngSubmit)="saveProfile()">
+          <mat-form-field appearance="outline">
+            <mat-label>Display name</mat-label>
+            <input
+              matInput
+              name="displayName"
+              [ngModel]="displayName()"
+              (ngModelChange)="displayName.set($event)"
+              maxlength="100"
+              required
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Timezone</mat-label>
+            <mat-select
+              name="timezone"
+              [ngModel]="timezone()"
+              (ngModelChange)="timezone.set($event)"
+              required
+            >
+              @for (tz of timezones; track tz) {
+                <mat-option [value]="tz">{{ tz }}</mat-option>
+              }
+            </mat-select>
+            <mat-hint>
+              <button mat-button type="button" (click)="detectBrowserTimezone()">
+                Use browser timezone
+              </button>
+            </mat-hint>
+          </mat-form-field>
+
+          <div class="actions">
+            <button
+              mat-flat-button
+              color="primary"
+              type="submit"
+              [disabled]="!canSaveProfile()"
+            >
+              {{ profileSaving() ? 'Saving…' : 'Save' }}
+            </button>
+          </div>
+        </form>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Quotes summary section -->
+  <mat-card class="settings-section">
+    <mat-card-header>
+      <mat-card-title>My Quotes</mat-card-title>
+      <mat-card-subtitle>Custom quotes that join the system pool on your dashboard.</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content class="summary-content">
+      <div class="summary-text">
+        @if (quoteCountLoading()) {
+          <span class="skeleton skeleton-summary-line" aria-hidden="true"></span>
+        } @else if (quoteCount() === null) {
+          <p class="summary-line summary-line-muted">Could not load your quote count.</p>
+        } @else if (quoteCount() === 0) {
+          <p class="summary-line">No custom quotes yet — your dashboard cycles through the system pool.</p>
+        } @else {
+          <p class="summary-line">
+            <strong>{{ quoteCount() }}</strong>
+            {{ quoteCount() === 1 ? 'custom quote' : 'custom quotes' }} in your rotation.
+          </p>
+        }
+      </div>
+      <a mat-stroked-button color="primary" routerLink="/settings/my-quotes">
+        Manage quotes
+        <mat-icon iconPositionEnd>chevron_right</mat-icon>
+      </a>
+    </mat-card-content>
+  </mat-card>
+</div>

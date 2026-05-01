@@ -6,10 +6,22 @@
     "version": "v1"
   },
   "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "FitEpic.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/athlete-profiles": {
       "get": {
         "tags": [
-          "AthleteProfiles"
+          "Mobile - AthleteProfiles"
         ],
         "summary": "Retrieve athlete profiles for all accepted connections (delta pull).",
         "description": "Returns profiles for athletes with accepted connections to the authenticated user,\r\nfiltered by `Connection.UpdatedAt > since` when the `since` parameter is provided.\r\nAlways includes the authenticated athlete's own profile.\r\nOmit `since` for a full bootstrap pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -51,10 +63,220 @@
         }
       }
     },
+    "/api/mobile/athlete-profiles": {
+      "get": {
+        "tags": [
+          "Mobile - AthleteProfiles"
+        ],
+        "summary": "Retrieve athlete profiles for all accepted connections (delta pull).",
+        "description": "Returns profiles for athletes with accepted connections to the authenticated user,\r\nfiltered by `Connection.UpdatedAt > since` when the `since` parameter is provided.\r\nAlways includes the authenticated athlete's own profile.\r\nOmit `since` for a full bootstrap pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Return only profiles for connections updated after this ISO 8601 timestamp. Omit for a full pull.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of athlete profiles.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AthleteProfileResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/athletes/me/v1": {
+      "put": {
+        "tags": [
+          "Mobile - Athletes"
+        ],
+        "summary": "Update the authenticated athlete's mobile self-profile (timezone push).",
+        "description": "Mobile pushes the device's IANA timezone identifier server-side so that Quote of the Day\r\nrotation can resolve \"today\" against the athlete's local date. The request shape is\r\nforward-compatible — additional optional profile fields will be added over time and\r\nclients should ignore unknown response fields.\r\n            \r\nSide effect: the athlete's profile `UpdatedAt` is bumped, so the next\r\n`GET /api/mobile/quotes/today/state?since=...` call returns data (usually the same\r\nQuoteOfTheDay the client already has, an idempotent upsert on the local cache).\r\n            \r\nPossible `error.code` values:\r\n<list type=\"bullet\"><item><description>`UNAUTHENTICATED` (401)</description></item><item><description>`INVALID_TIMEZONE` (400) — supplied `timezone` is not a recognized IANA identifier.</description></item></list>",
+        "requestBody": {
+          "description": "The fields to update on the caller's profile.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UpdateMobileAthleteSelfProfileRequest"
+                  }
+                ],
+                "description": "Request body for `PUT /api/mobile/athletes/me/v1`. Mobile pushes device\r\ntimezone server-side so quote rotation can resolve \"today\" against the athlete's\r\nlocal date."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UpdateMobileAthleteSelfProfileRequest"
+                  }
+                ],
+                "description": "Request body for `PUT /api/mobile/athletes/me/v1`. Mobile pushes device\r\ntimezone server-side so quote rotation can resolve \"today\" against the athlete's\r\nlocal date."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UpdateMobileAthleteSelfProfileRequest"
+                  }
+                ],
+                "description": "Request body for `PUT /api/mobile/athletes/me/v1`. Mobile pushes device\r\ntimezone server-side so quote rotation can resolve \"today\" against the athlete's\r\nlocal date."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the persisted profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAthleteSelfProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Supplied timezone is not a recognized IANA identifier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/connection-invites/sync": {
       "post": {
         "tags": [
-          "ConnectionInvites"
+          "Mobile - ConnectionInvites"
+        ],
+        "summary": "Batch-sync connection invites from the mobile client.",
+        "description": "Called by the **requesting athlete** (the authenticated user) to create one or more invites.\r\nEach invite includes the granting athlete's email address, which the API resolves to an athlete ID.\r\nReturns 404 if any email does not match a registered athlete.\r\nReturns 409 if a pending invite already exists in the same direction at the same permission level.\r\n`ViewWorkouts` and `ProgramWorkouts` are independent — both may be invited concurrently between the same athletes.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "requestBody": {
+          "description": "The batch of invite creation requests.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SyncAthleteConnectionInvitesRequest"
+                  }
+                ],
+                "description": "Request body for batch-syncing connection invites from the mobile client.\r\nWraps an array of individual invite creation requests."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SyncAthleteConnectionInvitesRequest"
+                  }
+                ],
+                "description": "Request body for batch-syncing connection invites from the mobile client.\r\nWraps an array of individual invite creation requests."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SyncAthleteConnectionInvitesRequest"
+                  }
+                ],
+                "description": "Request body for batch-syncing connection invites from the mobile client.\r\nWraps an array of individual invite creation requests."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "All invites created successfully. Returns the list of created invite records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AthleteConnectionInviteResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "One or more granting athlete emails do not match a registered account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A pending invite already exists for one of the specified athletes at the requested permission level.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/connection-invites/sync": {
+      "post": {
+        "tags": [
+          "Mobile - ConnectionInvites"
         ],
         "summary": "Batch-sync connection invites from the mobile client.",
         "description": "Called by the **requesting athlete** (the authenticated user) to create one or more invites.\r\nEach invite includes the granting athlete's email address, which the API resolves to an athlete ID.\r\nReturns 404 if any email does not match a registered athlete.\r\nReturns 409 if a pending invite already exists in the same direction at the same permission level.\r\n`ViewWorkouts` and `ProgramWorkouts` are independent — both may be invited concurrently between the same athletes.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -143,7 +365,52 @@
     "/connection-invites": {
       "get": {
         "tags": [
-          "ConnectionInvites"
+          "Mobile - ConnectionInvites"
+        ],
+        "summary": "Retrieve all connection invites for the authenticated athlete since a given timestamp (delta pull).",
+        "description": "Returns all invite records (including soft-deleted ones) where the authenticated athlete\r\nis either the requesting or granting athlete.\r\nOmit `since` for a full bootstrap pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Return only records updated after this ISO 8601 timestamp. Omit for a full pull.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of invite records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AthleteConnectionInviteResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/connection-invites": {
+      "get": {
+        "tags": [
+          "Mobile - ConnectionInvites"
         ],
         "summary": "Retrieve all connection invites for the authenticated athlete since a given timestamp (delta pull).",
         "description": "Returns all invite records (including soft-deleted ones) where the authenticated athlete\r\nis either the requesting or granting athlete.\r\nOmit `since` for a full bootstrap pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -188,7 +455,79 @@
     "/connection-invites/{id}/accept": {
       "patch": {
         "tags": [
-          "ConnectionInvites"
+          "Mobile - ConnectionInvites"
+        ],
+        "summary": "Accept a pending connection invite.",
+        "description": "Creates an `AthleteConnection` in `Accepted` status at the invite's permission level,\r\nthen sets the invite status to `Accepted`. The connection is created first so that a failure\r\nduring connection creation leaves the invite in `Pending` status (safe to retry).\r\nIf a connection already exists at the same `(requestingAthlete, grantingAthlete, permissionLevel)`\r\nit is reactivated rather than duplicated; if it is already `Accepted` the call is idempotent.\r\n`ViewWorkouts` and `ProgramWorkouts` are independent connections — accepting one does not affect the other.\r\nOnly the **granting athlete** may accept.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the invite to accept.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invite accepted. Returns the updated invite and the resulting (newly created or reactivated) athlete connection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptAthleteConnectionInviteResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated athlete is not the granting athlete of this invite.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No invite found with the specified ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The invite is not in Pending status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/connection-invites/{id}/accept": {
+      "patch": {
+        "tags": [
+          "Mobile - ConnectionInvites"
         ],
         "summary": "Accept a pending connection invite.",
         "description": "Creates an `AthleteConnection` in `Accepted` status at the invite's permission level,\r\nthen sets the invite status to `Accepted`. The connection is created first so that a failure\r\nduring connection creation leaves the invite in `Pending` status (safe to retry).\r\nIf a connection already exists at the same `(requestingAthlete, grantingAthlete, permissionLevel)`\r\nit is reactivated rather than duplicated; if it is already `Accepted` the call is idempotent.\r\n`ViewWorkouts` and `ProgramWorkouts` are independent connections — accepting one does not affect the other.\r\nOnly the **granting athlete** may accept.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -260,7 +599,79 @@
     "/connection-invites/{id}/reject": {
       "patch": {
         "tags": [
-          "ConnectionInvites"
+          "Mobile - ConnectionInvites"
+        ],
+        "summary": "Reject a pending connection invite.",
+        "description": "Sets the invite status to `Rejected`. No connection is created.\r\nOnly the **granting athlete** may reject.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the invite to reject.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invite rejected. Returns the updated invite record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AthleteConnectionInviteResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated athlete is not the granting athlete of this invite.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No invite found with the specified ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The invite is not in Pending status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/connection-invites/{id}/reject": {
+      "patch": {
+        "tags": [
+          "Mobile - ConnectionInvites"
         ],
         "summary": "Reject a pending connection invite.",
         "description": "Sets the invite status to `Rejected`. No connection is created.\r\nOnly the **granting athlete** may reject.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -332,7 +743,52 @@
     "/connections": {
       "get": {
         "tags": [
-          "Connections"
+          "Mobile - Connections"
+        ],
+        "summary": "Retrieve all connections for the authenticated athlete since a given timestamp (delta pull).",
+        "description": "Returns all connection records (including soft-deleted ones) where the authenticated athlete\r\nis either the requesting or granting athlete\r\nOmit `since` for a full bootstrap pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Return only records updated after this ISO 8601 timestamp. Omit for a full pull.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of connection records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AthleteConnectionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/connections": {
+      "get": {
+        "tags": [
+          "Mobile - Connections"
         ],
         "summary": "Retrieve all connections for the authenticated athlete since a given timestamp (delta pull).",
         "description": "Returns all connection records (including soft-deleted ones) where the authenticated athlete\r\nis either the requesting or granting athlete\r\nOmit `since` for a full bootstrap pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -377,7 +833,69 @@
     "/connections/{id}/accept": {
       "patch": {
         "tags": [
-          "Connections"
+          "Mobile - Connections"
+        ],
+        "summary": "Accept a pending connection request.",
+        "description": "Sets the connection status to `Accepted`. Only the granting athlete\r\nmay accept it; the requesting athlete will receive `403 Forbidden`.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the connection to accept.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection accepted. Returns the updated connection record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AthleteConnectionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated athlete is not the granting athlete of this connection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No connection found with the specified ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/connections/{id}/accept": {
+      "patch": {
+        "tags": [
+          "Mobile - Connections"
         ],
         "summary": "Accept a pending connection request.",
         "description": "Sets the connection status to `Accepted`. Only the granting athlete\r\nmay accept it; the requesting athlete will receive `403 Forbidden`.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -439,7 +957,69 @@
     "/connections/{id}/reject": {
       "patch": {
         "tags": [
-          "Connections"
+          "Mobile - Connections"
+        ],
+        "summary": "Reject a pending connection request.",
+        "description": "Sets the connection status to `Rejected`. Only the granting athlete\r\nmay reject it; the requesting athlete will receive `403 Forbidden`.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the connection to reject.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection rejected. Returns the updated connection record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AthleteConnectionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated athlete is not the granting athlete of this connection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No connection found with the specified ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/connections/{id}/reject": {
+      "patch": {
+        "tags": [
+          "Mobile - Connections"
         ],
         "summary": "Reject a pending connection request.",
         "description": "Sets the connection status to `Rejected`. Only the granting athlete\r\nmay reject it; the requesting athlete will receive `403 Forbidden`.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -501,7 +1081,79 @@
     "/connections/{id}/revoke": {
       "patch": {
         "tags": [
-          "Connections"
+          "Mobile - Connections"
+        ],
+        "summary": "Revoke an accepted connection.",
+        "description": "Sets the connection status to `Revoked`. Only the **granting athlete**\r\nmay revoke a connection. The connection must currently be in `Accepted` status.\r\n            \r\nRevoking removes all future access for the requesting athlete. The requesting athlete\r\nmay send a new connection request later.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the connection to revoke.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection revoked. Returns the updated connection record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AthleteConnectionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated athlete is not the granting athlete of this connection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No connection found with the specified ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The connection is not in Accepted status and cannot be revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/connections/{id}/revoke": {
+      "patch": {
+        "tags": [
+          "Mobile - Connections"
         ],
         "summary": "Revoke an accepted connection.",
         "description": "Sets the connection status to `Revoked`. Only the **granting athlete**\r\nmay revoke a connection. The connection must currently be in `Accepted` status.\r\n            \r\nRevoking removes all future access for the requesting athlete. The requesting athlete\r\nmay send a new connection request later.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -573,7 +1225,7 @@
     "/connections/{id}": {
       "delete": {
         "tags": [
-          "Connections"
+          "Mobile - Connections"
         ],
         "summary": "Delete (soft-delete) a connection.",
         "description": "Soft-deletes the connection by setting `isDeleted = true`. Either participant in the\r\nconnection (requesting or granting athlete) may delete it.\r\nscheduled workout records.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -625,14 +1277,532 @@
         }
       }
     },
-    "/": {
+    "/api/mobile/connections/{id}": {
+      "delete": {
+        "tags": [
+          "Mobile - Connections"
+        ],
+        "summary": "Delete (soft-delete) a connection.",
+        "description": "Soft-deletes the connection by setting `isDeleted = true`. Either participant in the\r\nconnection (requesting or granting athlete) may delete it.\r\nscheduled workout records.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the connection to delete.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Connection deleted successfully."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated athlete is not a participant in this connection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No connection found with the specified ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/quotes/today/state": {
       "get": {
         "tags": [
-          "FitEpic.Api"
+          "Mobile - Quotes"
+        ],
+        "summary": "The mobile sync resource — returns the caller's current QuoteOfTheDay if it has changed since since.",
+        "description": "Returns `200 OK` with the current state when `UpdatedAt > since` (or always, when `since` is omitted on first launch).\r\nReturns `204 No Content` when nothing has changed since since, OR when the caller's pool has no quotes available.\r\nMobile clients store the most recent `UpdatedAt` from the response and pass it back as `since` on the next sync.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Last `UpdatedAt` the client saw. Omit on first launch to receive the current state unconditionally.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "The current QuoteOfTheDay (changed since since).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOfTheDayResponse"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No change since since, or pool empty."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/quotes/today": {
+      "get": {
+        "tags": [
+          "Mobile - Quotes"
+        ],
+        "summary": "Live read of the caller's current QuoteOfTheDay (resolves stale dates on demand).",
+        "description": "Used when the dashboard is opened with connectivity. Returns `204` when the pool is empty.",
+        "responses": {
+          "200": {
+            "description": "The current QuoteOfTheDay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOfTheDayResponse"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Pool is empty."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/quotes/today/refresh": {
+      "post": {
+        "tags": [
+          "Mobile - Quotes"
+        ],
+        "summary": "Force a new selection (the \"new quote\" button).",
+        "description": "Returns `409 Conflict` with `error.code: \"PINNED\"` when the caller is currently pinned —\r\nthe client UI should hide the refresh affordance while pinned, so this is defensive.",
+        "responses": {
+          "200": {
+            "description": "The newly-selected QuoteOfTheDay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOfTheDayResponse"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Pool is empty."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Caller is currently pinned; unpin first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/quotes/{id}/pin": {
+      "post": {
+        "tags": [
+          "Mobile - Quotes"
+        ],
+        "summary": "Pin a quote so it stays as the displayed quote until unpinned.",
+        "description": "Returns `404 Not Found` when the quote ID is unknown, soft-deleted, or not in the caller's pool —\r\nthe server collapses out-of-pool to 404 so it cannot reveal that another athlete's quote exists.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The quote ID to pin.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The QuoteOfTheDay reflecting the new pin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOfTheDayResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Quote not found in the caller's pool.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/quotes/pin": {
+      "delete": {
+        "tags": [
+          "Mobile - Quotes"
+        ],
+        "summary": "Unpin the caller's current pin (no-op if there is no pin).",
+        "description": "Returns the QuoteOfTheDay reflecting the post-unpin state — typically the previously-shown\r\nquote (per plan §5.2: the cached selection stays in place; the user sees the previously-shown\r\nquote until they tap refresh). May return `204` when the pool is empty AND no cached selection.",
+        "responses": {
+          "200": {
+            "description": "The QuoteOfTheDay after unpin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOfTheDayResponse"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Pool is empty."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/quotes/mine": {
+      "get": {
+        "tags": [
+          "Mobile - Quotes"
+        ],
+        "summary": "Live list of the caller's user-added quotes (used by the \"Manage my quotes\" screen).",
+        "description": "Mobile-flavored paged result: `{ items, page, pageSize, totalCount }`. No `hasMore` —\r\nthat is a webapp-surface convention only. Not cached locally.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "1-based page number (default 1).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Items per page (default 50, max 200).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The paged list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedQuotesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Mobile - Quotes"
+        ],
+        "summary": "Create a user-added quote.",
+        "requestBody": {
+          "description": "Quote text + optional author. See FitEpic.Api.Models.Request.CreateOrUpdateQuoteRequest for validation.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateOrUpdateQuoteRequest"
+                  }
+                ],
+                "description": "Body for `POST .../quotes/mine` and `PUT .../quotes/mine/{id}` on both the\r\nmobile and webapp surfaces. Validation is enforced server-side per the Quote of the Day\r\nplan §5.4: `text` 1–1000 chars after trim; `author` 0–200 chars after trim\r\n(empty string treated as null)."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateOrUpdateQuoteRequest"
+                  }
+                ],
+                "description": "Body for `POST .../quotes/mine` and `PUT .../quotes/mine/{id}` on both the\r\nmobile and webapp surfaces. Validation is enforced server-side per the Quote of the Day\r\nplan §5.4: `text` 1–1000 chars after trim; `author` 0–200 chars after trim\r\n(empty string treated as null)."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateOrUpdateQuoteRequest"
+                  }
+                ],
+                "description": "Body for `POST .../quotes/mine` and `PUT .../quotes/mine/{id}` on both the\r\nmobile and webapp surfaces. Validation is enforced server-side per the Quote of the Day\r\nplan §5.4: `text` 1–1000 chars after trim; `author` 0–200 chars after trim\r\n(empty string treated as null)."
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Returns the created quote.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/quotes/mine/{id}": {
+      "put": {
+        "tags": [
+          "Mobile - Quotes"
+        ],
+        "summary": "Update a user-added quote.",
+        "description": "Returns `404` when the quote is unknown, system, soft-deleted, or owned by another athlete.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The quote ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The new text + author. See FitEpic.Api.Models.Request.CreateOrUpdateQuoteRequest for validation.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateOrUpdateQuoteRequest"
+                  }
+                ],
+                "description": "Body for `POST .../quotes/mine` and `PUT .../quotes/mine/{id}` on both the\r\nmobile and webapp surfaces. Validation is enforced server-side per the Quote of the Day\r\nplan §5.4: `text` 1–1000 chars after trim; `author` 0–200 chars after trim\r\n(empty string treated as null)."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateOrUpdateQuoteRequest"
+                  }
+                ],
+                "description": "Body for `POST .../quotes/mine` and `PUT .../quotes/mine/{id}` on both the\r\nmobile and webapp surfaces. Validation is enforced server-side per the Quote of the Day\r\nplan §5.4: `text` 1–1000 chars after trim; `author` 0–200 chars after trim\r\n(empty string treated as null)."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateOrUpdateQuoteRequest"
+                  }
+                ],
+                "description": "Body for `POST .../quotes/mine` and `PUT .../quotes/mine/{id}` on both the\r\nmobile and webapp surfaces. Validation is enforced server-side per the Quote of the Day\r\nplan §5.4: `text` 1–1000 chars after trim; `author` 0–200 chars after trim\r\n(empty string treated as null)."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the updated quote.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Quote not found / not owned by caller.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Mobile - Quotes"
+        ],
+        "summary": "Soft-delete a user-added quote.",
+        "description": "If the deleted quote was the caller's current pin or current display, the server clears\r\nthose references and bumps the profile's `UpdatedAt` so the next state-sync reflects it.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The quote ID to delete.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Quote deleted."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Quote not found / not owned by caller.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -640,7 +1810,7 @@
     "/scheduledworkouts/sync": {
       "post": {
         "tags": [
-          "ScheduledWorkouts"
+          "Mobile - ScheduledWorkouts"
         ],
         "summary": "Sync a batch of scheduled workout create, update, or delete operations from the mobile client's outbox.",
         "description": "Accepts an array of sync operations and applies them server-side using Last-Write-Wins conflict\r\nresolution. All accepted operations are written atomically in a single database transaction.\r\n            \r\nOperations where the server record is newer return `ConflictResolved` — the mobile client\r\nshould re-pull those records on the next delta pull.\r\n            \r\nWhen programming a workout for another athlete (`athleteId != currentAthlete`), the requesting\r\nathlete must have an accepted connection with the target athlete at the `ProgramWorkouts`\r\npermission level. A `ViewWorkouts`-only connection is not sufficient. If not, the entire batch\r\nis rejected with `403 Forbidden`.\r\n            \r\nThe server always overrides the `isLocked` field — the mobile payload value is ignored.\r\nFor locked records, only log fields (`status`, `scoreResult`, `notes`,\r\n`exerciseLogs`) may be updated; template fields are preserved.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -708,7 +1878,137 @@
       },
       "get": {
         "tags": [
-          "ScheduledWorkouts"
+          "Mobile - ScheduledWorkouts"
+        ],
+        "summary": "Pull scheduled workouts that have changed since a given timestamp (delta sync).",
+        "description": "Returns all scheduled workouts (including soft-deleted ones) with `UpdatedAt` strictly greater\r\nthan `since`. Omit `since` for a full bootstrap pull.\r\n            \r\nReturns only workouts owned by the authenticated athlete. Workouts programmed by the\r\nauthenticated athlete for other athletes are not included here — those are retrieved\r\non-demand via `GET /athletes/{id}/scheduledworkouts`.\r\n            \r\nEach record includes its full hydrated `exerciseLogs` array. The response also carries a\r\nserver-generated `Timestamp` the mobile client should store as its next `since` cursor.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Return only records updated after this ISO 8601 timestamp. Omit for a full pull.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "1-based page number. Defaults to 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of records per page. Defaults to 100, capped at 500.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a paginated list of scheduled workouts with a server `Timestamp` cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledWorkoutSyncResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/scheduledworkouts/sync": {
+      "post": {
+        "tags": [
+          "Mobile - ScheduledWorkouts"
+        ],
+        "summary": "Sync a batch of scheduled workout create, update, or delete operations from the mobile client's outbox.",
+        "description": "Accepts an array of sync operations and applies them server-side using Last-Write-Wins conflict\r\nresolution. All accepted operations are written atomically in a single database transaction.\r\n            \r\nOperations where the server record is newer return `ConflictResolved` — the mobile client\r\nshould re-pull those records on the next delta pull.\r\n            \r\nWhen programming a workout for another athlete (`athleteId != currentAthlete`), the requesting\r\nathlete must have an accepted connection with the target athlete at the `ProgramWorkouts`\r\npermission level. A `ViewWorkouts`-only connection is not sufficient. If not, the entire batch\r\nis rejected with `403 Forbidden`.\r\n            \r\nThe server always overrides the `isLocked` field — the mobile payload value is ignored.\r\nFor locked records, only log fields (`status`, `scoreResult`, `notes`,\r\n`exerciseLogs`) may be updated; template fields are preserved.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "requestBody": {
+          "description": "A plain list of scheduled workout payloads. Set `isDeleted: true` on any item to soft-delete it.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ScheduledWorkoutRequest"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ScheduledWorkoutRequest"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ScheduledWorkoutRequest"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch processed. Each item indicates `Accepted` or `ConflictResolved`. The response also includes a server `Timestamp` for advancing the delta cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncBatchResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The requesting athlete does not have an accepted `ProgramWorkouts` connection with the target athlete.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Mobile - ScheduledWorkouts"
         ],
         "summary": "Pull scheduled workouts that have changed since a given timestamp (delta sync).",
         "description": "Returns all scheduled workouts (including soft-deleted ones) with `UpdatedAt` strictly greater\r\nthan `since`. Omit `since` for a full bootstrap pull.\r\n            \r\nReturns only workouts owned by the authenticated athlete. Workouts programmed by the\r\nauthenticated athlete for other athletes are not included here — those are retrieved\r\non-demand via `GET /athletes/{id}/scheduledworkouts`.\r\n            \r\nEach record includes its full hydrated `exerciseLogs` array. The response also carries a\r\nserver-generated `Timestamp` the mobile client should store as its next `since` cursor.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -770,7 +2070,52 @@
     "/scheduledworkouts": {
       "get": {
         "tags": [
-          "ScheduledWorkouts"
+          "Mobile - ScheduledWorkouts"
+        ],
+        "summary": "Retrieve scheduled workouts for the authenticated athlete on a specific date.",
+        "description": "Returns the current live state for all non-deleted scheduled workouts on the given date.\r\nEach record includes its full hydrated `exerciseLogs` array.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "description": "The date to query in `YYYY-MM-DD` format.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of scheduled workouts for the given date.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduledWorkoutResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/scheduledworkouts": {
+      "get": {
+        "tags": [
+          "Mobile - ScheduledWorkouts"
         ],
         "summary": "Retrieve scheduled workouts for the authenticated athlete on a specific date.",
         "description": "Returns the current live state for all non-deleted scheduled workouts on the given date.\r\nEach record includes its full hydrated `exerciseLogs` array.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -815,7 +2160,79 @@
     "/athletes/{id}/scheduledworkouts": {
       "get": {
         "tags": [
-          "ScheduledWorkouts"
+          "Mobile - ScheduledWorkouts"
+        ],
+        "summary": "Retrieve the scheduled workouts that the authenticated athlete has programmed for a specific target athlete.",
+        "description": "This is an on-demand social endpoint — it always returns the current live state (no `since` delta).\r\nSoft-deleted records are excluded.\r\n            \r\nThe authenticated athlete must have an accepted `AthleteConnection` with the target athlete\r\nat the `ProgramWorkouts` permission level. A `ViewWorkouts`-only connection is not sufficient.\r\nReturns `403 Forbidden` if no such connection exists.\r\n            \r\nOnly returns workouts where `programmedByAthleteId == currentAthlete` for the target.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the target athlete whose programmed workouts to retrieve.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "1-based page number. Defaults to 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of records per page. Defaults to 100, capped at 500.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a paginated list of scheduled workouts programmed for the target athlete.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledWorkoutResponsePagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No accepted `ProgramWorkouts` connection exists between the authenticated athlete and the target.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/athletes/{id}/scheduledworkouts": {
+      "get": {
+        "tags": [
+          "Mobile - ScheduledWorkouts"
         ],
         "summary": "Retrieve the scheduled workouts that the authenticated athlete has programmed for a specific target athlete.",
         "description": "This is an on-demand social endpoint — it always returns the current live state (no `since` delta).\r\nSoft-deleted records are excluded.\r\n            \r\nThe authenticated athlete must have an accepted `AthleteConnection` with the target athlete\r\nat the `ProgramWorkouts` permission level. A `ViewWorkouts`-only connection is not sufficient.\r\nReturns `403 Forbidden` if no such connection exists.\r\n            \r\nOnly returns workouts where `programmedByAthleteId == currentAthlete` for the target.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -887,7 +2304,63 @@
     "/api/social/feed": {
       "get": {
         "tags": [
-          "Social"
+          "Mobile - Social"
+        ],
+        "summary": "Retrieve the activity feed for the authenticated athlete.",
+        "description": "Returns completed workouts from two sources, deduplicated:\r\n(1) athletes the authenticated user shares an accepted `ViewWorkouts` connection with\r\nin <b>either direction</b> (symmetric peer relationship); and\r\n(2) workouts the authenticated user programmed for someone else\r\n(`ProgrammedByAthleteId == currentAthlete`), regardless of who owns the row.\r\nThe user's own workouts are excluded. A `ProgramWorkouts`-only connection does not\r\npull the grantor's other workouts into the feed — only the specific workouts the\r\nauthenticated user authored. Results are ordered by completion date descending and\r\npaginated. The initial release includes completed workouts only — PRs and streak milestones\r\nare deferred to a future iteration.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The page number (1-based). Defaults to 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "The number of items per page. Defaults to 20.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the activity feed items.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityFeedItemResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/social/feed": {
+      "get": {
+        "tags": [
+          "Mobile - Social"
         ],
         "summary": "Retrieve the activity feed for the authenticated athlete.",
         "description": "Returns completed workouts from two sources, deduplicated:\r\n(1) athletes the authenticated user shares an accepted `ViewWorkouts` connection with\r\nin <b>either direction</b> (symmetric peer relationship); and\r\n(2) workouts the authenticated user programmed for someone else\r\n(`ProgrammedByAthleteId == currentAthlete`), regardless of who owns the row.\r\nThe user's own workouts are excluded. A `ProgramWorkouts`-only connection does not\r\npull the grantor's other workouts into the feed — only the specific workouts the\r\nauthenticated user authored. Results are ordered by completion date descending and\r\npaginated. The initial release includes completed workouts only — PRs and streak milestones\r\nare deferred to a future iteration.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -943,7 +2416,73 @@
     "/api/social/reactions/batch": {
       "post": {
         "tags": [
-          "Social"
+          "Mobile - Social"
+        ],
+        "summary": "Fetch reactions for multiple completed workouts in a single request.",
+        "description": "Returns reaction lists grouped by workout log ID. Workout IDs the authenticated athlete\r\ncannot access return an empty `reactions` array rather than failing the entire batch.\r\nAccess is granted when the athlete is the owner, the programmer (`ProgrammedByAthleteId`),\r\nor shares an accepted `ViewWorkouts` connection with the owner in either direction.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "requestBody": {
+          "description": "List of workout log IDs to fetch reactions for.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/BatchReactionsRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/BatchReactionsRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/BatchReactionsRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns reactions grouped by workout log ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkoutReactionsResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/social/reactions/batch": {
+      "post": {
+        "tags": [
+          "Mobile - Social"
         ],
         "summary": "Fetch reactions for multiple completed workouts in a single request.",
         "description": "Returns reaction lists grouped by workout log ID. Workout IDs the authenticated athlete\r\ncannot access return an empty `reactions` array rather than failing the entire batch.\r\nAccess is granted when the athlete is the owner, the programmer (`ProgrammedByAthleteId`),\r\nor shares an accepted `ViewWorkouts` connection with the owner in either direction.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -1009,7 +2548,104 @@
     "/api/social/workouts/{workoutLogId}/reactions": {
       "post": {
         "tags": [
-          "Social"
+          "Mobile - Social"
+        ],
+        "summary": "Toggle a reaction on a completed workout.",
+        "description": "Each athlete can have one reaction per workout. Sending the same reaction type toggles it\r\noff (soft-delete). Sending a different type replaces the previous reaction.\r\n            \r\nRequires one of: (a) the authenticated athlete is the workout owner;\r\n(b) the authenticated athlete is the workout's programmer (`ProgrammedByAthleteId`); or\r\n(c) an accepted `ViewWorkouts` connection exists between the authenticated athlete and the\r\nworkout owner in <b>either direction</b>. A bare `ProgramWorkouts` connection on its own\r\nis not sufficient — only the specific workouts the authenticated athlete authored are accessible\r\nvia the programmer branch.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "workoutLogId",
+            "in": "path",
+            "description": "The ID of the scheduled workout (completed log) to react to.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The reaction type to toggle.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ToggleReactionRequest"
+                  }
+                ],
+                "description": "Request body for toggling a reaction on a completed workout."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ToggleReactionRequest"
+                  }
+                ],
+                "description": "Request body for toggling a reaction on a completed workout."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ToggleReactionRequest"
+                  }
+                ],
+                "description": "Request body for toggling a reaction on a completed workout."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reaction toggled. Returns the reaction record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReactionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No accepted connection exists with the workout owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Workout log not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/social/workouts/{workoutLogId}/reactions": {
+      "post": {
+        "tags": [
+          "Mobile - Social"
         ],
         "summary": "Toggle a reaction on a completed workout.",
         "description": "Each athlete can have one reaction per workout. Sending the same reaction type toggles it\r\noff (soft-delete). Sending a different type replaces the previous reaction.\r\n            \r\nRequires one of: (a) the authenticated athlete is the workout owner;\r\n(b) the authenticated athlete is the workout's programmer (`ProgrammedByAthleteId`); or\r\n(c) an accepted `ViewWorkouts` connection exists between the authenticated athlete and the\r\nworkout owner in <b>either direction</b>. A bare `ProgramWorkouts` connection on its own\r\nis not sufficient — only the specific workouts the authenticated athlete authored are accessible\r\nvia the programmer branch.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -1106,7 +2742,104 @@
     "/api/social/workouts/{workoutLogId}/comments": {
       "post": {
         "tags": [
-          "Social"
+          "Mobile - Social"
+        ],
+        "summary": "Add a comment to a completed workout.",
+        "description": "Comments are displayed in chronological order beneath the workout detail view.\r\nRequires one of: (a) the authenticated athlete is the workout owner;\r\n(b) the authenticated athlete is the workout's programmer (`ProgrammedByAthleteId`); or\r\n(c) an accepted `ViewWorkouts` connection exists between the authenticated athlete and the\r\nworkout owner in <b>either direction</b>. A bare `ProgramWorkouts` connection on its own\r\nis not sufficient — only the specific workouts the authenticated athlete authored are accessible\r\nvia the programmer branch.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "workoutLogId",
+            "in": "path",
+            "description": "The ID of the scheduled workout (completed log) to comment on.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The comment text.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AddCommentRequest"
+                  }
+                ],
+                "description": "Request body for adding a comment to a completed workout."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AddCommentRequest"
+                  }
+                ],
+                "description": "Request body for adding a comment to a completed workout."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AddCommentRequest"
+                  }
+                ],
+                "description": "Request body for adding a comment to a completed workout."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comment created. Returns the comment record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutCommentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No accepted connection exists with the workout owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Workout log not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/social/workouts/{workoutLogId}/comments": {
+      "post": {
+        "tags": [
+          "Mobile - Social"
         ],
         "summary": "Add a comment to a completed workout.",
         "description": "Comments are displayed in chronological order beneath the workout detail view.\r\nRequires one of: (a) the authenticated athlete is the workout owner;\r\n(b) the authenticated athlete is the workout's programmer (`ProgrammedByAthleteId`); or\r\n(c) an accepted `ViewWorkouts` connection exists between the authenticated athlete and the\r\nworkout owner in <b>either direction</b>. A bare `ProgramWorkouts` connection on its own\r\nis not sufficient — only the specific workouts the authenticated athlete authored are accessible\r\nvia the programmer branch.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -1203,7 +2936,62 @@
     "/api/social/comments/{commentId}": {
       "delete": {
         "tags": [
-          "Social"
+          "Mobile - Social"
+        ],
+        "summary": "Delete (soft-delete) a comment.",
+        "description": "The workout owner can delete any comment on their workout. An athlete can delete\r\ntheir own comment on any workout. Returns `403` if neither condition is met.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "commentId",
+            "in": "path",
+            "description": "The ID of the comment to delete.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Comment deleted successfully."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated athlete is neither the comment author nor the workout owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Comment not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/social/comments/{commentId}": {
+      "delete": {
+        "tags": [
+          "Mobile - Social"
         ],
         "summary": "Delete (soft-delete) a comment.",
         "description": "The workout owner can delete any comment on their workout. An athlete can delete\r\ntheir own comment on any workout. Returns `403` if neither condition is met.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
@@ -1258,7 +3046,7 @@
     "/StandardExercises": {
       "get": {
         "tags": [
-          "StandardExercises"
+          "Mobile - StandardExercises"
         ],
         "summary": "Retrieve a paginated page of standard exercises, optionally filtered by a sync watermark.",
         "description": "Requires a valid `Authorization: Bearer {token}` header.\r\n            \r\nThis endpoint supports the mobile client's Delta Pull mechanism. Pass the greatest\r\n`UpdatedAt` timestamp received during a previous sync as since\r\nto receive only records modified after that point. Soft-deleted records\r\n(`IsDeleted = true`) are included in the response so the client can tombstone them locally.\r\n            \r\nOn first launch or after an app reinstall, omit since to pull the full\r\ncatalog from the beginning. Loop through all pages until `Page == TotalPages` before\r\nadvancing the local sync watermark and allowing app navigation.",
@@ -1306,6 +3094,464 @@
           },
           "401": {
             "description": "The request is missing or contains an invalid JWT bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/standardexercises": {
+      "get": {
+        "tags": [
+          "Mobile - StandardExercises"
+        ],
+        "summary": "Retrieve a paginated page of standard exercises, optionally filtered by a sync watermark.",
+        "description": "Requires a valid `Authorization: Bearer {token}` header.\r\n            \r\nThis endpoint supports the mobile client's Delta Pull mechanism. Pass the greatest\r\n`UpdatedAt` timestamp received during a previous sync as since\r\nto receive only records modified after that point. Soft-deleted records\r\n(`IsDeleted = true`) are included in the response so the client can tombstone them locally.\r\n            \r\nOn first launch or after an app reinstall, omit since to pull the full\r\ncatalog from the beginning. Loop through all pages until `Page == TotalPages` before\r\nadvancing the local sync watermark and allowing app navigation.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Optional UTC watermark. Returns only records where `UpdatedAt` is greater than this value.\r\nOmit entirely to retrieve all records from the beginning of time (initial bootstrap pull).",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The 1-based page number to retrieve. Defaults to 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "The number of items per page. Defaults to 100.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a paginated list of standard exercises matching the query.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardExerciseResponsePagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The request is missing or contains an invalid JWT bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workouts/parse": {
+      "post": {
+        "tags": [
+          "Mobile - Workouts"
+        ],
+        "summary": "Parse a free-form workout description into a structured workout.",
+        "description": "Submits raw workout text to Azure OpenAI for interpretation. The AI extracts the workout name,\r\ntype (e.g., AMRAP, ForTime, EMOM, Strength), score type, individual exercises with sets and reps,\r\nand any additional instructions. Exercises are matched against the standard exercise library when possible.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.\r\n            \r\nExample input:\r\n```\r\n21-15-9\r\nThrusters (95/65 lb)\r\nPull-ups\r\n```",
+        "requestBody": {
+          "description": "The raw workout text to parse.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ParseWorkoutRequest"
+                  }
+                ],
+                "description": "Request body for parsing a free-form workout description."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ParseWorkoutRequest"
+                  }
+                ],
+                "description": "Request body for parsing a free-form workout description."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ParseWorkoutRequest"
+                  }
+                ],
+                "description": "Request body for parsing a free-form workout description."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Parsing succeeded. Returns the structured workout with all extracted details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body was missing or empty, or the raw text contained no recognisable workout structure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/workouts/parse": {
+      "post": {
+        "tags": [
+          "Mobile - Workouts"
+        ],
+        "summary": "Parse a free-form workout description into a structured workout.",
+        "description": "Submits raw workout text to Azure OpenAI for interpretation. The AI extracts the workout name,\r\ntype (e.g., AMRAP, ForTime, EMOM, Strength), score type, individual exercises with sets and reps,\r\nand any additional instructions. Exercises are matched against the standard exercise library when possible.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.\r\n            \r\nExample input:\r\n```\r\n21-15-9\r\nThrusters (95/65 lb)\r\nPull-ups\r\n```",
+        "requestBody": {
+          "description": "The raw workout text to parse.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ParseWorkoutRequest"
+                  }
+                ],
+                "description": "Request body for parsing a free-form workout description."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ParseWorkoutRequest"
+                  }
+                ],
+                "description": "Request body for parsing a free-form workout description."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ParseWorkoutRequest"
+                  }
+                ],
+                "description": "Request body for parsing a free-form workout description."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Parsing succeeded. Returns the structured workout with all extracted details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body was missing or empty, or the raw text contained no recognisable workout structure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workouts/sync": {
+      "post": {
+        "tags": [
+          "Mobile - Workouts"
+        ],
+        "summary": "Sync a batch of workout create, update, or delete operations from the mobile client's outbox.",
+        "description": "Accepts a plain array of workout objects and applies them server-side using Last-Write-Wins conflict\r\nresolution. All accepted operations are written atomically in a single database transaction.\r\nSoft-deletes are signalled by setting `isDeleted: true` on the payload — no separate\r\noperation-type wrapper is required.\r\nOperations where the server record is newer return `ConflictResolved` — the mobile client\r\nshould re-pull those workouts on the next delta pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "requestBody": {
+          "description": "The flat list of workout payloads to sync. Set `isDeleted: true` to soft-delete.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WorkoutRequest"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WorkoutRequest"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WorkoutRequest"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch processed. Each item in the result indicates `Accepted` or `ConflictResolved`. Includes a server-generated `timestamp` the client can use to advance its delta-pull cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncBatchResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/workouts/sync": {
+      "post": {
+        "tags": [
+          "Mobile - Workouts"
+        ],
+        "summary": "Sync a batch of workout create, update, or delete operations from the mobile client's outbox.",
+        "description": "Accepts a plain array of workout objects and applies them server-side using Last-Write-Wins conflict\r\nresolution. All accepted operations are written atomically in a single database transaction.\r\nSoft-deletes are signalled by setting `isDeleted: true` on the payload — no separate\r\noperation-type wrapper is required.\r\nOperations where the server record is newer return `ConflictResolved` — the mobile client\r\nshould re-pull those workouts on the next delta pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "requestBody": {
+          "description": "The flat list of workout payloads to sync. Set `isDeleted: true` to soft-delete.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WorkoutRequest"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WorkoutRequest"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WorkoutRequest"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch processed. Each item in the result indicates `Accepted` or `ConflictResolved`. Includes a server-generated `timestamp` the client can use to advance its delta-pull cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncBatchResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workouts": {
+      "get": {
+        "tags": [
+          "Mobile - Workouts"
+        ],
+        "summary": "Retrieve all workouts for the authenticated athlete since a given timestamp (delta pull).",
+        "description": "Returns all workouts (including soft-deleted ones) with `UpdatedAt` strictly greater\r\nthan `since`. Omit `since` for a full bootstrap pull. Each workout includes its\r\nfull hydrated exercise list.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Return only records updated after this ISO 8601 timestamp. Omit for a full pull.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "1-based page number. Defaults to 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of records per page. Defaults to 100, capped at 500.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a paginated list of workouts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutResponsePagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/workouts": {
+      "get": {
+        "tags": [
+          "Mobile - Workouts"
+        ],
+        "summary": "Retrieve all workouts for the authenticated athlete since a given timestamp (delta pull).",
+        "description": "Returns all workouts (including soft-deleted ones) with `UpdatedAt` strictly greater\r\nthan `since`. Omit `since` for a full bootstrap pull. Each workout includes its\r\nfull hydrated exercise list.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Return only records updated after this ISO 8601 timestamp. Omit for a full pull.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "1-based page number. Defaults to 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of records per page. Defaults to 100, capped at 500.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a paginated list of workouts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutResponsePagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1738,163 +3984,181 @@
         }
       }
     },
-    "/workouts/parse": {
-      "post": {
-        "tags": [
-          "Workouts"
-        ],
-        "summary": "Parse a free-form workout description into a structured workout.",
-        "description": "Submits raw workout text to Azure OpenAI for interpretation. The AI extracts the workout name,\r\ntype (e.g., AMRAP, ForTime, EMOM, Strength), score type, individual exercises with sets and reps,\r\nand any additional instructions. Exercises are matched against the standard exercise library when possible.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.\r\n            \r\nExample input:\r\n```\r\n21-15-9\r\nThrusters (95/65 lb)\r\nPull-ups\r\n```",
-        "requestBody": {
-          "description": "The raw workout text to parse.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/ParseWorkoutRequest"
-                  }
-                ],
-                "description": "Request body for parsing a free-form workout description."
-              }
-            },
-            "text/json": {
-              "schema": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/ParseWorkoutRequest"
-                  }
-                ],
-                "description": "Request body for parsing a free-form workout description."
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/ParseWorkoutRequest"
-                  }
-                ],
-                "description": "Request body for parsing a free-form workout description."
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Parsing succeeded. Returns the structured workout with all extracted details.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ParseWorkoutResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request body was missing or empty, or the raw text contained no recognisable workout structure.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Token is missing, expired, or invalid.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/workouts/sync": {
-      "post": {
-        "tags": [
-          "Workouts"
-        ],
-        "summary": "Sync a batch of workout create, update, or delete operations from the mobile client's outbox.",
-        "description": "Accepts a plain array of workout objects and applies them server-side using Last-Write-Wins conflict\r\nresolution. All accepted operations are written atomically in a single database transaction.\r\nSoft-deletes are signalled by setting `isDeleted: true` on the payload — no separate\r\noperation-type wrapper is required.\r\nOperations where the server record is newer return `ConflictResolved` — the mobile client\r\nshould re-pull those workouts on the next delta pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
-        "requestBody": {
-          "description": "The flat list of workout payloads to sync. Set `isDeleted: true` to soft-delete.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/WorkoutRequest"
-                }
-              }
-            },
-            "text/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/WorkoutRequest"
-                }
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/WorkoutRequest"
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Batch processed. Each item in the result indicates `Accepted` or `ConflictResolved`. Includes a server-generated `timestamp` the client can use to advance its delta-pull cursor.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SyncBatchResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Token is missing, expired, or invalid.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/workouts": {
+    "/api/webapp/quotes/today/v1": {
       "get": {
         "tags": [
-          "Workouts"
+          "WebApp - Quotes"
         ],
-        "summary": "Retrieve all workouts for the authenticated athlete since a given timestamp (delta pull).",
-        "description": "Returns all workouts (including soft-deleted ones) with `UpdatedAt` strictly greater\r\nthan `since`. Omit `since` for a full bootstrap pull. Each workout includes its\r\nfull hydrated exercise list.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
-        "parameters": [
-          {
-            "name": "since",
-            "in": "query",
-            "description": "Return only records updated after this ISO 8601 timestamp. Omit for a full pull.",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
+        "summary": "Get the caller's current QuoteOfTheDay.",
+        "description": "Server resolves \"today\" from the caller's profile timezone (UTC fallback). Returns\r\n`204 No Content` when the caller's pool is empty.\r\n            \r\nPossible `error.code` values:\r\n<list type=\"bullet\"><item><description>`UNAUTHENTICATED` (401)</description></item></list>",
+        "responses": {
+          "200": {
+            "description": "The current QuoteOfTheDay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOfTheDayResponse"
+                }
+              }
             }
           },
+          "204": {
+            "description": "Pool is empty."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webapp/quotes/today/refresh/v1": {
+      "post": {
+        "tags": [
+          "WebApp - Quotes"
+        ],
+        "summary": "Force a new selection.",
+        "description": "Returns `409 Conflict` with `error.code: \"PINNED\"` when the caller is currently pinned.",
+        "responses": {
+          "200": {
+            "description": "The newly-selected QuoteOfTheDay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOfTheDayResponse"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Pool is empty."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Caller is currently pinned; unpin first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webapp/quotes/{id}/pin/v1": {
+      "post": {
+        "tags": [
+          "WebApp - Quotes"
+        ],
+        "summary": "Pin a quote.",
+        "description": "Returns `404 Not Found` when the quote ID is unknown, soft-deleted, or not in the caller's pool.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The quote ID to pin.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "QuoteOfTheDay with the new pin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOfTheDayResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Quote not found in the caller's pool.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webapp/quotes/pin/v1": {
+      "delete": {
+        "tags": [
+          "WebApp - Quotes"
+        ],
+        "summary": "Unpin the caller's current pin.",
+        "responses": {
+          "200": {
+            "description": "QuoteOfTheDay reflecting the post-unpin state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOfTheDayResponse"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Pool is empty."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webapp/quotes/mine/v1": {
+      "get": {
+        "tags": [
+          "WebApp - Quotes"
+        ],
+        "summary": "Paged list of the caller's user-added quotes.",
+        "description": "Adds `hasMore` on top of the standard paged shape (WebApp convention only).",
+        "parameters": [
           {
             "name": "page",
             "in": "query",
-            "description": "1-based page number. Defaults to 1.",
+            "description": "1-based page number (default 1).",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -1904,21 +4168,21 @@
           {
             "name": "pageSize",
             "in": "query",
-            "description": "Number of records per page. Defaults to 100, capped at 500.",
+            "description": "Items per page (default 50, max 200).",
             "schema": {
               "type": "integer",
               "format": "int32",
-              "default": 100
+              "default": 50
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Returns a paginated list of workouts.",
+            "description": "The paged list.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WorkoutResponsePagedResponse"
+                  "$ref": "#/components/schemas/PagedQuotesResponse"
                 }
               }
             }
@@ -1928,7 +4192,218 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "WebApp - Quotes"
+        ],
+        "summary": "Create a user-added quote.",
+        "requestBody": {
+          "description": "Quote text + optional author.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateOrUpdateQuoteRequest"
+                  }
+                ],
+                "description": "Body for `POST .../quotes/mine` and `PUT .../quotes/mine/{id}` on both the\r\nmobile and webapp surfaces. Validation is enforced server-side per the Quote of the Day\r\nplan §5.4: `text` 1–1000 chars after trim; `author` 0–200 chars after trim\r\n(empty string treated as null)."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateOrUpdateQuoteRequest"
+                  }
+                ],
+                "description": "Body for `POST .../quotes/mine` and `PUT .../quotes/mine/{id}` on both the\r\nmobile and webapp surfaces. Validation is enforced server-side per the Quote of the Day\r\nplan §5.4: `text` 1–1000 chars after trim; `author` 0–200 chars after trim\r\n(empty string treated as null)."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateOrUpdateQuoteRequest"
+                  }
+                ],
+                "description": "Body for `POST .../quotes/mine` and `PUT .../quotes/mine/{id}` on both the\r\nmobile and webapp surfaces. Validation is enforced server-side per the Quote of the Day\r\nplan §5.4: `text` 1–1000 chars after trim; `author` 0–200 chars after trim\r\n(empty string treated as null)."
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created quote.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webapp/quotes/mine/{id}/v1": {
+      "put": {
+        "tags": [
+          "WebApp - Quotes"
+        ],
+        "summary": "Update a user-added quote.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The quote ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The new text + author.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateOrUpdateQuoteRequest"
+                  }
+                ],
+                "description": "Body for `POST .../quotes/mine` and `PUT .../quotes/mine/{id}` on both the\r\nmobile and webapp surfaces. Validation is enforced server-side per the Quote of the Day\r\nplan §5.4: `text` 1–1000 chars after trim; `author` 0–200 chars after trim\r\n(empty string treated as null)."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateOrUpdateQuoteRequest"
+                  }
+                ],
+                "description": "Body for `POST .../quotes/mine` and `PUT .../quotes/mine/{id}` on both the\r\nmobile and webapp surfaces. Validation is enforced server-side per the Quote of the Day\r\nplan §5.4: `text` 1–1000 chars after trim; `author` 0–200 chars after trim\r\n(empty string treated as null)."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateOrUpdateQuoteRequest"
+                  }
+                ],
+                "description": "Body for `POST .../quotes/mine` and `PUT .../quotes/mine/{id}` on both the\r\nmobile and webapp surfaces. Validation is enforced server-side per the Quote of the Day\r\nplan §5.4: `text` 1–1000 chars after trim; `author` 0–200 chars after trim\r\n(empty string treated as null)."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated quote.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Quote not found / not owned by caller.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "WebApp - Quotes"
+        ],
+        "summary": "Soft-delete a user-added quote.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The quote ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Quote deleted."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Quote not found / not owned by caller.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
                 }
               }
             }
@@ -2492,6 +4967,28 @@
         "additionalProperties": false,
         "description": "Represents a single connection invite to be created during a sync operation.\r\nThe requesting athlete provides the granting athlete's email address;\r\nthe API resolves it to an athlete ID server-side."
       },
+      "CreateOrUpdateQuoteRequest": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The quote body. Required. Trimmed length must be 1–1000 characters.",
+            "example": "Strength does not come from the body. It comes from the will."
+          },
+          "author": {
+            "type": "string",
+            "description": "Optional author. Trimmed length must be 0–200 characters; empty / whitespace-only\r\nis treated as null. Null when the athlete did not specify an author.",
+            "nullable": true,
+            "example": "Gandhi"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body for `POST .../quotes/mine` and `PUT .../quotes/mine/{id}` on both the\r\nmobile and webapp surfaces. Validation is enforced server-side per the Quote of the Day\r\nplan §5.4: `text` 1–1000 chars after trim; `author` 0–200 chars after trim\r\n(empty string treated as null)."
+      },
       "DashboardWorkoutCardResponse": {
         "type": "object",
         "properties": {
@@ -2718,6 +5215,25 @@
         ],
         "type": "string"
       },
+      "MobileAthleteSelfProfileResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The athlete's unique identifier (same as `ApplicationUser.Id`).",
+            "nullable": true,
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "The persisted IANA timezone identifier; null when the athlete has not yet set one.",
+            "nullable": true,
+            "example": "America/Chicago"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response body for `PUT /api/mobile/athletes/me/v1`. The shape is forward-compatible —\r\nadditional optional profile fields will be added over time. Mobile clients should\r\nignore unknown fields so server roll-outs that add new properties don't break parsing."
+      },
       "MyAthleteProfileResponse": {
         "type": "object",
         "properties": {
@@ -2742,6 +5258,44 @@
         },
         "additionalProperties": false,
         "description": "The authenticated athlete's self-profile (Web App surface). Distinct from\r\n`AthleteProfileResponse`, which represents a connected athlete's display\r\ndata on the Mobile surface."
+      },
+      "PagedQuotesResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuoteResponse"
+            },
+            "description": "The quotes on the requested page.",
+            "nullable": true
+          },
+          "page": {
+            "type": "integer",
+            "description": "The 1-based page number.",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "The page size requested.",
+            "format": "int32",
+            "example": 50
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "Total number of user-added quotes for the caller.",
+            "format": "int32",
+            "example": 12
+          },
+          "hasMore": {
+            "type": "boolean",
+            "description": "WebApp-only convenience field: true when more pages remain after this one.\r\nMobile responses omit this field. Null when not populated by the surface that returned this object.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Paged list of the caller's user-added quotes. Returned by\r\n`GET /api/mobile/quotes/mine` (no `HasMore`) and\r\n`GET /api/webapp/quotes/mine/v1` (adds `HasMore`)."
       },
       "ParseWorkoutErrorResponse": {
         "type": "object",
@@ -2965,6 +5519,75 @@
           }
         },
         "additionalProperties": { }
+      },
+      "QuoteOfTheDayResponse": {
+        "type": "object",
+        "properties": {
+          "quote": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QuoteResponse"
+              }
+            ],
+            "description": "The displayed quote.",
+            "nullable": true
+          },
+          "isPinned": {
+            "type": "boolean",
+            "description": "True when this quote is the athlete's currently-active pin."
+          },
+          "forDate": {
+            "type": "string",
+            "description": "The athlete-local date this selection applies to (resolved server-side from profile timezone).",
+            "format": "date",
+            "example": "2026-04-30"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "The greater of the athlete's profile `UpdatedAt` and their pin row's `UpdatedAt`.\r\nMobile passes this value back as the `since` cursor on the next state-sync.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The caller's currently-displayed Quote of the Day. Returned by both the mobile sync\r\nresource (`GET /api/mobile/quotes/today/state`) and the webapp dashboard\r\n(`GET /api/webapp/quotes/today/v1`)."
+      },
+      "QuoteResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The quote's unique identifier. For system quotes, derived deterministically from text + author.",
+            "nullable": true,
+            "example": "9d8e0a8c-1e72-5b6f-9e3a-3a9c1b6f2a4d"
+          },
+          "text": {
+            "type": "string",
+            "description": "The quote body.",
+            "nullable": true,
+            "example": "Strength does not come from the body. It comes from the will."
+          },
+          "author": {
+            "type": "string",
+            "description": "The quote's author. Null when the athlete did not specify one.",
+            "nullable": true,
+            "example": "Gandhi"
+          },
+          "isSystem": {
+            "type": "boolean",
+            "description": "True for seeded system quotes (read-only); false for user-added quotes."
+          },
+          "isOwnedByMe": {
+            "type": "boolean",
+            "description": "True when the caller is the athlete who created this quote — controls edit/delete affordances on the client."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update timestamp on this quote row.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single quote in the caller's visible pool (system seed quote OR a quote the caller\r\nadded themselves). Returned by the mobile and webapp Quote of the Day surfaces."
       },
       "ReactionResponse": {
         "type": "object",
@@ -3499,6 +6122,19 @@
         "additionalProperties": false,
         "description": "Request body for toggling a reaction on a completed workout."
       },
+      "UpdateMobileAthleteSelfProfileRequest": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string",
+            "description": "IANA timezone identifier (e.g. \"America/Chicago\"). Pass an explicit `null`\r\nto clear. Forward-compatible — additional optional profile fields will be added\r\nto this request shape over time.",
+            "nullable": true,
+            "example": "America/Chicago"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for `PUT /api/mobile/athletes/me/v1`. Mobile pushes device\r\ntimezone server-side so quote rotation can resolve \"today\" against the athlete's\r\nlocal date."
+      },
       "UpdateMyAthleteProfileRequest": {
         "required": [
           "displayName"
@@ -3573,7 +6209,9 @@
           "VALIDATION_FAILED",
           "PROFILE_NOT_FOUND",
           "PROFILE_TIMEZONE_REQUIRED",
-          "INVALID_TIMEZONE"
+          "INVALID_TIMEZONE",
+          "NOT_FOUND",
+          "PINNED"
         ],
         "type": "string"
       },
@@ -4463,25 +7101,34 @@
   ],
   "tags": [
     {
-      "name": "AthleteProfiles"
-    },
-    {
-      "name": "ConnectionInvites"
-    },
-    {
-      "name": "Connections"
-    },
-    {
       "name": "FitEpic.Api"
     },
     {
-      "name": "ScheduledWorkouts"
+      "name": "Mobile - AthleteProfiles"
     },
     {
-      "name": "Social"
+      "name": "Mobile - Athletes"
     },
     {
-      "name": "StandardExercises"
+      "name": "Mobile - ConnectionInvites"
+    },
+    {
+      "name": "Mobile - Connections"
+    },
+    {
+      "name": "Mobile - Quotes"
+    },
+    {
+      "name": "Mobile - ScheduledWorkouts"
+    },
+    {
+      "name": "Mobile - Social"
+    },
+    {
+      "name": "Mobile - StandardExercises"
+    },
+    {
+      "name": "Mobile - Workouts"
     },
     {
       "name": "User"
@@ -4496,7 +7143,7 @@
       "name": "WebApp - Dashboards"
     },
     {
-      "name": "Workouts"
+      "name": "WebApp - Quotes"
     }
   ]
 }

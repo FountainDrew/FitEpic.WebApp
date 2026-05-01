@@ -129,6 +129,7 @@ Active scope lives in per-phase documents in this folder. Each phase is self-con
 |---|---|---|---|
 | 1 | [01_DASHBOARD_WEEKLY_STATS.md](./01_DASHBOARD_WEEKLY_STATS.md) | Dashboard weekly stats + streak; introduces the Athlete Profile concept | Shipped |
 | 2 | [02_DASHBOARD_WORKOUTS.md](./02_DASHBOARD_WORKOUTS.md) | Dashboard workouts: yesterday, today, tomorrow, future (7-day window) | Ready for API team |
+| 3 | [03_DASHBOARD_QUOTE_OF_THE_DAY.md](./03_DASHBOARD_QUOTE_OF_THE_DAY.md) | Dashboard quote card + "Manage my quotes" settings page; consumes the cross-team Quote of the Day API | Ready for API team |
 
 When a new phase is started, add a row here and create the corresponding `NN_<topic>.md` document.
 

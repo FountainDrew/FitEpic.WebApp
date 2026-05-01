@@ -1,0 +1,75 @@
+.quote-card {
+  margin-top: 8px;
+  margin-bottom: 36px;
+  max-width: 50%;
+  border: 1px solid color-mix(in srgb, var(--fe-primary) 45%, transparent);
+
+  // Tighten Material's default card padding for this compact variant.
+  ::ng-deep .mat-mdc-card-content {
+    padding: 10px 14px;
+  }
+  ::ng-deep .mat-mdc-card-content:last-child {
+    padding-bottom: 10px;
+  }
+}
+
+.quote-card-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.quote-body {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.quote-text {
+  margin: 0;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--fe-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.quote-author {
+  margin-top: 2px;
+  font-size: 12px;
+  font-style: normal;
+  color: var(--fe-text);
+  opacity: 0.65;
+}
+
+.quote-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.pin-active {
+  color: var(--fe-primary);
+}
+
+.quote-card-skeleton {
+  .skeleton-quote-line {
+    display: block;
+    width: 100%;
+    height: 16px;
+    margin-bottom: 8px;
+
+    &.short {
+      width: 60%;
+    }
+  }
+
+  .skeleton-quote-author {
+    display: block;
+    width: 35%;
+    height: 12px;
+    margin-top: 12px;
+  }
+}

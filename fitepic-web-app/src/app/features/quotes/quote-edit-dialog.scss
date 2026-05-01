@@ -1,0 +1,10 @@
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 360px;
+}
+
+.dialog-field {
+  width: 100%;
+}

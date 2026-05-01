@@ -1,0 +1,93 @@
+<a class="back-link" routerLink="/settings">
+  <mat-icon>arrow_back</mat-icon>
+  <span>Profile Settings</span>
+</a>
+
+<header class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">My Quotes</h1>
+    <p class="page-subtitle">
+      Quotes you add appear in your dashboard rotation alongside the system pool.
+    </p>
+  </div>
+  <button mat-flat-button color="primary" type="button" (click)="openCreate()">
+    <mat-icon>add</mat-icon>
+    Add quote
+  </button>
+</header>
+
+@if (loading()) {
+  <mat-card class="loading-card" aria-hidden="true">
+    <mat-card-content>
+      <span class="skeleton skeleton-line"></span>
+      <span class="skeleton skeleton-line"></span>
+      <span class="skeleton skeleton-line short"></span>
+    </mat-card-content>
+  </mat-card>
+} @else if (error()) {
+  <mat-card class="error-card">
+    <mat-card-content>
+      <p>{{ error() }}</p>
+      <button mat-button color="primary" (click)="retry()">Retry</button>
+    </mat-card-content>
+  </mat-card>
+} @else if (!hasItems()) {
+  <mat-card class="empty-card">
+    <mat-card-content>
+      <p>You haven't added any quotes yet.</p>
+      <p class="empty-hint">
+        Your dashboard cycles through the system pool until you add your own.
+      </p>
+      <button mat-flat-button color="primary" type="button" (click)="openCreate()">
+        <mat-icon>add</mat-icon>
+        Add your first quote
+      </button>
+    </mat-card-content>
+  </mat-card>
+} @else {
+  <ul class="quote-list">
+    @for (quote of items(); track quote.id) {
+      <li class="quote-row">
+        <mat-card class="quote-row-card">
+          <mat-card-content class="quote-row-content">
+            <div class="quote-row-body">
+              <p class="quote-row-text">{{ quote.text }}</p>
+              @if (authorLine(quote); as line) {
+                <p class="quote-row-author">{{ line }}</p>
+              }
+            </div>
+            <div class="quote-row-actions">
+              <button
+                mat-icon-button
+                type="button"
+                matTooltip="Edit"
+                aria-label="Edit quote"
+                (click)="openEdit(quote)"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                type="button"
+                matTooltip="Delete"
+                aria-label="Delete quote"
+                (click)="confirmDelete(quote)"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </li>
+    }
+  </ul>
+
+  <mat-paginator
+    [length]="totalCount()"
+    [pageSize]="pageSize()"
+    [pageIndex]="pageIndex()"
+    [pageSizeOptions]="[10, 20, 50]"
+    [showFirstLastButtons]="true"
+    (page)="onPageChange($event)"
+  />
+}

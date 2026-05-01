@@ -29,8 +29,19 @@ export const routes: Routes = [
       },
       {
         path: 'profile',
+        pathMatch: 'full',
+        redirectTo: 'settings',
+      },
+      {
+        path: 'settings',
+        pathMatch: 'full',
         loadComponent: () =>
-          import('./features/profile/profile-page').then((m) => m.ProfilePage),
+          import('./features/settings/settings-page').then((m) => m.SettingsPage),
+      },
+      {
+        path: 'settings/my-quotes',
+        loadComponent: () =>
+          import('./features/quotes/manage-quotes-page').then((m) => m.ManageQuotesPage),
       },
     ],
   },

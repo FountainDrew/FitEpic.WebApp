@@ -9,5 +9,5 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Programming', icon: 'fitness_center', route: '/programming' },
   { label: 'Connections', icon: 'group', route: '/connections' },
   { label: 'Activity', icon: 'timeline', route: '/activity' },
-  { label: 'Settings', icon: 'settings', route: '/settings' },
+  { label: 'Profile Settings', icon: 'settings', route: '/settings' },
 ];

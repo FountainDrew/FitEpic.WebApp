@@ -1,8 +1,5 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { map } from 'rxjs/operators';
 
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -41,42 +38,24 @@ export class AdminShell {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly theme = inject(ThemeService);
-  private readonly breakpoints = inject(BreakpointObserver);
 
   protected readonly navItems = NAV_ITEMS;
   protected readonly user = this.auth.currentUser;
   protected readonly themeMode = this.theme.mode;
 
-  private readonly isHandset = toSignal(
-    this.breakpoints.observe([Breakpoints.Handset, Breakpoints.Small]).pipe(map((s) => s.matches)),
-    { initialValue: false },
-  );
-
-  protected readonly rail = signal(this.loadRail());
-  protected readonly mobileOpen = signal(false);
-
-  protected readonly mode = computed(() => (this.isHandset() ? 'over' : 'side'));
-  protected readonly opened = computed(() => (this.isHandset() ? this.mobileOpen() : true));
-  protected readonly collapsed = computed(() => !this.isHandset() && this.rail());
+  // Sidenav is always in `side` mode and always opened — toggling the menu
+  // button only flips between rail (collapsed, 72px) and expanded (240px).
+  // The drawer always pushes content; it never overlays.
+  protected readonly collapsed = signal(this.loadRail());
 
   constructor() {
     effect(() => {
-      localStorage.setItem(RAIL_KEY, this.rail() ? '1' : '0');
+      localStorage.setItem(RAIL_KEY, this.collapsed() ? '1' : '0');
     });
   }
 
   protected toggleRail(): void {
-    if (this.isHandset()) {
-      this.mobileOpen.update((v) => !v);
-    } else {
-      this.rail.update((v) => !v);
-    }
-  }
-
-  protected onNavClick(): void {
-    if (this.isHandset()) {
-      this.mobileOpen.set(false);
-    }
+    this.collapsed.update((v) => !v);
   }
 
   protected cycleTheme(): void {

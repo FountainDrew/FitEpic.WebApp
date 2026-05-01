@@ -1,0 +1,44 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit quote' : 'Add a quote' }}</h2>
+
+<mat-dialog-content class="dialog-body">
+  <mat-form-field appearance="outline" class="dialog-field">
+    <mat-label>Quote</mat-label>
+    <textarea
+      matInput
+      rows="4"
+      [ngModel]="text()"
+      (ngModelChange)="text.set($event)"
+      [maxlength]="textMax"
+      required
+      cdkFocusInitial
+    ></textarea>
+    <mat-hint align="end">{{ textTrimmedLength() }} / {{ textMax }}</mat-hint>
+    @if (textInvalid() && textTrimmedLength() === 0) {
+      <mat-error>Quote text is required.</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="dialog-field">
+    <mat-label>Author (optional)</mat-label>
+    <input
+      matInput
+      [ngModel]="author()"
+      (ngModelChange)="author.set($event)"
+      [maxlength]="authorMax"
+    />
+    <mat-hint align="end">{{ authorTrimmedLength() }} / {{ authorMax }}</mat-hint>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="onCancel()">Cancel</button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    [disabled]="!canSave()"
+    (click)="onSave()"
+  >
+    {{ isEdit ? 'Save' : 'Add' }}
+  </button>
+</mat-dialog-actions>
