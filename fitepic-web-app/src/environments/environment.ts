@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://api.fitepic.com',
+  apiBaseUrl: 'https://fitepicapi-bkbqayfnh4hbcnc7.centralus-01.azurewebsites.net',
 };
