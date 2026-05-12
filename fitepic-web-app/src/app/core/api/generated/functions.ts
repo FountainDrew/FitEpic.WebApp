@@ -7,6 +7,8 @@ export type { AthleteProfilesGet$Params as AthleteProfilesGet$Params } from './f
 export { athleteProfilesGet as athleteProfilesGet } from './fn/mobile-athlete-profiles/athlete-profiles-get';
 export type { ApiMobileAthleteProfilesGet$Params as ApiMobileAthleteProfilesGet$Params } from './fn/mobile-athlete-profiles/api-mobile-athlete-profiles-get';
 export { apiMobileAthleteProfilesGet as apiMobileAthleteProfilesGet } from './fn/mobile-athlete-profiles/api-mobile-athlete-profiles-get';
+export type { ApiMobileAthletesMeV1Get$Params as ApiMobileAthletesMeV1Get$Params } from './fn/mobile-athletes/api-mobile-athletes-me-v-1-get';
+export { apiMobileAthletesMeV1Get as apiMobileAthletesMeV1Get } from './fn/mobile-athletes/api-mobile-athletes-me-v-1-get';
 export type { ApiMobileAthletesMeV1Put$Params as ApiMobileAthletesMeV1Put$Params } from './fn/mobile-athletes/api-mobile-athletes-me-v-1-put';
 export { apiMobileAthletesMeV1Put as apiMobileAthletesMeV1Put } from './fn/mobile-athletes/api-mobile-athletes-me-v-1-put';
 export type { ConnectionInvitesSyncPost$Params as ConnectionInvitesSyncPost$Params } from './fn/mobile-connection-invites/connection-invites-sync-post';

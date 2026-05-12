@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://localhost:5244/swagger/v1/swagger.json -o C:\\\\Users\\\\drewe\\\\AppData\\\\Local\\\\Temp\\\\swagger.json)",
+      "Bash(node -e \"const s=require\\('C:/Users/drewe/AppData/Local/Temp/swagger.json'\\); const paths=Object.keys\\(s.paths\\).filter\\(p=>p.includes\\('/webapp/athletes/profile'\\)\\); paths.forEach\\(p=>{console.log\\(p\\); console.log\\(JSON.stringify\\(s.paths[p], null, 2\\).substring\\(0, 2000\\)\\)}\\);\")",
+      "Bash(node -e \"const s=require\\('C:/Users/drewe/AppData/Local/Temp/swagger.json'\\); console.log\\('=== UpdateMyAthleteProfileRequest ==='\\); console.log\\(JSON.stringify\\(s.components.schemas.UpdateMyAthleteProfileRequest, null, 2\\)\\); console.log\\('=== MyAthleteProfileResponse ==='\\); console.log\\(JSON.stringify\\(s.components.schemas.MyAthleteProfileResponse, null, 2\\)\\);\")"
+    ]
+  }
+}

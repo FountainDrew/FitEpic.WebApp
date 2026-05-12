@@ -26,6 +26,7 @@ export type { DashboardWorkoutExerciseResponse } from './models/dashboard-workou
 export type { DashboardWorkoutLogResponse } from './models/dashboard-workout-log-response';
 export type { DashboardWorkoutScoreResponse } from './models/dashboard-workout-score-response';
 export type { DashboardWorkoutsResponse } from './models/dashboard-workouts-response';
+export type { DateOnlyNullableJsonOptional } from './models/date-only-nullable-json-optional';
 export type { DistanceUnit } from './models/distance-unit';
 export type { MeasurementType } from './models/measurement-type';
 export type { MobileAthleteSelfProfileResponse } from './models/mobile-athlete-self-profile-response';
@@ -49,6 +50,7 @@ export type { ScheduledWorkoutSyncResponse } from './models/scheduled-workout-sy
 export type { SignInRequest } from './models/sign-in-request';
 export type { StandardExerciseResponse } from './models/standard-exercise-response';
 export type { StandardExerciseResponsePagedResponse } from './models/standard-exercise-response-paged-response';
+export type { StringJsonOptional } from './models/string-json-optional';
 export type { SyncAthleteConnectionInvitesRequest } from './models/sync-athlete-connection-invites-request';
 export type { SyncBatchResponse } from './models/sync-batch-response';
 export type { SyncItemResult } from './models/sync-item-result';
@@ -82,6 +84,8 @@ export type { AthleteProfilesGet$Params as AthleteProfilesGet$Params } from './f
 export { athleteProfilesGet as athleteProfilesGet } from './fn/mobile-athlete-profiles/athlete-profiles-get';
 export type { ApiMobileAthleteProfilesGet$Params as ApiMobileAthleteProfilesGet$Params } from './fn/mobile-athlete-profiles/api-mobile-athlete-profiles-get';
 export { apiMobileAthleteProfilesGet as apiMobileAthleteProfilesGet } from './fn/mobile-athlete-profiles/api-mobile-athlete-profiles-get';
+export type { ApiMobileAthletesMeV1Get$Params as ApiMobileAthletesMeV1Get$Params } from './fn/mobile-athletes/api-mobile-athletes-me-v-1-get';
+export { apiMobileAthletesMeV1Get as apiMobileAthletesMeV1Get } from './fn/mobile-athletes/api-mobile-athletes-me-v-1-get';
 export type { ApiMobileAthletesMeV1Put$Params as ApiMobileAthletesMeV1Put$Params } from './fn/mobile-athletes/api-mobile-athletes-me-v-1-put';
 export { apiMobileAthletesMeV1Put as apiMobileAthletesMeV1Put } from './fn/mobile-athletes/api-mobile-athletes-me-v-1-put';
 export type { ConnectionInvitesSyncPost$Params as ConnectionInvitesSyncPost$Params } from './fn/mobile-connection-invites/connection-invites-sync-post';

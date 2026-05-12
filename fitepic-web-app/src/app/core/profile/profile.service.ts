@@ -6,6 +6,22 @@ import { ApiConfiguration } from '../api/generated/api-configuration';
 import { apiWebappAthletesProfileV1Get } from '../api/generated/fn/web-app-athletes/api-webapp-athletes-profile-v-1-get';
 import { apiWebappAthletesProfileV1Put } from '../api/generated/fn/web-app-athletes/api-webapp-athletes-profile-v-1-put';
 import { MyAthleteProfileResponse } from '../api/generated/models/my-athlete-profile-response';
+import { UpdateMyAthleteProfileRequest } from '../api/generated/models/update-my-athlete-profile-request';
+
+/**
+ * Tri-state per-field semantics on the wire (server contract):
+ *   - key omitted   → leave unchanged
+ *   - key = null    → clear
+ *   - key = <value> → set
+ *
+ * `displayName` is required on every PUT.
+ */
+export interface ProfileUpdate {
+  displayName: string;
+  timezone?: string | null;
+  /** ISO date `YYYY-MM-DD`. */
+  streakAndDayCountStartDate?: string | null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ProfileService {
@@ -23,10 +39,18 @@ export class ProfileService {
     return res.body;
   }
 
-  async update(displayName: string, timezone: string | null): Promise<MyAthleteProfileResponse> {
+  async update(updates: ProfileUpdate): Promise<MyAthleteProfileResponse> {
+    // Only spread keys that were explicitly provided so omitted fields keep
+    // their server-side value (tri-state partial-update contract).
+    const body: Record<string, unknown> = { displayName: updates.displayName };
+    if ('timezone' in updates) body['timezone'] = updates.timezone;
+    if ('streakAndDayCountStartDate' in updates) {
+      body['streakAndDayCountStartDate'] = updates.streakAndDayCountStartDate;
+    }
+
     const res = await firstValueFrom(
       apiWebappAthletesProfileV1Put(this.http, this.config.rootUrl, {
-        body: { displayName, timezone },
+        body: body as unknown as UpdateMyAthleteProfileRequest,
       }),
     );
     this.profileSignal.set(res.body);
@@ -41,7 +65,10 @@ export class ProfileService {
     let profile = this.profileSignal() ?? (await this.load());
     if (!profile.timezone) {
       const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      profile = await this.update(profile.displayName ?? '', browserTz);
+      profile = await this.update({
+        displayName: profile.displayName ?? '',
+        timezone: browserTz,
+      });
     }
     return profile;
   }

@@ -39,10 +39,13 @@ export class SettingsPage implements OnInit {
 
   protected readonly displayName = signal('');
   protected readonly timezone = signal<string | null>(null);
+  /** ISO `YYYY-MM-DD` or empty string when cleared. */
+  protected readonly streakStartDate = signal<string>('');
   protected readonly profileLoading = signal(true);
   protected readonly profileSaving = signal(false);
   protected readonly reason = signal<string | null>(null);
   protected readonly timezones = COMMON_TIMEZONES;
+  protected readonly todayIso = new Date().toISOString().slice(0, 10);
 
   protected readonly quoteCount = signal<number | null>(null);
   protected readonly quoteCountLoading = signal(true);
@@ -60,17 +63,24 @@ export class SettingsPage implements OnInit {
     if (!this.canSaveProfile()) return;
     this.profileSaving.set(true);
     try {
-      await this.profileService.update(this.displayName().trim(), this.timezone());
+      const date = this.streakStartDate().trim();
+      await this.profileService.update({
+        displayName: this.displayName().trim(),
+        timezone: this.timezone(),
+        streakAndDayCountStartDate: date.length > 0 ? date : null,
+      });
       this.snackBar.open('Profile saved.', 'Dismiss', { duration: 2500 });
 
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
       if (returnUrl) await this.router.navigateByUrl(returnUrl);
     } catch (err) {
       const code = getWebAppErrorCode(err);
+      const fieldMsg = getValidationFieldMessage(err, 'streakAndDayCountStartDate');
       const msg =
-        code === 'INVALID_TIMEZONE'
+        fieldMsg ??
+        (code === 'INVALID_TIMEZONE'
           ? 'That timezone is not recognized. Pick another.'
-          : getWebAppErrorMessage(err) ?? 'Could not save profile.';
+          : (getWebAppErrorMessage(err) ?? 'Could not save profile.'));
       this.snackBar.open(msg, 'Dismiss', { duration: 4000 });
     } finally {
       this.profileSaving.set(false);
@@ -81,12 +91,17 @@ export class SettingsPage implements OnInit {
     this.timezone.set(Intl.DateTimeFormat().resolvedOptions().timeZone);
   }
 
+  protected clearStreakStartDate(): void {
+    this.streakStartDate.set('');
+  }
+
   private async loadProfile(): Promise<void> {
     this.profileLoading.set(true);
     try {
       const profile = await this.profileService.load();
       this.displayName.set(profile.displayName ?? '');
       this.timezone.set(profile.timezone ?? null);
+      this.streakStartDate.set(profile.streakAndDayCountStartDate ?? '');
     } finally {
       this.profileLoading.set(false);
     }
@@ -104,4 +119,15 @@ export class SettingsPage implements OnInit {
       this.quoteCountLoading.set(false);
     }
   }
+}
+
+function getValidationFieldMessage(err: unknown, fieldName: string): string | null {
+  if (typeof err !== 'object' || err === null) return null;
+  const httpErr = err as { error?: unknown };
+  const body = httpErr.error as
+    | { error?: { details?: Record<string, string[]> } }
+    | null
+    | undefined;
+  const messages = body?.error?.details?.[fieldName];
+  return messages && messages.length > 0 ? messages[0] : null;
 }

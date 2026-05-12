@@ -9,7 +9,15 @@ export interface UpdateMyAthleteProfileRequest {
   displayName: string;
 
   /**
-   * IANA timezone identifier (e.g. "America/Chicago"). Pass null to clear.
+   * The date the athlete wants their streak / "X out of Y days" tracking history to begin
+   * from. Must not be in the future. Omit to leave unchanged; send `null` to clear;
+   * send a value to set.
    */
-  timezone?: string | null;
+  streakAndDayCountStartDate?: string | null;
+
+  /**
+   * IANA timezone identifier (e.g. `America/Chicago`). Omit to leave unchanged;
+   * send `null` to clear; send a value to set.
+   */
+  timezone?: string;
 }
