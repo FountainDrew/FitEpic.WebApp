@@ -39,43 +39,49 @@
             />
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Timezone</mat-label>
-            <mat-select
-              name="timezone"
-              [ngModel]="timezone()"
-              (ngModelChange)="timezone.set($event)"
-              required
-            >
-              @for (tz of timezones; track tz) {
-                <mat-option [value]="tz">{{ tz }}</mat-option>
-              }
-            </mat-select>
-            <mat-hint>
+          <div class="field-group">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Timezone</mat-label>
+              <mat-select
+                name="timezone"
+                [ngModel]="timezone()"
+                (ngModelChange)="timezone.set($event)"
+                required
+              >
+                @for (tz of timezones; track tz) {
+                  <mat-option [value]="tz">{{ tz }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <div class="field-actions">
               <button mat-button type="button" (click)="detectBrowserTimezone()">
                 Use browser timezone
               </button>
-            </mat-hint>
-          </mat-form-field>
+            </div>
+          </div>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Streak start date</mat-label>
-            <input
-              matInput
-              type="date"
-              name="streakStartDate"
-              [ngModel]="streakStartDate()"
-              (ngModelChange)="streakStartDate.set($event)"
-              [max]="todayIso"
-            />
-            <mat-hint>
-              When your streak / "X out of Y days" tracking begins. Leave blank to use the
-              default window.
+          <div class="field-group">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Streak start date</mat-label>
+              <input
+                matInput
+                type="date"
+                name="streakStartDate"
+                [ngModel]="streakStartDate()"
+                (ngModelChange)="streakStartDate.set($event)"
+                [max]="todayIso"
+              />
+            </mat-form-field>
+            <div class="field-actions field-actions-split">
+              <p class="field-hint">
+                When your streak / "X out of Y days" tracking begins. Leave blank to use the
+                default window.
+              </p>
               @if (streakStartDate()) {
                 <button mat-button type="button" (click)="clearStreakStartDate()">Clear</button>
               }
-            </mat-hint>
-          </mat-form-field>
+            </div>
+          </div>
 
           <div class="actions">
             <button
