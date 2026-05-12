@@ -20,6 +20,12 @@ export interface MyAthleteProfileResponse {
   id?: string | null;
 
   /**
+   * The date the athlete has chosen as the start of their streak / day-count tracking
+   * history; null when not set.
+   */
+  streakAndDayCountStartDate?: string | null;
+
+  /**
    * IANA timezone identifier; null when the athlete has not yet set one.
    */
   timezone?: string | null;

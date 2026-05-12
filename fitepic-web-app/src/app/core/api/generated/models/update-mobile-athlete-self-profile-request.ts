@@ -5,14 +5,23 @@
 /**
  * Request body for `PUT /api/mobile/athletes/me/v1`. Mobile pushes device
  * timezone server-side so quote rotation can resolve "today" against the athlete's
- * local date.
+ * local date, and pushes the athlete-chosen streak / day-count start date.
+ *             
+ * Each field uses FitEpic.Api.Models.Json.JsonOptional`1 for tri-state partial-update semantics:
+ * <list type="bullet"><item><description>Omit the property entirely to leave the existing value unchanged.</description></item><item><description>Send `null` to clear the field.</description></item><item><description>Send a value to set it.</description></item></list>
  */
 export interface UpdateMobileAthleteSelfProfileRequest {
 
   /**
-   * IANA timezone identifier (e.g. "America/Chicago"). Pass an explicit `null`
-   * to clear. Forward-compatible — additional optional profile fields will be added
-   * to this request shape over time.
+   * The date the athlete wants their streak / "X out of Y days" tracking history to begin
+   * from. Must not be in the future (server validates against UTC today). Omit to leave
+   * unchanged; send `null` to clear; send a value to set.
    */
-  timezone?: string | null;
+  streakAndDayCountStartDate?: string | null;
+
+  /**
+   * IANA timezone identifier (e.g. `America/Chicago`). Omit to leave unchanged;
+   * send `null` to clear; send a value to set.
+   */
+  timezone?: string;
 }

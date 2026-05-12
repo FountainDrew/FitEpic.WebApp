@@ -16,11 +16,12 @@
   <mat-card class="settings-section">
     <mat-card-header>
       <mat-card-title>Profile</mat-card-title>
-      <mat-card-subtitle>Your display name and timezone.</mat-card-subtitle>
+      <mat-card-subtitle>Your display name, timezone, and streak settings.</mat-card-subtitle>
     </mat-card-header>
     <mat-card-content>
       @if (profileLoading()) {
         <div class="profile-form" aria-hidden="true">
+          <span class="skeleton skeleton-field"></span>
           <span class="skeleton skeleton-field"></span>
           <span class="skeleton skeleton-field"></span>
         </div>
@@ -54,6 +55,25 @@
               <button mat-button type="button" (click)="detectBrowserTimezone()">
                 Use browser timezone
               </button>
+            </mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Streak start date</mat-label>
+            <input
+              matInput
+              type="date"
+              name="streakStartDate"
+              [ngModel]="streakStartDate()"
+              (ngModelChange)="streakStartDate.set($event)"
+              [max]="todayIso"
+            />
+            <mat-hint>
+              When your streak / "X out of Y days" tracking begins. Leave blank to use the
+              default window.
+              @if (streakStartDate()) {
+                <button mat-button type="button" (click)="clearStreakStartDate()">Clear</button>
+              }
             </mat-hint>
           </mat-form-field>
 

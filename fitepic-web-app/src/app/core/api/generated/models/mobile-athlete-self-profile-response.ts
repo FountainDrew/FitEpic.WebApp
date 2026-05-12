@@ -3,9 +3,10 @@
 
 
 /**
- * Response body for `PUT /api/mobile/athletes/me/v1`. The shape is forward-compatible —
- * additional optional profile fields will be added over time. Mobile clients should
- * ignore unknown fields so server roll-outs that add new properties don't break parsing.
+ * Response body for `GET` and `PUT /api/mobile/athletes/me/v1`. The shape is
+ * forward-compatible — additional optional profile fields will be added over time.
+ * Mobile clients should ignore unknown fields so server roll-outs that add new properties
+ * don't break parsing.
  */
 export interface MobileAthleteSelfProfileResponse {
 
@@ -13,6 +14,13 @@ export interface MobileAthleteSelfProfileResponse {
    * The athlete's unique identifier (same as `ApplicationUser.Id`).
    */
   id?: string | null;
+
+  /**
+   * The date the athlete has chosen as the start of their streak / day-count tracking
+   * history; null when not set (clients fall back to their existing default — typically
+   * today minus 30 days).
+   */
+  streakAndDayCountStartDate?: string | null;
 
   /**
    * The persisted IANA timezone identifier; null when the athlete has not yet set one.
