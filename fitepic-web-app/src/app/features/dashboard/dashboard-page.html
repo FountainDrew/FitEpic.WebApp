@@ -65,6 +65,15 @@
 
     <mat-card class="stat-card">
       <mat-card-content>
+        <button
+          mat-icon-button
+          type="button"
+          class="stat-info-button"
+          matTooltip="How is this calculated?"
+          aria-label="How is total workout time calculated?"
+          (click)="openTotalDurationDetails()">
+          <mat-icon fontSet="material-symbols-outlined">info</mat-icon>
+        </button>
         <div class="stat-label">Total workout time</div>
         <div class="stat-value">{{ formatDuration(s.stats?.totalDurationMinutes) }}</div>
       </mat-card-content>
@@ -72,6 +81,15 @@
 
     <mat-card class="stat-card">
       <mat-card-content>
+        <button
+          mat-icon-button
+          type="button"
+          class="stat-info-button"
+          matTooltip="How is this calculated?"
+          aria-label="How is weight lifted calculated?"
+          (click)="openWeightLiftedInfo()">
+          <mat-icon fontSet="material-symbols-outlined">info</mat-icon>
+        </button>
         <div class="stat-label">Weight lifted</div>
         <div class="stat-value">
           {{ s.stats?.totalWeightLiftedLbs ?? 0 | number:'1.0-0' }}
@@ -82,6 +100,15 @@
 
     <mat-card class="stat-card">
       <mat-card-content>
+        <button
+          mat-icon-button
+          type="button"
+          class="stat-info-button"
+          matTooltip="How is this calculated?"
+          aria-label="How is the exercise count calculated?"
+          (click)="openExercisesInfo()">
+          <mat-icon fontSet="material-symbols-outlined">info</mat-icon>
+        </button>
         <div class="stat-label">Exercises performed</div>
         <div class="stat-value">{{ s.stats?.exercisesPerformed ?? 0 }}</div>
       </mat-card-content>

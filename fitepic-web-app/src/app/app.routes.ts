@@ -28,6 +28,14 @@ export const routes: Routes = [
           import('./features/dashboard/dashboard-page').then((m) => m.DashboardPage),
       },
       {
+        path: 'dashboard/weekly-stats/duration',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import(
+            './features/dashboard/total-duration-details/total-duration-details-page'
+          ).then((m) => m.TotalDurationDetailsPage),
+      },
+      {
         path: 'profile',
         pathMatch: 'full',
         redirectTo: 'settings',

@@ -6,6 +6,9 @@ import { HttpClient } from '@angular/common/http';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
@@ -21,6 +24,7 @@ import { QuoteCard } from './quote-card/quote-card';
 import { StreakActivity } from './streak-activity/streak-activity';
 import { WorkoutCard } from './workout-card/workout-card';
 import { WorkoutDrawer } from './workout-drawer/workout-drawer';
+import { InfoDialog, InfoDialogData } from './info-dialog/info-dialog';
 
 interface FutureGroup {
   date: string;
@@ -34,6 +38,8 @@ interface FutureGroup {
     DecimalPipe,
     MatCardModule,
     MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
     QuoteCard,
     StreakActivity,
     WorkoutCard,
@@ -47,6 +53,7 @@ export class DashboardPage implements OnInit {
   private readonly config = inject(ApiConfiguration);
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly user = inject(AuthService).currentUser;
 
@@ -144,6 +151,38 @@ export class DashboardPage implements OnInit {
     const total = s.workoutsScheduled ?? 0;
     const done = s.workoutsCompleted ?? 0;
     return Array.from({ length: total }, (_, i) => i < done);
+  }
+
+  protected openWeightLiftedInfo(): void {
+    this.openInfoDialog({
+      title: 'Weight lifted this week',
+      body:
+        "Total volume lifted across every set you've logged this week, calculated as " +
+        'weight × reps for each set. Sets without a logged weight are not counted.',
+    });
+  }
+
+  protected openExercisesInfo(): void {
+    this.openInfoDialog({
+      title: 'Exercises this week',
+      body:
+        'The total number of exercises across every workout you’ve completed this week. ' +
+        'If a workout has 5 exercises and you complete it twice, that counts as 10.',
+    });
+  }
+
+  protected openTotalDurationDetails(): void {
+    this.router.navigate(['/dashboard/weekly-stats/duration']);
+  }
+
+  private openInfoDialog(data: InfoDialogData): void {
+    this.dialog.open(InfoDialog, {
+      data,
+      autoFocus: 'dialog',
+      restoreFocus: true,
+      panelClass: 'fe-info-dialog',
+      width: 'min(400px, calc(100vw - 32px))',
+    });
   }
 
   protected formatDuration(minutes: number | undefined): string {

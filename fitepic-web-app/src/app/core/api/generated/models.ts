@@ -60,6 +60,8 @@ export type { WebAppErrorBody } from './models/web-app-error-body';
 export type { WebAppErrorCode } from './models/web-app-error-code';
 export type { WebAppErrorEnvelope } from './models/web-app-error-envelope';
 export type { WeeklyStatsCardsResponse } from './models/weekly-stats-cards-response';
+export type { WeeklyStatsDurationBreakdownItemResponse } from './models/weekly-stats-duration-breakdown-item-response';
+export type { WeeklyStatsDurationBreakdownResponse } from './models/weekly-stats-duration-breakdown-response';
 export type { WeeklyStatsResponse } from './models/weekly-stats-response';
 export type { WeeklyStatsStreakResponse } from './models/weekly-stats-streak-response';
 export type { WorkoutCommentResponse } from './models/workout-comment-response';

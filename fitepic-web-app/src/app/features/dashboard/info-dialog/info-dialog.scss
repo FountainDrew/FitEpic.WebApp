@@ -1,0 +1,22 @@
+:host {
+  display: block;
+  max-width: 400px;
+}
+
+.info-dialog-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--fe-text);
+  margin: 0;
+}
+
+.info-dialog-content {
+  color: var(--fe-text);
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    opacity: 0.85;
+  }
+}

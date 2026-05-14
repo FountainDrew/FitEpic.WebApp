@@ -19,6 +19,17 @@ body {
   color: var(--fe-text);
 }
 
+.fe-info-dialog {
+  --mdc-dialog-container-color: var(--fe-surface);
+  --mdc-dialog-subhead-color: var(--fe-text);
+  --mdc-dialog-supporting-text-color: var(--fe-text);
+
+  .mat-mdc-dialog-surface {
+    background-color: var(--fe-surface);
+    color: var(--fe-text);
+  }
+}
+
 .skeleton {
   display: block;
   background: linear-gradient(

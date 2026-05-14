@@ -4064,6 +4064,57 @@
         }
       }
     },
+    "/api/webapp/dashboards/weekly-stats/duration-breakdown/v1": {
+      "get": {
+        "tags": [
+          "WebApp - Dashboards"
+        ],
+        "summary": "Per-workout breakdown of the athlete's week-to-date workout time. Drives the web\r\n\"Total Workout Time\" detail page. The total is consistent with the\r\n`weekly-stats/v1` card for the same week (same inclusion rule and rounding).",
+        "description": "Week boundaries are Monday 00:00 through Sunday 23:59:59 in the athlete's profile\r\ntimezone. A scheduled workout contributes if it is Completed, its parent `Workout`\r\nis not soft-deleted, and at least one of the following resolves to a strictly-positive\r\nduration (in priority order): the athlete-logged `Duration`; a time embedded in\r\nthe `ScoreResult` when the `ScoreType` is `TimeToComplete`,\r\n`TimeCapPlusReps`, or `TimeAndLoad`; the parent workout's prescribed\r\n`Duration`. Each item is ceiling-rounded to the nearest minute; the total is the\r\nceiling of the raw sum and may differ from the per-item sum.\r\n            \r\nPossible `error.code` values on non-2xx responses (see `WebAppErrorCode` for the full enumeration):\r\n<list type=\"bullet\"><item><description>`PROFILE_TIMEZONE_REQUIRED` (400) — athlete has not set a profile timezone.</description></item><item><description>`INVALID_TIMEZONE` (400) — stored timezone is not recognized on the server.</description></item><item><description>`PROFILE_NOT_FOUND` (404) — athlete profile record is missing.</description></item><item><description>`UNAUTHENTICATED` (401) — token missing or invalid.</description></item></list>",
+        "responses": {
+          "200": {
+            "description": "Returns the duration-breakdown payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyStatsDurationBreakdownResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Profile timezone is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Athlete profile record is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/webapp/quotes/today/v1": {
       "get": {
         "tags": [
@@ -6449,6 +6500,75 @@
           }
         },
         "additionalProperties": false
+      },
+      "WeeklyStatsDurationBreakdownItemResponse": {
+        "type": "object",
+        "properties": {
+          "scheduledWorkoutId": {
+            "type": "string",
+            "description": "Identifier of the scheduled-workout row that produced this entry.",
+            "nullable": true
+          },
+          "workoutName": {
+            "type": "string",
+            "description": "Display name of the parent workout at the time of the request.",
+            "nullable": true,
+            "example": "Upper Body A"
+          },
+          "scheduledDate": {
+            "type": "string",
+            "description": "The date the workout was scheduled (athlete profile timezone).",
+            "format": "date",
+            "example": "2026-05-12"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "description": "Effective duration for this workout, rounded up (ceiling) to the nearest whole minute.\r\nResolved from the athlete-logged duration when present; otherwise from a parseable\r\ntime-based score result; otherwise from the parent workout's prescribed duration.",
+            "format": "int32",
+            "example": 45
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single completed scheduled workout that contributed to the week's total workout time."
+      },
+      "WeeklyStatsDurationBreakdownResponse": {
+        "type": "object",
+        "properties": {
+          "weekStart": {
+            "type": "string",
+            "description": "Monday of the week (in the athlete's profile timezone), as a date.",
+            "format": "date",
+            "example": "2026-05-11"
+          },
+          "weekEnd": {
+            "type": "string",
+            "description": "Sunday of the week (in the athlete's profile timezone), as a date.",
+            "format": "date",
+            "example": "2026-05-17"
+          },
+          "totalDurationMinutes": {
+            "type": "integer",
+            "description": "Total effective workout time for the week, rounded up (ceiling) to the nearest whole\r\nminute. Matches the `weekly-stats/v1` dashboard card's `Stats.TotalDurationMinutes`.\r\nNote: per-item `DurationMinutes` values may not sum exactly to this value because\r\neach item is also ceiling-rounded individually.",
+            "format": "int32",
+            "example": 135
+          },
+          "workoutCount": {
+            "type": "integer",
+            "description": "Number of workouts contributing to FitEpic.Api.Models.WebApp.Response.WeeklyStatsDurationBreakdownResponse.TotalDurationMinutes.",
+            "format": "int32",
+            "example": 4
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeeklyStatsDurationBreakdownItemResponse"
+            },
+            "description": "Contributing workouts, sorted by FitEpic.Api.Models.WebApp.Response.WeeklyStatsDurationBreakdownItemResponse.ScheduledDate\r\ndescending then by FitEpic.Api.Models.WebApp.Response.WeeklyStatsDurationBreakdownItemResponse.WorkoutName ascending.\r\nEmpty (never null) when the week has no qualifying workouts.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Per-workout breakdown of the athlete's week-to-date workout time, backing the web\r\n\"Total Workout Time\" detail page. The total is consistent with the\r\n`weekly-stats/v1` dashboard card for the same week."
       },
       "WeeklyStatsResponse": {
         "type": "object",

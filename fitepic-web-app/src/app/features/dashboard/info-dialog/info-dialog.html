@@ -1,0 +1,9 @@
+<h2 mat-dialog-title class="info-dialog-title">{{ data.title }}</h2>
+<mat-dialog-content class="info-dialog-content">
+  <p>{{ data.body }}</p>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-flat-button color="primary" (click)="close()" cdkFocusInitial>
+    {{ dismissLabel }}
+  </button>
+</mat-dialog-actions>

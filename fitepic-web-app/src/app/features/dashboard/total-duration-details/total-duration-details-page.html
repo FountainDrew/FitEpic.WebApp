@@ -1,0 +1,84 @@
+<header class="page-header">
+  <button
+    mat-icon-button
+    type="button"
+    class="back-button"
+    routerLink="/"
+    aria-label="Back to dashboard">
+    <mat-icon>arrow_back</mat-icon>
+  </button>
+  <h1 class="page-title">Total workout time</h1>
+  @if (data(); as d) {
+    <p class="page-subtitle">
+      Week of {{ d.weekStart | date:'mediumDate' }} – {{ d.weekEnd | date:'mediumDate' }}
+    </p>
+  } @else if (loading()) {
+    <span class="skeleton skeleton-week-range" aria-hidden="true"></span>
+  }
+</header>
+
+<section class="info-banner" role="note">
+  <mat-icon fontSet="material-symbols-outlined" class="info-banner-icon">info</mat-icon>
+  <p>
+    The total time you've spent on completed workouts this week. We use your logged duration when
+    you set one, otherwise we fall back to the workout's time-based score or its prescribed length.
+    Workouts without any time signal aren't counted — log a duration or a finish-time score to make
+    sure your workout shows up here.
+  </p>
+</section>
+
+@if (loading()) {
+  <section class="total-section" aria-hidden="true">
+    <span class="skeleton skeleton-total-value"></span>
+    <span class="skeleton skeleton-total-label"></span>
+  </section>
+  <section class="breakdown-section" aria-hidden="true">
+    @for (_ of [0, 1, 2]; track $index) {
+      <div class="breakdown-group">
+        <span class="skeleton skeleton-group-header"></span>
+        <div class="breakdown-row-skeleton">
+          <span class="skeleton skeleton-row-name"></span>
+          <span class="skeleton skeleton-row-duration"></span>
+        </div>
+        <div class="breakdown-row-skeleton">
+          <span class="skeleton skeleton-row-name"></span>
+          <span class="skeleton skeleton-row-duration"></span>
+        </div>
+      </div>
+    }
+  </section>
+} @else if (error()) {
+  <mat-card class="error-card">
+    <mat-card-content>
+      <p>{{ error() }}</p>
+      <button mat-button color="primary" (click)="retry()">Retry</button>
+    </mat-card-content>
+  </mat-card>
+} @else if (data(); as d) {
+  <section class="total-section">
+    <div class="total-value">{{ formatTotal(d.totalDurationMinutes) }}</div>
+    <div class="total-label">This week</div>
+  </section>
+
+  @if (isEmpty()) {
+    <p class="empty-state">No completed workouts contributed to this week's time.</p>
+  } @else {
+    <section class="breakdown-section">
+      @for (group of groups(); track group.date) {
+        <div class="breakdown-group">
+          <h2 class="breakdown-group-header">{{ group.date | date:'EEEE, MMM d' }}</h2>
+          <ul class="breakdown-list">
+            @for (item of group.items; track item.scheduledWorkoutId) {
+              <li class="breakdown-row">
+                <span class="breakdown-row-name">{{ item.workoutName }}</span>
+                <span class="breakdown-row-duration">
+                  {{ formatItemDuration(item.durationMinutes) }}
+                </span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </section>
+  }
+}

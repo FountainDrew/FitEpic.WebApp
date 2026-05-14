@@ -9,7 +9,14 @@
       "Bash(python -c 'import json; s=json.load\\(open\\('\\\\''UsersdreweAppDataLocalTempswagger.json'\\\\''\\)\\); *)",
       "Bash(curl -sS -i http://localhost:5244/api/webapp/dashboards/streak-activity/v1)",
       "Bash(npx tsc *)",
-      "Bash(npm test *)"
+      "Bash(npm test *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\drewe\\\\source\\\\repos\\\\FitEpic.Mobile\" -Recurse -Directory)",
+      "Bash(Select-Object -First 20)",
+      "Bash(Format-Table FullName)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\drewe\\\\source\\\\repos\\\\FitEpic.Api\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Head -30)",
+      "Bash(xargs wc -l)"
     ]
   }
 }
