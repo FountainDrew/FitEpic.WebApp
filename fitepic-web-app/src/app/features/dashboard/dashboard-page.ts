@@ -5,7 +5,6 @@ import { firstValueFrom } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 
 import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 
 import { AuthService } from '../../core/auth/auth.service';
@@ -19,6 +18,7 @@ import { DashboardWorkoutsResponse } from '../../core/api/generated/models/dashb
 import { getWebAppErrorCode } from '../../core/api/error-code';
 
 import { QuoteCard } from './quote-card/quote-card';
+import { StreakActivity } from './streak-activity/streak-activity';
 import { WorkoutCard } from './workout-card/workout-card';
 import { WorkoutDrawer } from './workout-drawer/workout-drawer';
 
@@ -33,9 +33,9 @@ interface FutureGroup {
     DatePipe,
     DecimalPipe,
     MatCardModule,
-    MatIconModule,
     MatButtonModule,
     QuoteCard,
+    StreakActivity,
     WorkoutCard,
     WorkoutDrawer,
   ],

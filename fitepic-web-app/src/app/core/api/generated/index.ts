@@ -27,6 +27,8 @@ export type { DashboardWorkoutLogResponse } from './models/dashboard-workout-log
 export type { DashboardWorkoutScoreResponse } from './models/dashboard-workout-score-response';
 export type { DashboardWorkoutsResponse } from './models/dashboard-workouts-response';
 export type { DateOnlyNullableJsonOptional } from './models/date-only-nullable-json-optional';
+export type { DayActivityRecordResponse } from './models/day-activity-record-response';
+export type { DayActivityState } from './models/day-activity-state';
 export type { DistanceUnit } from './models/distance-unit';
 export type { MeasurementType } from './models/measurement-type';
 export type { MobileAthleteSelfProfileResponse } from './models/mobile-athlete-self-profile-response';
@@ -50,6 +52,7 @@ export type { ScheduledWorkoutSyncResponse } from './models/scheduled-workout-sy
 export type { SignInRequest } from './models/sign-in-request';
 export type { StandardExerciseResponse } from './models/standard-exercise-response';
 export type { StandardExerciseResponsePagedResponse } from './models/standard-exercise-response-paged-response';
+export type { StreakActivityResponse } from './models/streak-activity-response';
 export type { StringJsonOptional } from './models/string-json-optional';
 export type { SyncAthleteConnectionInvitesRequest } from './models/sync-athlete-connection-invites-request';
 export type { SyncBatchResponse } from './models/sync-batch-response';
@@ -212,6 +215,8 @@ export type { ApiWebappDashboardsWeeklyStatsV1Get$Params as ApiWebappDashboardsW
 export { apiWebappDashboardsWeeklyStatsV1Get as apiWebappDashboardsWeeklyStatsV1Get } from './fn/web-app-dashboards/api-webapp-dashboards-weekly-stats-v-1-get';
 export type { ApiWebappDashboardsWorkoutsV1Get$Params as ApiWebappDashboardsWorkoutsV1Get$Params } from './fn/web-app-dashboards/api-webapp-dashboards-workouts-v-1-get';
 export { apiWebappDashboardsWorkoutsV1Get as apiWebappDashboardsWorkoutsV1Get } from './fn/web-app-dashboards/api-webapp-dashboards-workouts-v-1-get';
+export type { ApiWebappDashboardsStreakActivityV1Get$Params as ApiWebappDashboardsStreakActivityV1Get$Params } from './fn/web-app-dashboards/api-webapp-dashboards-streak-activity-v-1-get';
+export { apiWebappDashboardsStreakActivityV1Get as apiWebappDashboardsStreakActivityV1Get } from './fn/web-app-dashboards/api-webapp-dashboards-streak-activity-v-1-get';
 export type { ApiWebappQuotesTodayV1Get$Params as ApiWebappQuotesTodayV1Get$Params } from './fn/web-app-quotes/api-webapp-quotes-today-v-1-get';
 export { apiWebappQuotesTodayV1Get as apiWebappQuotesTodayV1Get } from './fn/web-app-quotes/api-webapp-quotes-today-v-1-get';
 export type { ApiWebappQuotesTodayRefreshV1Post$Params as ApiWebappQuotesTodayRefreshV1Post$Params } from './fn/web-app-quotes/api-webapp-quotes-today-refresh-v-1-post';

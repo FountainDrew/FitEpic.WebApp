@@ -59,6 +59,13 @@ $fe-palette: (
   --fe-text-muted: var(--fe-gray-500);
   --fe-accent: var(--fe-primary);
   --fe-accent-contrast: var(--fe-white);
+
+  --fe-streak-pill-bg: #E8F5E9;
+  --fe-streak-pill-text: #2E7D32;
+  --fe-days-pill-bg: #E3F2FD;
+  --fe-days-pill-text: #0B4CFF;
+  --fe-dot-scheduled: #FF9500;
+  --fe-dot-none-stroke: #5B8EFF;
 }
 
 :root.fe-dark,
@@ -71,6 +78,11 @@ $fe-palette: (
   --fe-text-muted: var(--fe-gray-400);
   --fe-accent: var(--fe-primary-dark);
   --fe-accent-contrast: var(--fe-primary-dark-text);
+
+  --fe-streak-pill-bg: #1B3A1F;
+  --fe-streak-pill-text: #81C784;
+  --fe-days-pill-bg: #0D2545;
+  --fe-days-pill-text: #5C7CFF;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -83,5 +95,10 @@ $fe-palette: (
     --fe-text-muted: var(--fe-gray-400);
     --fe-accent: var(--fe-primary-dark);
     --fe-accent-contrast: var(--fe-primary-dark-text);
+
+    --fe-streak-pill-bg: #1B3A1F;
+    --fe-streak-pill-text: #81C784;
+    --fe-days-pill-bg: #0D2545;
+    --fe-days-pill-text: #5C7CFF;
   }
 }

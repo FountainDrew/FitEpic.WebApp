@@ -4013,6 +4013,57 @@
         }
       }
     },
+    "/api/webapp/dashboards/streak-activity/v1": {
+      "get": {
+        "tags": [
+          "WebApp - Dashboards"
+        ],
+        "summary": "Dashboard streak / activity / days-worked-out payload for the authenticated athlete.\r\nDrives the day-streak pill, the activity dot-line, and the days-worked-out pill on the\r\nweb dashboard. All date math is resolved in the athlete's profile timezone.",
+        "description": "The response carries a per-day timeline (`recentDays`, newest-first, up to 90 entries\r\nwith leading empty days trimmed) plus pre-computed `currentStreak`, `isActiveStreak`,\r\n`daysActive`, and `daysInWindow`. The web client owns layout (snake rows, dot styling)\r\nand visibility rules (pills hide when their counts hit the documented thresholds).\r\n            \r\nThe streak walk uses a one-day grace (a completion yesterday with no completion today still\r\ncounts) and stops at `StreakAndDayCountStartDate` inclusively when that floor is set on\r\nthe athlete's profile. The days-worked-out window is `[StreakAndDayCountStartDate, today]`\r\nwhen set, otherwise a 30-day rolling window ending today.\r\n            \r\nResponse is sent with `Cache-Control: no-cache` — this payload changes the moment a\r\nworkout is marked complete, so even a 30-second stale window would be confusing.\r\n            \r\nPossible `error.code` values on non-2xx responses (see `WebAppErrorCode` for the full enumeration):\r\n<list type=\"bullet\"><item><description>`PROFILE_TIMEZONE_REQUIRED` (400) — athlete has not set a profile timezone.</description></item><item><description>`INVALID_TIMEZONE` (400) — stored timezone is not recognized on the server.</description></item><item><description>`PROFILE_NOT_FOUND` (404) — athlete profile record is missing.</description></item><item><description>`UNAUTHENTICATED` (401) — token missing or invalid.</description></item></list>",
+        "responses": {
+          "200": {
+            "description": "Returns the streak / activity / days-active payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreakActivityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Profile timezone is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Athlete profile record is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/webapp/quotes/today/v1": {
       "get": {
         "tags": [
@@ -5231,6 +5282,36 @@
         "format": "date",
         "nullable": true
       },
+      "DayActivityRecordResponse": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Calendar date in the athlete's profile timezone.",
+            "format": "date",
+            "example": "2026-05-12"
+          },
+          "state": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DayActivityState"
+              }
+            ],
+            "description": "Rollup state for this date — see FitEpic.Services.ServiceModels.WebApp.DayActivityState.",
+            "example": "Completed"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One entry in the activity dot-line — a single calendar date and its rollup classification."
+      },
+      "DayActivityState": {
+        "enum": [
+          "None",
+          "ScheduledOnly",
+          "Completed"
+        ],
+        "type": "string"
+      },
       "DistanceUnit": {
         "enum": [
           "Meters",
@@ -6092,6 +6173,56 @@
         },
         "additionalProperties": false,
         "description": "A paginated response wrapper returned by Delta Pull endpoints.\r\nThe mobile client uses FitEpic.Api.Models.Response.PagedResponse`1.Page, FitEpic.Api.Models.Response.PagedResponse`1.PageSize, and FitEpic.Api.Models.Response.PagedResponse`1.TotalPages\r\nto loop through all pages during an initial bootstrap sync or subsequent delta pulls."
+      },
+      "StreakActivityResponse": {
+        "type": "object",
+        "properties": {
+          "today": {
+            "type": "string",
+            "description": "The calendar date treated as \"today\" for this response, in the athlete's profile timezone.",
+            "format": "date",
+            "example": "2026-05-12"
+          },
+          "windowStart": {
+            "type": "string",
+            "description": "Inclusive start of the days-worked-out window. Equals `StreakAndDayCountStartDate`\r\nwhen the athlete has set it (and it is on or before `today`); otherwise `today − 29`\r\n(the 30-day rolling fallback).",
+            "format": "date",
+            "example": "2026-04-12"
+          },
+          "currentStreak": {
+            "type": "integer",
+            "description": "Current consecutive-day completion streak counting back from `today` (or `today − 1`\r\nif today has no completion yet — one-day grace). Always ≥ 0. Capped implicitly by the 90-day\r\nquery window. Stops at `StreakAndDayCountStartDate` (inclusive) when that floor is set.",
+            "format": "int32",
+            "example": 5
+          },
+          "isActiveStreak": {
+            "type": "boolean",
+            "description": "True when `CurrentStreak > 0`. The client hides the streak pill unless this is true and the streak is ≥ 2.",
+            "example": true
+          },
+          "daysActive": {
+            "type": "integer",
+            "description": "Number of distinct calendar dates inside `[WindowStart, Today]` on which the athlete completed at least one workout. The client hides the days-worked-out pill when this is 0.",
+            "format": "int32",
+            "example": 7
+          },
+          "daysInWindow": {
+            "type": "integer",
+            "description": "Length of the days-worked-out window in days, inclusive of both endpoints. Equals `(Today − WindowStart) + 1`.",
+            "format": "int32",
+            "example": 30
+          },
+          "recentDays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayActivityRecordResponse"
+            },
+            "description": "Per-day activity timeline ordered newest-first. Covers the range from the oldest non-`None`\r\nday within the last 90 days through `Today` (leading empty days are trimmed). Empty list\r\nwhen the athlete has no non-dismissed activity in the last 90 days — never null.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Dashboard streak / activity / days-worked-out payload for the signed-in athlete.\r\nDrives three independent UI widgets: the day-streak pill, the activity dot-line, and the\r\ndays-worked-out pill. All date math is resolved in the athlete's profile timezone."
       },
       "StringJsonOptional": {
         "type": "string",
