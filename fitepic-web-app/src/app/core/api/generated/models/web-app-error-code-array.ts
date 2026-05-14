@@ -13,5 +13,6 @@ export const WEB_APP_ERROR_CODE: WebAppErrorCode[] = [
   'PROFILE_TIMEZONE_REQUIRED',
   'INVALID_TIMEZONE',
   'NOT_FOUND',
-  'PINNED'
+  'PINNED',
+  'MONTH_OUT_OF_RANGE'
 ];

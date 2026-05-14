@@ -36,6 +36,14 @@ export const routes: Routes = [
           ).then((m) => m.TotalDurationDetailsPage),
       },
       {
+        path: 'dashboard/monthly-stats',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/dashboard/monthly-stats/monthly-stats-page').then(
+            (m) => m.MonthlyStatsPage,
+          ),
+      },
+      {
         path: 'profile',
         pathMatch: 'full',
         redirectTo: 'settings',

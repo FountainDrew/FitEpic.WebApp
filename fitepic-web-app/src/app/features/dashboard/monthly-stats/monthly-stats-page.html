@@ -1,0 +1,137 @@
+<header class="page-header">
+  <button
+    mat-icon-button
+    type="button"
+    class="back-button"
+    routerLink="/"
+    aria-label="Back to dashboard">
+    <mat-icon>arrow_back</mat-icon>
+  </button>
+  <h1 class="page-title">Monthly stats</h1>
+</header>
+
+<section class="month-nav" aria-label="Month navigator">
+  <button
+    mat-icon-button
+    type="button"
+    class="nav-arrow"
+    [disabled]="loading() || errorIsFatal()"
+    matTooltip="Previous month"
+    aria-label="Previous month"
+    (click)="goPrev()">
+    <mat-icon>chevron_left</mat-icon>
+  </button>
+  <div class="month-nav-center">
+    @if (loading() && !data()) {
+      <span class="skeleton skeleton-month-label" aria-hidden="true"></span>
+    } @else {
+      <div class="month-label" aria-live="polite">{{ monthLabel() }}</div>
+      @if (hasPreviousComparison()) {
+        <div class="month-subline">Compared to {{ previousMonthLabel() }}</div>
+      }
+    }
+  </div>
+  <button
+    mat-icon-button
+    type="button"
+    class="nav-arrow"
+    [disabled]="!hasNextMonth() || loading() || errorIsFatal()"
+    matTooltip="Next month"
+    aria-label="Next month"
+    (click)="goNext()">
+    <mat-icon>chevron_right</mat-icon>
+  </button>
+</section>
+
+@if (loading()) {
+  <section class="cards-grid" aria-hidden="true">
+    @for (_ of [0, 1, 2, 3, 4]; track $index) {
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <span class="skeleton skeleton-card-title"></span>
+          <span class="skeleton skeleton-card-value"></span>
+          <span class="skeleton skeleton-card-bar"></span>
+          <span class="skeleton skeleton-card-bar"></span>
+          <span class="skeleton skeleton-card-delta"></span>
+        </mat-card-content>
+      </mat-card>
+    }
+  </section>
+} @else if (error()) {
+  <mat-card class="error-card">
+    <mat-card-content>
+      <p>{{ error() }}</p>
+      @if (!errorIsFatal()) {
+        <button mat-button color="primary" (click)="retry()">Retry</button>
+      }
+    </mat-card-content>
+  </mat-card>
+} @else if (data()) {
+  @if (showEmptyMonthNote()) {
+    <p class="empty-note">No workouts logged this month yet.</p>
+  }
+  <section class="cards-grid">
+    @for (card of cards(); track card.title) {
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="card-title">{{ card.title }}</div>
+          <div class="card-value">{{ card.primaryValue }}</div>
+
+          @if (card.hasComparison) {
+            <div
+              class="comparison"
+              role="group"
+              [attr.aria-label]="card.ariaSummary">
+              <div class="comparison-row">
+                <span class="comparison-month">{{ card.currentShortLabel }}</span>
+                <span class="comparison-bar-track">
+                  <span
+                    class="comparison-bar comparison-bar-current"
+                    [style.width.%]="card.currentProgress * 100"
+                    aria-hidden="true"></span>
+                </span>
+                <span class="comparison-value">{{ card.currentValueLabel }}</span>
+              </div>
+              <div class="comparison-row">
+                <span class="comparison-month">{{ card.previousShortLabel }}</span>
+                <span class="comparison-bar-track">
+                  <span
+                    class="comparison-bar comparison-bar-previous"
+                    [style.width.%]="card.previousProgress * 100"
+                    aria-hidden="true"></span>
+                </span>
+                <span class="comparison-value">{{ card.previousValueLabel }}</span>
+              </div>
+            </div>
+
+            <div class="delta-line" [class]="'delta-' + card.deltaDirection">
+              <mat-icon class="delta-icon" aria-hidden="true">
+                @switch (card.deltaDirection) {
+                  @case ('up') { arrow_upward }
+                  @case ('down') { arrow_downward }
+                  @default { remove }
+                }
+              </mat-icon>
+              <span class="delta-text">{{ card.deltaText }}</span>
+              <span class="delta-label">compared to last month</span>
+            </div>
+
+            @if (card.hasPacedComparison) {
+              <div class="delta-line paced" [class]="'delta-' + card.pacedDeltaDirection">
+                <mat-icon class="delta-icon" aria-hidden="true">
+                  @switch (card.pacedDeltaDirection) {
+                    @case ('up') { arrow_upward }
+                    @case ('down') { arrow_downward }
+                    @default { remove }
+                  }
+                </mat-icon>
+                <span class="delta-text">{{ card.pacedDeltaText }}</span>
+                <span class="delta-label">{{ card.pacedComparisonLabel }}</span>
+              </div>
+            }
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+  </section>
+}

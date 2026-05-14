@@ -32,6 +32,8 @@ export type { DayActivityState } from './models/day-activity-state';
 export type { DistanceUnit } from './models/distance-unit';
 export type { MeasurementType } from './models/measurement-type';
 export type { MobileAthleteSelfProfileResponse } from './models/mobile-athlete-self-profile-response';
+export type { MonthlyStatsPeriodResponse } from './models/monthly-stats-period-response';
+export type { MonthlyStatsResponse } from './models/monthly-stats-response';
 export type { MyAthleteProfileResponse } from './models/my-athlete-profile-response';
 export type { PagedQuotesResponse } from './models/paged-quotes-response';
 export type { ParsedWorkoutExerciseResponse } from './models/parsed-workout-exercise-response';
@@ -221,6 +223,8 @@ export type { ApiWebappDashboardsStreakActivityV1Get$Params as ApiWebappDashboar
 export { apiWebappDashboardsStreakActivityV1Get as apiWebappDashboardsStreakActivityV1Get } from './fn/web-app-dashboards/api-webapp-dashboards-streak-activity-v-1-get';
 export type { ApiWebappDashboardsWeeklyStatsDurationBreakdownV1Get$Params as ApiWebappDashboardsWeeklyStatsDurationBreakdownV1Get$Params } from './fn/web-app-dashboards/api-webapp-dashboards-weekly-stats-duration-breakdown-v-1-get';
 export { apiWebappDashboardsWeeklyStatsDurationBreakdownV1Get as apiWebappDashboardsWeeklyStatsDurationBreakdownV1Get } from './fn/web-app-dashboards/api-webapp-dashboards-weekly-stats-duration-breakdown-v-1-get';
+export type { ApiWebappDashboardsMonthlyStatsV1Get$Params as ApiWebappDashboardsMonthlyStatsV1Get$Params } from './fn/web-app-dashboards/api-webapp-dashboards-monthly-stats-v-1-get';
+export { apiWebappDashboardsMonthlyStatsV1Get as apiWebappDashboardsMonthlyStatsV1Get } from './fn/web-app-dashboards/api-webapp-dashboards-monthly-stats-v-1-get';
 export type { ApiWebappQuotesTodayV1Get$Params as ApiWebappQuotesTodayV1Get$Params } from './fn/web-app-quotes/api-webapp-quotes-today-v-1-get';
 export { apiWebappQuotesTodayV1Get as apiWebappQuotesTodayV1Get } from './fn/web-app-quotes/api-webapp-quotes-today-v-1-get';
 export type { ApiWebappQuotesTodayRefreshV1Post$Params as ApiWebappQuotesTodayRefreshV1Post$Params } from './fn/web-app-quotes/api-webapp-quotes-today-refresh-v-1-post';

@@ -27,6 +27,8 @@ export type { DayActivityState } from './models/day-activity-state';
 export type { DistanceUnit } from './models/distance-unit';
 export type { MeasurementType } from './models/measurement-type';
 export type { MobileAthleteSelfProfileResponse } from './models/mobile-athlete-self-profile-response';
+export type { MonthlyStatsPeriodResponse } from './models/monthly-stats-period-response';
+export type { MonthlyStatsResponse } from './models/monthly-stats-response';
 export type { MyAthleteProfileResponse } from './models/my-athlete-profile-response';
 export type { PagedQuotesResponse } from './models/paged-quotes-response';
 export type { ParsedWorkoutExerciseResponse } from './models/parsed-workout-exercise-response';

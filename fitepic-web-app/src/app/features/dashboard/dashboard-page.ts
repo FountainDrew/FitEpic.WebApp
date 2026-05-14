@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
@@ -36,6 +36,7 @@ interface FutureGroup {
   imports: [
     DatePipe,
     DecimalPipe,
+    RouterLink,
     MatCardModule,
     MatButtonModule,
     MatIconModule,

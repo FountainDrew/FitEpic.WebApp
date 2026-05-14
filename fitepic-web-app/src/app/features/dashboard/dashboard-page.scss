@@ -105,6 +105,12 @@
   gap: 16px;
 }
 
+.stats-extras {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
 .stat-card {
   height: 100%;
   border: 1px solid var(--fe-border);

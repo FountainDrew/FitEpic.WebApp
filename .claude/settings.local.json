@@ -12,7 +12,9 @@
       "Bash(curl -s -o /dev/null -w \"API health: HTTP %{http_code}\\\\n\" http://localhost:5244/swagger/v1/swagger.json)",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:4202/)",
       "Bash(grep -qE \"Local:|listening on|exception|already in use\" /tmp/ng-serve3.log)",
-      "Bash(grep -E \"\\\\.\\(cs\\)$\")"
+      "Bash(grep -E \"\\\\.\\(cs\\)$\")",
+      "Bash(cd /c/Users/drewe/source/repos/FitEpic.Mobile && find . -type f -name \"*[Mm]onthly*\" -o -name \"*[Ss]tats*\" | head -20)",
+      "Read(//c/c/Users/drewe/source/repos/**)"
     ],
     "additionalDirectories": [
       "\\tmp"

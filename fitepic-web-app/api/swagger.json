@@ -4115,6 +4115,77 @@
         }
       }
     },
+    "/api/webapp/dashboards/monthly-stats/v1": {
+      "get": {
+        "tags": [
+          "WebApp - Dashboards"
+        ],
+        "summary": "Monthly aggregated stats for the authenticated athlete, plus the previous month and a\r\n\"previous month at the same elapsed day\" snapshot for paced comparisons. Used by the\r\nweb \"Monthly stats\" page.",
+        "description": "Defaults to the athlete's current calendar month in their profile timezone when\r\nyear or month is omitted. The same effective-duration\r\nrule used by the weekly-stats card and the duration-breakdown endpoint is applied here:\r\na completed workout's duration is the first positive of logged `Duration`,\r\ntime-based `ScoreResult`, or the prescribed parent `Workout.Duration`.\r\n            \r\nPossible `error.code` values on non-2xx responses (see `WebAppErrorCode` for the full enumeration):\r\n<list type=\"bullet\"><item><description>`MONTH_OUT_OF_RANGE` (400) — `month` is outside 1..12, `year` is below 1900, or the requested month is in the future.</description></item><item><description>`PROFILE_TIMEZONE_REQUIRED` (400) — athlete has not set a profile timezone.</description></item><item><description>`INVALID_TIMEZONE` (400) — stored timezone is not recognized on the server.</description></item><item><description>`PROFILE_NOT_FOUND` (404) — athlete profile record is missing.</description></item><item><description>`UNAUTHENTICATED` (401) — token missing or invalid.</description></item></list>",
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "description": "Calendar year (athlete profile timezone). Omit to default to the current year.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "description": "Calendar month, 1..12 (athlete profile timezone). Omit to default to the current month.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the monthly-stats payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonthlyStatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid month/year, future month, or profile timezone is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Athlete profile record is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/webapp/quotes/today/v1": {
       "get": {
         "tags": [
@@ -5409,6 +5480,120 @@
         "additionalProperties": false,
         "description": "Response body for `GET` and `PUT /api/mobile/athletes/me/v1`. The shape is\r\nforward-compatible — additional optional profile fields will be added over time.\r\nMobile clients should ignore unknown fields so server roll-outs that add new properties\r\ndon't break parsing."
       },
+      "MonthlyStatsPeriodResponse": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "description": "The calendar year for this period.",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "description": "The calendar month for this period (1–12).",
+            "format": "int32"
+          },
+          "daysInMonth": {
+            "type": "integer",
+            "description": "Number of days in the full calendar month — independent of how far elapsed the\r\nperiod is. Always 28..31.",
+            "format": "int32",
+            "example": 30
+          },
+          "daysElapsed": {
+            "type": "integer",
+            "description": "Number of calendar days included in the aggregation window. Equals FitEpic.Api.Models.WebApp.Response.MonthlyStatsPeriodResponse.DaysInMonth\r\nfor any past month and for the previous-month period; for the current month it is the day\r\nnumber of \"today\" in the athlete's profile timezone (1 on the first of the month).",
+            "format": "int32",
+            "example": 15
+          },
+          "workoutsCompleted": {
+            "type": "integer",
+            "description": "Count of completed, non-deleted scheduled workouts inside the window.",
+            "format": "int32"
+          },
+          "workoutsScheduled": {
+            "type": "integer",
+            "description": "Count of non-deleted scheduled workouts inside the window regardless of status —\r\nincluding Dismissed rows, matching the dashboard weekly card.",
+            "format": "int32"
+          },
+          "exercisesPerformed": {
+            "type": "integer",
+            "description": "Sum across each completed workout of its parent workout's non-deleted exercise count.\r\nA workout with 5 exercises completed twice contributes 10.",
+            "format": "int32"
+          },
+          "totalWeightLiftedLbs": {
+            "type": "number",
+            "description": "Total volume lifted across logged sets: `weight × reps` where `reps` parses\r\nto a positive integer, otherwise just `weight`. Logs without a positive recorded\r\nweight are excluded.",
+            "format": "double"
+          },
+          "totalDurationMinutes": {
+            "type": "integer",
+            "description": "Total effective workout time within the window, rounded up (ceiling) to the nearest\r\nminute. Uses the same effective-duration rule as the weekly-stats card and the\r\nduration-breakdown endpoint (logged duration → time-based score → prescribed duration).",
+            "format": "int32"
+          },
+          "workoutsWithDuration": {
+            "type": "integer",
+            "description": "Count of completed workouts in the window that contributed a positive effective duration\r\n(i.e., the resolver returned a positive `TimeSpan` for them).",
+            "format": "int32"
+          },
+          "daysWorkedOut": {
+            "type": "integer",
+            "description": "Distinct count of `ScheduledDate` values among the completed workouts in the\r\nwindow — i.e., how many separate calendar days the athlete worked out.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Aggregated stats for a single time window inside a month."
+      },
+      "MonthlyStatsResponse": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "description": "The calendar year the response describes.",
+            "format": "int32",
+            "example": 2026
+          },
+          "month": {
+            "type": "integer",
+            "description": "The calendar month the response describes (1–12).",
+            "format": "int32",
+            "example": 4
+          },
+          "hasNextMonth": {
+            "type": "boolean",
+            "description": "`true` when the client can navigate forward — i.e., the requested month is strictly\r\n            earlier than the athlete's current month in their profile timezone. `false` when the\r\n            requested month is the current month."
+          },
+          "current": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MonthlyStatsPeriodResponse"
+              }
+            ],
+            "description": "Aggregates for the requested month, truncated to \"today\" for the current month.",
+            "nullable": true
+          },
+          "previous": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MonthlyStatsPeriodResponse"
+              }
+            ],
+            "description": "Aggregates for the full previous month. Null when the previous month has no scheduled\r\nworkouts at all (the web client uses this signal to hide the comparison bars).",
+            "nullable": true
+          },
+          "previousAtSameDay": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MonthlyStatsPeriodResponse"
+              }
+            ],
+            "description": "Aggregates for the previous month truncated to the same number of elapsed days as\r\nFitEpic.Api.Models.WebApp.Response.MonthlyStatsResponse.Current. Null when the requested month is a past complete month, when\r\nthe current month has just begun, or when FitEpic.Api.Models.WebApp.Response.MonthlyStatsResponse.Previous is null.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Aggregated stats for a single calendar month, plus the prior month and a \"previous month\r\nat the same day count\" snapshot for paced comparisons. All date math is resolved in the\r\nathlete's profile timezone."
+      },
       "MyAthleteProfileResponse": {
         "type": "object",
         "properties": {
@@ -6456,7 +6641,8 @@
           "PROFILE_TIMEZONE_REQUIRED",
           "INVALID_TIMEZONE",
           "NOT_FOUND",
-          "PINNED"
+          "PINNED",
+          "MONTH_OUT_OF_RANGE"
         ],
         "type": "string"
       },
