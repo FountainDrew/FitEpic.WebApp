@@ -11,11 +11,9 @@
 
 <app-quote-card />
 
+<app-streak-activity #streakActivity />
 
 @if (statsLoading()) {
-  <section class="week-header" aria-hidden="true">
-    <span class="skeleton skeleton-streak"></span>
-  </section>
   <section class="stats-grid" aria-hidden="true">
     <mat-card class="stat-card stat-card-featured">
       <mat-card-content>
@@ -47,22 +45,6 @@
     </mat-card-content>
   </mat-card>
 } @else if (stats(); as s) {
-  <section class="week-header">
-    @if (s.streak?.hasHistory) {
-      @if ((s.streak?.currentStreakDays ?? 0) > 0) {
-        <div class="streak-badge streak-active">
-          <mat-icon>local_fire_department</mat-icon>
-          <span>{{ s.streak?.currentStreakDays }} day streak</span>
-        </div>
-      } @else {
-        <div class="streak-badge">
-          <mat-icon>event_available</mat-icon>
-          <span>{{ s.streak?.completedInLast7Days }} of last 7 days</span>
-        </div>
-      }
-    }
-  </section>
-
   <section class="stats-grid">
     <mat-card class="stat-card stat-card-featured">
       <mat-card-content>

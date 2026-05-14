@@ -1,0 +1,53 @@
+@if (loading()) {
+  <section class="streak-activity" aria-hidden="true">
+    <span class="skeleton skeleton-pill"></span>
+    <div class="skeleton-dot-grid">
+      @for (_ of [0, 1, 2]; track $index) {
+        <div class="skeleton-dot-row">
+          @for (__ of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]; track $index) {
+            <span class="skeleton skeleton-dot-circle"></span>
+          }
+        </div>
+      }
+    </div>
+    <span class="skeleton skeleton-pill"></span>
+  </section>
+} @else if (error(); as msg) {
+  <mat-card class="error-card">
+    <mat-card-content>
+      <p>{{ msg }}</p>
+      <button mat-button color="primary" (click)="retry()">Retry</button>
+    </mat-card-content>
+  </mat-card>
+} @else if (hasAnyContent()) {
+  <section class="streak-activity">
+    @if (showStreakPill()) {
+      <span class="pill pill-streak">🔥 {{ currentStreak() }} day workout streak</span>
+    }
+    @if (showDotLine()) {
+      <div class="dot-line" aria-hidden="true">
+        @for (row of streakRows(); track $index) {
+          <div class="dot-row" [class.has-connector-right]="row.verticalConnectorSide === 'right'" [class.has-connector-left]="row.verticalConnectorSide === 'left'">
+            @for (dot of row.dots; track $index) {
+              @if (!$first) {
+                <span class="h-connector"></span>
+              }
+              <span class="dot" [class.dot-completed]="dot.state === 'Completed'" [class.dot-scheduled]="dot.state === 'ScheduledOnly'" [class.dot-none]="dot.state === 'None' || !dot.state"></span>
+            }
+            @if (row.verticalConnectorSide !== 'none') {
+              <span class="v-connector"></span>
+            }
+          </div>
+        }
+        @if (overflowDays() > 0) {
+          <p class="overflow-label">+ {{ overflowDays() }} more {{ overflowWord() }}</p>
+        }
+      </div>
+    }
+    @if (showDaysPill()) {
+      <span class="pill pill-days">
+        {{ daysActive() }} of the last {{ daysInWindow() }} {{ daysWord() }} worked out
+      </span>
+    }
+  </section>
+}

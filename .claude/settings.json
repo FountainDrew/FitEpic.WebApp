@@ -3,7 +3,13 @@
     "allow": [
       "Bash(curl -s http://localhost:5244/swagger/v1/swagger.json -o C:\\\\Users\\\\drewe\\\\AppData\\\\Local\\\\Temp\\\\swagger.json)",
       "Bash(node -e \"const s=require\\('C:/Users/drewe/AppData/Local/Temp/swagger.json'\\); const paths=Object.keys\\(s.paths\\).filter\\(p=>p.includes\\('/webapp/athletes/profile'\\)\\); paths.forEach\\(p=>{console.log\\(p\\); console.log\\(JSON.stringify\\(s.paths[p], null, 2\\).substring\\(0, 2000\\)\\)}\\);\")",
-      "Bash(node -e \"const s=require\\('C:/Users/drewe/AppData/Local/Temp/swagger.json'\\); console.log\\('=== UpdateMyAthleteProfileRequest ==='\\); console.log\\(JSON.stringify\\(s.components.schemas.UpdateMyAthleteProfileRequest, null, 2\\)\\); console.log\\('=== MyAthleteProfileResponse ==='\\); console.log\\(JSON.stringify\\(s.components.schemas.MyAthleteProfileResponse, null, 2\\)\\);\")"
+      "Bash(node -e \"const s=require\\('C:/Users/drewe/AppData/Local/Temp/swagger.json'\\); console.log\\('=== UpdateMyAthleteProfileRequest ==='\\); console.log\\(JSON.stringify\\(s.components.schemas.UpdateMyAthleteProfileRequest, null, 2\\)\\); console.log\\('=== MyAthleteProfileResponse ==='\\); console.log\\(JSON.stringify\\(s.components.schemas.MyAthleteProfileResponse, null, 2\\)\\);\")",
+      "Bash(curl -sS http://localhost:5244/swagger/v1/swagger.json -o \"C:/Users/drewe/source/repos/FitEpic.WebApp/UsersdreweAppDataLocalTempswagger.json\")",
+      "Bash(python -c 'import json; s=json.load\\(open\\('\\\\''UsersdreweAppDataLocalTempswagger.json'\\\\''\\)\\); paths=[p for p in s['\\\\''paths'\\\\''] if '\\\\''streak'\\\\'' in p.lower\\(\\)]; print\\('\\\\''PATHS:'\\\\'', paths\\); *)",
+      "Bash(python -c 'import json; s=json.load\\(open\\('\\\\''UsersdreweAppDataLocalTempswagger.json'\\\\''\\)\\); *)",
+      "Bash(curl -sS -i http://localhost:5244/api/webapp/dashboards/streak-activity/v1)",
+      "Bash(npx tsc *)",
+      "Bash(npm test *)"
     ]
   }
 }

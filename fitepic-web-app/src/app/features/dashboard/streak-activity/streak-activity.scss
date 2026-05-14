@@ -1,0 +1,128 @@
+.streak-activity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.skeleton-pill {
+  width: 180px;
+  height: 36px;
+  border-radius: 999px;
+}
+
+.skeleton-dot-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-dot-row {
+  display: flex;
+  gap: 8px;
+}
+
+.skeleton-dot-circle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.dot-line {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.dot-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 12px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 1.5px solid transparent;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.dot-completed {
+  background: var(--fe-primary);
+  border-color: var(--fe-primary);
+}
+
+.dot-scheduled {
+  background: var(--fe-dot-scheduled);
+  border-color: var(--fe-dot-scheduled);
+}
+
+.dot-none {
+  background: transparent;
+  border-color: var(--fe-dot-none-stroke);
+}
+
+.h-connector {
+  width: 8px;
+  height: 2px;
+  background: var(--fe-primary);
+  flex-shrink: 0;
+}
+
+.v-connector {
+  position: absolute;
+  top: 100%;
+  width: 2px;
+  height: 6px;
+  background: var(--fe-primary);
+}
+
+.dot-row.has-connector-right .v-connector {
+  right: 5px;
+}
+
+.dot-row.has-connector-left .v-connector {
+  left: 5px;
+}
+
+.overflow-label {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--fe-text-muted);
+}
+
+.pill {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+.pill-streak {
+  background: var(--fe-streak-pill-bg);
+  color: var(--fe-streak-pill-text);
+}
+
+.pill-days {
+  background: var(--fe-days-pill-bg);
+  color: var(--fe-days-pill-text);
+}
+
+.error-card {
+  width: 100%;
+
+  p {
+    margin: 0 0 8px;
+  }
+}

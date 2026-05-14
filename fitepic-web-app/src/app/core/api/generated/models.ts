@@ -22,6 +22,8 @@ export type { DashboardWorkoutLogResponse } from './models/dashboard-workout-log
 export type { DashboardWorkoutScoreResponse } from './models/dashboard-workout-score-response';
 export type { DashboardWorkoutsResponse } from './models/dashboard-workouts-response';
 export type { DateOnlyNullableJsonOptional } from './models/date-only-nullable-json-optional';
+export type { DayActivityRecordResponse } from './models/day-activity-record-response';
+export type { DayActivityState } from './models/day-activity-state';
 export type { DistanceUnit } from './models/distance-unit';
 export type { MeasurementType } from './models/measurement-type';
 export type { MobileAthleteSelfProfileResponse } from './models/mobile-athlete-self-profile-response';
@@ -45,6 +47,7 @@ export type { ScheduledWorkoutSyncResponse } from './models/scheduled-workout-sy
 export type { SignInRequest } from './models/sign-in-request';
 export type { StandardExerciseResponse } from './models/standard-exercise-response';
 export type { StandardExerciseResponsePagedResponse } from './models/standard-exercise-response-paged-response';
+export type { StreakActivityResponse } from './models/streak-activity-response';
 export type { StringJsonOptional } from './models/string-json-optional';
 export type { SyncAthleteConnectionInvitesRequest } from './models/sync-athlete-connection-invites-request';
 export type { SyncBatchResponse } from './models/sync-batch-response';
