@@ -12,15 +12,27 @@ import { ScheduledWorkoutResponse } from '../../models/scheduled-workout-respons
 export interface ScheduledworkoutsGet$Params {
 
 /**
- * The date to query in `YYYY-MM-DD` format.
+ * Optional single date in `YYYY-MM-DD` format. Ignored if `from`/`to` are both present.
  */
   date?: string;
+
+/**
+ * Optional inclusive lower bound for `ScheduledDate`. Requires `to`.
+ */
+  from?: string;
+
+/**
+ * Optional inclusive upper bound for `ScheduledDate`. Requires `from`.
+ */
+  to?: string;
 }
 
 export function scheduledworkoutsGet(http: HttpClient, rootUrl: string, params?: ScheduledworkoutsGet$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<ScheduledWorkoutResponse>>> {
   const rb = new RequestBuilder(rootUrl, scheduledworkoutsGet.PATH, 'get');
   if (params) {
     rb.query('date', params.date, {});
+    rb.query('from', params.from, {});
+    rb.query('to', params.to, {});
   }
 
   return http.request(

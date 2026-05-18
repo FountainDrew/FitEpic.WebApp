@@ -18,6 +18,1819 @@
         }
       }
     },
+    "/api/gyms/{gymId}/invites": {
+      "post": {
+        "tags": [
+          "Gym Invites"
+        ],
+        "summary": "Send a gym membership invite by email. Owner or Admin only.",
+        "description": "Inviting at `Admin` requires the gym Owner specifically. Inviting at `Athlete`\r\nor `Coach` requires Owner or Admin.\r\n            \r\nThe invitee is identified by email; the server resolves it to an athlete internally.\r\n**The response is identical whether or not the email matches a registered athlete** —\r\nunknown emails are silently dropped server-side and produce the same 202 Accepted body\r\nas a successful invite. This is deliberate (see requirements §6.2): any observable\r\ndifference would let the endpoint act as an account-enumeration oracle. The UI must\r\nnot attempt to surface \"user not found\" feedback; show the typed email and trust the\r\nserver.\r\n            \r\nOther failure modes (gym not found, insufficient role, duplicate pending invite,\r\ninvitee-already-member) still return their respective error codes. Those describe\r\nstate the calling admin already has access to via the gym member list and pending-\r\ninvite list, so they do not constitute new information leakage.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Invitee email and offered role.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SendGymInviteRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms/{gymId}/invites`. An Owner or Admin invites an\r\nathlete to join the gym, optionally with an elevated role. The invitee is identified by\r\nemail address — the server resolves it to an athlete internally. The response is identical\r\nwhether or not the email maps to a registered athlete (silent no-op on unknown emails) to\r\nprevent account enumeration through the invite UI. See requirements §6.2."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SendGymInviteRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms/{gymId}/invites`. An Owner or Admin invites an\r\nathlete to join the gym, optionally with an elevated role. The invitee is identified by\r\nemail address — the server resolves it to an athlete internally. The response is identical\r\nwhether or not the email maps to a registered athlete (silent no-op on unknown emails) to\r\nprevent account enumeration through the invite UI. See requirements §6.2."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SendGymInviteRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms/{gymId}/invites`. An Owner or Admin invites an\r\nathlete to join the gym, optionally with an elevated role. The invitee is identified by\r\nemail address — the server resolves it to an athlete internally. The response is identical\r\nwhether or not the email maps to a registered athlete (silent no-op on unknown emails) to\r\nprevent account enumeration through the invite UI. See requirements §6.2."
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Request accepted. The body is identical whether or not the email matched a registered athlete. Re-fetch `GET /api/gyms/{gymId}/invites` to see any newly-created invite row.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendGymInviteResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller lacks the role required to offer this invite.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Gym not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A pending invite already exists for this athlete, or the invitee already holds this role or higher in the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Gym Invites"
+        ],
+        "summary": "List pending invites for a gym. Owner or Admin only.",
+        "description": "Pass `status` to filter. Pass `since` for delta sync.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Optional status filter.",
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/GymMembershipInviteStatus"
+                }
+              ]
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Delta-sync watermark.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of invites.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GymMembershipInviteResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not an Admin or Owner of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/athletes/me/gym-invites": {
+      "get": {
+        "tags": [
+          "Gym Invites"
+        ],
+        "summary": "List invites addressed to the authenticated athlete.",
+        "description": "Pass `since` for delta sync.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Delta-sync watermark.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of invites.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GymMembershipInviteResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/invites/{id}/accept": {
+      "post": {
+        "tags": [
+          "Gym Invites"
+        ],
+        "summary": "Accept a pending invite. Only the invited athlete may accept.",
+        "description": "Creates the membership at the offered role before flipping the invite status (retry-safe).\r\nIf the invited athlete already has a membership in the gym, its role is upgraded.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Invite ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the updated invite and the resulting membership.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptGymInviteResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not the invited athlete.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invite not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Invite is not in `Pending` status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/invites/{id}/reject": {
+      "post": {
+        "tags": [
+          "Gym Invites"
+        ],
+        "summary": "Reject a pending invite. Only the invited athlete may reject.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Invite ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the rejected invite.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymMembershipInviteResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not the invited athlete.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invite not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Invite is not in `Pending` status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/invites/{id}/revoke": {
+      "post": {
+        "tags": [
+          "Gym Invites"
+        ],
+        "summary": "Revoke a pending invite. Owner or Admin only.",
+        "description": "Any Owner or Admin of the gym may revoke any pending invite (not just the issuer).\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Invite ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the revoked invite.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymMembershipInviteResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not an Admin or Owner of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invite not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Invite is not in `Pending` status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/join-requests": {
+      "post": {
+        "tags": [
+          "Gym Join Requests"
+        ],
+        "summary": "Submit a request to join a gym using its public code.",
+        "description": "The `RequestedRole` must be `Athlete` or `Coach`. Approval will create\r\nthe membership at the exact role requested — there is no role-downgrade at approval.\r\nIf you want a different role, deny the existing request and resubmit.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "requestBody": {
+          "description": "The gym code and requested role. `Id` is optional; supplying a client-generated UUID makes the call idempotent for mobile outbox replay — see remarks below.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SubmitGymJoinRequestRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms/join-requests`. An athlete submits this to request\r\njoining a gym (and being granted a specific role) by entering the gym's public code."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SubmitGymJoinRequestRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms/join-requests`. An athlete submits this to request\r\njoining a gym (and being granted a specific role) by entering the gym's public code."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SubmitGymJoinRequestRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms/join-requests`. An athlete submits this to request\r\njoining a gym (and being granted a specific role) by entering the gym's public code."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Idempotent replay: the supplied `Id` matched an existing request belonging to the same athlete; returns that row unchanged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymJoinRequestResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Request created. Returns the pending request record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymJoinRequestResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin role requested (only allowed via owner-initiated invite).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No gym matches the supplied code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A pending request already exists, or the athlete already holds this role or higher.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/{gymId}/join-requests": {
+      "get": {
+        "tags": [
+          "Gym Join Requests"
+        ],
+        "summary": "List join requests for a gym. Owner or Admin only.",
+        "description": "Pass `status` to filter by lifecycle state. Pass `since` for delta sync\r\n(returns tombstones); omit for a live-only pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Optional status filter.",
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/GymJoinRequestStatus"
+                }
+              ]
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Delta-sync watermark.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GymJoinRequestResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not an Admin or Owner of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/athletes/me/gym-join-requests": {
+      "get": {
+        "tags": [
+          "Gym Join Requests"
+        ],
+        "summary": "List the authenticated athlete's own join requests (across all gyms).",
+        "description": "Pass `since` for delta sync. Requires Bearer authentication.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Delta-sync watermark.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GymJoinRequestResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/join-requests/{id}/approve": {
+      "post": {
+        "tags": [
+          "Gym Join Requests"
+        ],
+        "summary": "Approve a pending join request. Owner or Admin only.",
+        "description": "Creates the `GymMembership` row at the exact role the athlete requested before\r\nflipping the request status — retry-safe if the request is left in `Pending` on\r\ntransient failure.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Join request ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the updated request and the created membership.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApproveGymJoinRequestResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not an Admin or Owner of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request is not in `Pending` status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/join-requests/{id}/deny": {
+      "post": {
+        "tags": [
+          "Gym Join Requests"
+        ],
+        "summary": "Deny a pending join request. Owner or Admin only.",
+        "description": "The requesting athlete may submit a new request afterwards (potentially with a\r\ndifferent role).\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Join request ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the updated request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymJoinRequestResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not an Admin or Owner of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request is not in `Pending` status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/join-requests/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Gym Join Requests"
+        ],
+        "summary": "Cancel your own pending join request.",
+        "description": "Only the requesting athlete may cancel. Requires Bearer authentication.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Join request ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the cancelled request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymJoinRequestResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not the requesting athlete.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request is not in `Pending` status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/{gymId}/members": {
+      "get": {
+        "tags": [
+          "Gym Memberships"
+        ],
+        "summary": "List gym members. Coach, Admin, or Owner only.",
+        "description": "Athletes (non-coach members) get 403 — listing the roster is reserved for staff.\r\nThe Owner is not included in the returned list (ownership is identified by\r\n`Gym.OwnerAthleteId`, not a membership row).\r\n            \r\nPass `since` for delta sync (returns tombstones).\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Delta-sync watermark.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of memberships.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GymMembershipResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not a Coach, Admin, or Owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/athletes/me/gym-memberships": {
+      "get": {
+        "tags": [
+          "Gym Memberships"
+        ],
+        "summary": "List the authenticated athlete's gym memberships across every gym.",
+        "description": "Pass `since` for delta sync.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Delta-sync watermark.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of memberships.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GymMembershipResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/{gymId}/members/{athleteId}": {
+      "patch": {
+        "tags": [
+          "Gym Memberships"
+        ],
+        "summary": "Change a member's role. Admin or Owner only.",
+        "description": "Granting or revoking `Admin` requires the gym Owner specifically. Demoting an\r\nexisting Admin (to Coach or Athlete) also requires the Owner. The Owner's own\r\nimplicit role cannot be changed via this endpoint.\r\n            \r\nEffective immediately — no acceptance step. Requires a valid Bearer token.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "athleteId",
+            "in": "path",
+            "description": "Target athlete ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "New role.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ChangeGymMemberRoleRequest"
+                  }
+                ],
+                "description": "Request body for `PATCH /api/gyms/{gymId}/members/{athleteId}`.\r\nEffective immediately — no acceptance step. Granting or revoking `Admin` requires the gym Owner."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ChangeGymMemberRoleRequest"
+                  }
+                ],
+                "description": "Request body for `PATCH /api/gyms/{gymId}/members/{athleteId}`.\r\nEffective immediately — no acceptance step. Granting or revoking `Admin` requires the gym Owner."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ChangeGymMemberRoleRequest"
+                  }
+                ],
+                "description": "Request body for `PATCH /api/gyms/{gymId}/members/{athleteId}`.\r\nEffective immediately — no acceptance step. Granting or revoking `Admin` requires the gym Owner."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the updated membership.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymMembershipResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller lacks the role required for this change.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Gym or membership not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Target is the gym Owner (role cannot be changed).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Gym Memberships"
+        ],
+        "summary": "Remove a member from a gym. Admin or Owner only. Owner cannot be removed.",
+        "description": "Demoting an Admin requires the Owner. Cascades by soft-deleting the athlete's\r\n`TrainingGroupMembership` rows. Personal workouts and completed history are preserved\r\nper requirements §8.3.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "athleteId",
+            "in": "path",
+            "description": "Target athlete ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Member removed."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller lacks the role required for this removal.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Gym or membership not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Target is the gym Owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/{gymId}/leave": {
+      "post": {
+        "tags": [
+          "Gym Memberships"
+        ],
+        "summary": "Leave a gym voluntarily. Not callable by the Owner.",
+        "description": "Cascades by soft-deleting your `TrainingGroupMembership` rows in this gym. Personal\r\nworkouts and completed history are preserved per §8.3.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Left the gym."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Gym not found, or caller is not a member.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Caller is the gym Owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms": {
+      "post": {
+        "tags": [
+          "Gyms"
+        ],
+        "summary": "Create a new gym owned by the authenticated athlete.",
+        "description": "The caller must have `IsGymOwner = true` on their athlete profile (toggle via\r\n`PUT /api/gyms/me/owner-flag`). The server generates a unique 6-character\r\n`GymCode` and returns it on the response.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "requestBody": {
+          "description": "Gym name and optional description.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateGymRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms`. The caller becomes the gym's Owner."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateGymRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms`. The caller becomes the gym's Owner."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateGymRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms`. The caller becomes the gym's Owner."
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Gym created. Returns the new gym with its generated code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (Name missing or too long).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Athlete does not have IsGymOwner = true.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Gyms"
+        ],
+        "summary": "List gyms the authenticated athlete owns or is a member of.",
+        "description": "The `role` query parameter scopes the list:\r\n<list type=\"bullet\"><item><description>`owner` — gyms where the caller is the Owner.</description></item><item><description>`member` — gyms where the caller has any role (Owner, Admin, Coach, or Athlete).</description></item></list>\r\nPass `since` for delta sync (returns tombstones). Omit for a live-only bootstrap pull.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "query",
+            "description": "Filter mode: `owner` or `member`. Defaults to `member`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Return only rows updated after this UTC timestamp (delta sync). Omit for bootstrap.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of gyms.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GymResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unrecognized `role` value.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/{id}": {
+      "get": {
+        "tags": [
+          "Gyms"
+        ],
+        "summary": "Get a single gym by ID.",
+        "description": "Returns the gym only if the caller is the Owner or an active member at any role.\r\nNon-members get 404 (we do not disclose existence to outsiders).\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Gym not found or caller is not a member.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Gyms"
+        ],
+        "summary": "Update a gym's name and description. Owner or Admin only.",
+        "description": "The `GymCode` is not modified by this endpoint — use\r\n`POST /api/gyms/{id}/regenerate-code` to rotate it.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Updated name and description.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UpdateGymRequest"
+                  }
+                ],
+                "description": "Request body for `PATCH /api/gyms/{id}`. Owner or Admin only."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UpdateGymRequest"
+                  }
+                ],
+                "description": "Request body for `PATCH /api/gyms/{id}`. Owner or Admin only."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UpdateGymRequest"
+                  }
+                ],
+                "description": "Request body for `PATCH /api/gyms/{id}`. Owner or Admin only."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Gym updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not an Admin or Owner of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Gym not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Gyms"
+        ],
+        "summary": "Soft-delete a gym. Owner only.",
+        "description": "Cascades soft-delete to all gym memberships, training groups, and training group\r\nmemberships. Personal workouts and completed history are preserved per\r\nrequirements §8.3.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Gym deleted."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not the Owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Gym not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/{id}/regenerate-code": {
+      "post": {
+        "tags": [
+          "Gyms"
+        ],
+        "summary": "Rotate the gym's join code. Owner or Admin only.",
+        "description": "Generates a fresh unique 6-character code. Pending join requests against the old code\r\nremain valid; only future requests must use the new code.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Code rotated. Returns the gym with its new code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not an Admin or Owner of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Gym not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/{gymId}/workouts": {
+      "get": {
+        "tags": [
+          "Gyms"
+        ],
+        "summary": "List workouts owned by a gym. Any active gym member may view.",
+        "description": "Returns the workout templates available for scheduling within the gym. Coaches/Admins/\r\nOwner use this to pick existing workouts when programming for a group; athletes use it\r\nto preview the gym's library.\r\n            \r\nPass `since` for delta sync — returns every row (including tombstones and archived\r\nrows) with `UpdatedAt > since`. The include flags are ignored on delta pulls.\r\n            \r\nOmit `since` for a bootstrap pull — by default returns live, non-archived rows only.\r\nPass `includeArchived=true` and/or `includeDeleted=true` for a backdoor admin\r\nview that surfaces archived/soft-deleted history. The mobile sync layer should call this\r\nwith `includeArchived=true` so its local cache retains archived rows for resolving\r\nhistorical scheduled-workout references.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Delta-sync watermark. Omit for a bootstrap pull.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "description": "When `true`, includes rows with `IsArchived = true` in bootstrap pulls. Ignored on delta pulls. Defaults to `false`.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "includeDeleted",
+            "in": "query",
+            "description": "When `true`, includes rows with `IsDeleted = true` in bootstrap pulls. Ignored on delta pulls (which always include tombstones). Defaults to `false`.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of gym-scoped workouts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkoutResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not a member of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/me/owner-flag": {
+      "put": {
+        "tags": [
+          "Gyms"
+        ],
+        "summary": "Toggle the caller's `IsGymOwner` profile flag.",
+        "description": "Setting `true` unlocks gym creation under `POST /api/gyms`.\r\nSetting `false` is blocked with `400`/`GymsStillOwned` when the athlete\r\nowns any non-deleted gyms — the athlete must first delete those gyms.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "requestBody": {
+          "description": "Desired flag value.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SetGymOwnerFlagRequest"
+                  }
+                ],
+                "description": "Request body for `PUT /api/gyms/me/owner-flag`. Toggles the caller's\r\n`IsGymOwner` profile flag, which gates access to the gym management surface."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SetGymOwnerFlagRequest"
+                  }
+                ],
+                "description": "Request body for `PUT /api/gyms/me/owner-flag`. Toggles the caller's\r\n`IsGymOwner` profile flag, which gates access to the gym management surface."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SetGymOwnerFlagRequest"
+                  }
+                ],
+                "description": "Request body for `PUT /api/gyms/me/owner-flag`. Toggles the caller's\r\n`IsGymOwner` profile flag, which gates access to the gym management surface."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Flag updated. Returns the persisted value.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymOwnerFlagResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Toggling off while owning active gyms (`GymsStillOwned`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/athlete-profiles": {
       "get": {
         "tags": [
@@ -219,7 +2032,7 @@
           "Mobile - ConnectionInvites"
         ],
         "summary": "Batch-sync connection invites from the mobile client.",
-        "description": "Called by the **requesting athlete** (the authenticated user) to create one or more invites.\r\nEach invite includes the granting athlete's email address, which the API resolves to an athlete ID.\r\nReturns 404 if any email does not match a registered athlete.\r\nReturns 409 if a pending invite already exists in the same direction at the same permission level.\r\n`ViewWorkouts` and `ProgramWorkouts` are independent — both may be invited concurrently between the same athletes.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Called by the **requesting athlete** (the authenticated user) to create one or more invites.\r\nEach invite includes the granting athlete's email address, which the API resolves to an athlete ID.\r\nReturns 404 if any email does not match a registered athlete.\r\nReturns 409 if a pending invite already exists between the same athletes, or if the payload\r\nrequests the deprecated `ProgramWorkouts` permission level — peer connections now only\r\ngrant `ViewWorkouts`. Programming relationships are expressed via gym membership.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "requestBody": {
           "description": "The batch of invite creation requests.",
           "content": {
@@ -308,7 +2121,7 @@
           "Mobile - ConnectionInvites"
         ],
         "summary": "Batch-sync connection invites from the mobile client.",
-        "description": "Called by the **requesting athlete** (the authenticated user) to create one or more invites.\r\nEach invite includes the granting athlete's email address, which the API resolves to an athlete ID.\r\nReturns 404 if any email does not match a registered athlete.\r\nReturns 409 if a pending invite already exists in the same direction at the same permission level.\r\n`ViewWorkouts` and `ProgramWorkouts` are independent — both may be invited concurrently between the same athletes.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Called by the **requesting athlete** (the authenticated user) to create one or more invites.\r\nEach invite includes the granting athlete's email address, which the API resolves to an athlete ID.\r\nReturns 404 if any email does not match a registered athlete.\r\nReturns 409 if a pending invite already exists between the same athletes, or if the payload\r\nrequests the deprecated `ProgramWorkouts` permission level — peer connections now only\r\ngrant `ViewWorkouts`. Programming relationships are expressed via gym membership.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "requestBody": {
           "description": "The batch of invite creation requests.",
           "content": {
@@ -487,7 +2300,7 @@
           "Mobile - ConnectionInvites"
         ],
         "summary": "Accept a pending connection invite.",
-        "description": "Creates an `AthleteConnection` in `Accepted` status at the invite's permission level,\r\nthen sets the invite status to `Accepted`. The connection is created first so that a failure\r\nduring connection creation leaves the invite in `Pending` status (safe to retry).\r\nIf a connection already exists at the same `(requestingAthlete, grantingAthlete, permissionLevel)`\r\nit is reactivated rather than duplicated; if it is already `Accepted` the call is idempotent.\r\n`ViewWorkouts` and `ProgramWorkouts` are independent connections — accepting one does not affect the other.\r\nOnly the **granting athlete** may accept.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Creates an `AthleteConnection` in `Accepted` status at the invite's permission level,\r\nthen sets the invite status to `Accepted`. The connection is created first so that a failure\r\nduring connection creation leaves the invite in `Pending` status (safe to retry).\r\nIf a connection already exists at the same `(requestingAthlete, grantingAthlete, permissionLevel)`\r\nit is reactivated rather than duplicated; if it is already `Accepted` the call is idempotent.\r\nOnly the **granting athlete** may accept.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "id",
@@ -559,7 +2372,7 @@
           "Mobile - ConnectionInvites"
         ],
         "summary": "Accept a pending connection invite.",
-        "description": "Creates an `AthleteConnection` in `Accepted` status at the invite's permission level,\r\nthen sets the invite status to `Accepted`. The connection is created first so that a failure\r\nduring connection creation leaves the invite in `Pending` status (safe to retry).\r\nIf a connection already exists at the same `(requestingAthlete, grantingAthlete, permissionLevel)`\r\nit is reactivated rather than duplicated; if it is already `Accepted` the call is idempotent.\r\n`ViewWorkouts` and `ProgramWorkouts` are independent connections — accepting one does not affect the other.\r\nOnly the **granting athlete** may accept.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Creates an `AthleteConnection` in `Accepted` status at the invite's permission level,\r\nthen sets the invite status to `Accepted`. The connection is created first so that a failure\r\nduring connection creation leaves the invite in `Pending` status (safe to retry).\r\nIf a connection already exists at the same `(requestingAthlete, grantingAthlete, permissionLevel)`\r\nit is reactivated rather than duplicated; if it is already `Accepted` the call is idempotent.\r\nOnly the **granting athlete** may accept.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "id",
@@ -1842,7 +3655,7 @@
           "Mobile - ScheduledWorkouts"
         ],
         "summary": "Sync a batch of scheduled workout create, update, or delete operations from the mobile client's outbox.",
-        "description": "Accepts an array of sync operations and applies them server-side using Last-Write-Wins conflict\r\nresolution. All accepted operations are written atomically in a single database transaction.\r\n            \r\nOperations where the server record is newer return `ConflictResolved` — the mobile client\r\nshould re-pull those records on the next delta pull.\r\n            \r\nWhen programming a workout for another athlete (`athleteId != currentAthlete`), the requesting\r\nathlete must have an accepted connection with the target athlete at the `ProgramWorkouts`\r\npermission level. A `ViewWorkouts`-only connection is not sufficient. If not, the entire batch\r\nis rejected with `403 Forbidden`.\r\n            \r\nThe server always overrides the `isLocked` field — the mobile payload value is ignored.\r\nFor locked records, only log fields (`status`, `scoreResult`, `notes`,\r\n`exerciseLogs`) may be updated; template fields are preserved.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Accepts an array of sync operations and applies them server-side using Last-Write-Wins conflict\r\nresolution. All accepted operations are written atomically in a single database transaction.\r\n            \r\nOperations where the server record is newer return `ConflictResolved` — the mobile client\r\nshould re-pull those records on the next delta pull.\r\n            \r\nTwo scheduling targets are supported:\r\n<list type=\"bullet\"><item><description>Self-scheduling (`athleteId == currentAthlete`, `trainingGroupId == null`) — always permitted.</description></item><item><description>Group scheduling (`trainingGroupId` set) — the requesting athlete must be Coach, Admin, or Owner of the group's gym.</description></item></list>\r\nCross-athlete scheduling via peer connections (the legacy `ProgramWorkouts` flow) is no longer\r\nsupported and returns `403 Forbidden`. Add the athlete to a training group instead.\r\n            \r\nThe server always overrides the `isLocked` field — the mobile payload value is ignored.\r\nFor locked records, only log fields (`status`, `scoreResult`, `notes`,\r\n`exerciseLogs`) may be updated; template fields are preserved.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "requestBody": {
           "description": "A plain list of scheduled workout payloads. Set `isDeleted: true` on any item to soft-delete it.",
           "content": {
@@ -1894,7 +3707,7 @@
             }
           },
           "403": {
-            "description": "The requesting athlete does not have an accepted `ProgramWorkouts` connection with the target athlete.",
+            "description": "The requesting athlete is not authorized to schedule for the targeted athlete or training group.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1972,7 +3785,7 @@
           "Mobile - ScheduledWorkouts"
         ],
         "summary": "Sync a batch of scheduled workout create, update, or delete operations from the mobile client's outbox.",
-        "description": "Accepts an array of sync operations and applies them server-side using Last-Write-Wins conflict\r\nresolution. All accepted operations are written atomically in a single database transaction.\r\n            \r\nOperations where the server record is newer return `ConflictResolved` — the mobile client\r\nshould re-pull those records on the next delta pull.\r\n            \r\nWhen programming a workout for another athlete (`athleteId != currentAthlete`), the requesting\r\nathlete must have an accepted connection with the target athlete at the `ProgramWorkouts`\r\npermission level. A `ViewWorkouts`-only connection is not sufficient. If not, the entire batch\r\nis rejected with `403 Forbidden`.\r\n            \r\nThe server always overrides the `isLocked` field — the mobile payload value is ignored.\r\nFor locked records, only log fields (`status`, `scoreResult`, `notes`,\r\n`exerciseLogs`) may be updated; template fields are preserved.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Accepts an array of sync operations and applies them server-side using Last-Write-Wins conflict\r\nresolution. All accepted operations are written atomically in a single database transaction.\r\n            \r\nOperations where the server record is newer return `ConflictResolved` — the mobile client\r\nshould re-pull those records on the next delta pull.\r\n            \r\nTwo scheduling targets are supported:\r\n<list type=\"bullet\"><item><description>Self-scheduling (`athleteId == currentAthlete`, `trainingGroupId == null`) — always permitted.</description></item><item><description>Group scheduling (`trainingGroupId` set) — the requesting athlete must be Coach, Admin, or Owner of the group's gym.</description></item></list>\r\nCross-athlete scheduling via peer connections (the legacy `ProgramWorkouts` flow) is no longer\r\nsupported and returns `403 Forbidden`. Add the athlete to a training group instead.\r\n            \r\nThe server always overrides the `isLocked` field — the mobile payload value is ignored.\r\nFor locked records, only log fields (`status`, `scoreResult`, `notes`,\r\n`exerciseLogs`) may be updated; template fields are preserved.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "requestBody": {
           "description": "A plain list of scheduled workout payloads. Set `isDeleted: true` on any item to soft-delete it.",
           "content": {
@@ -2024,7 +3837,7 @@
             }
           },
           "403": {
-            "description": "The requesting athlete does not have an accepted `ProgramWorkouts` connection with the target athlete.",
+            "description": "The requesting athlete is not authorized to schedule for the targeted athlete or training group.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2101,13 +3914,31 @@
         "tags": [
           "Mobile - ScheduledWorkouts"
         ],
-        "summary": "Retrieve scheduled workouts for the authenticated athlete on a specific date.",
-        "description": "Returns the current live state for all non-deleted scheduled workouts on the given date.\r\nEach record includes its full hydrated `exerciseLogs` array.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "summary": "Retrieve scheduled workouts for the authenticated athlete on a single date or across a\r\ndate range.",
+        "description": "Returns the current live state for all non-deleted scheduled workouts within the chosen\r\nwindow. The visibility union is server-computed: caller's personal rows plus explicit\r\ntraining-group memberships (with the mid-flight rule per requirements §7.1) plus\r\nimplicit Coach/Admin/Owner participation in every group of their gyms.\r\n            \r\nThree calling shapes are supported:\r\n<list type=\"bullet\"><item><description>Single day: pass `date`.</description></item><item><description>Range: pass both `from` and `to` (inclusive).</description></item><item><description>If `from`/`to` are present, they take precedence and `date` is ignored.</description></item></list>\r\n            \r\nAt least one of `date` or the `from`/`to` pair must be provided. `to`\r\nmust be on or after `from`.\r\n            \r\nEach record includes its full hydrated `exerciseLogs` array.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "date",
             "in": "query",
-            "description": "The date to query in `YYYY-MM-DD` format.",
+            "description": "Optional single date in `YYYY-MM-DD` format. Ignored if `from`/`to` are both present.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Optional inclusive lower bound for `ScheduledDate`. Requires `to`.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Optional inclusive upper bound for `ScheduledDate`. Requires `from`.",
             "schema": {
               "type": "string",
               "format": "date"
@@ -2116,7 +3947,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Returns the list of scheduled workouts for the given date.",
+            "description": "Returns the list of scheduled workouts in the requested window.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2124,6 +3955,16 @@
                   "items": {
                     "$ref": "#/components/schemas/ScheduledWorkoutResponse"
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Neither `date` nor a complete `from`/`to` pair was provided, or `to` is before `from`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -2146,13 +3987,31 @@
         "tags": [
           "Mobile - ScheduledWorkouts"
         ],
-        "summary": "Retrieve scheduled workouts for the authenticated athlete on a specific date.",
-        "description": "Returns the current live state for all non-deleted scheduled workouts on the given date.\r\nEach record includes its full hydrated `exerciseLogs` array.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "summary": "Retrieve scheduled workouts for the authenticated athlete on a single date or across a\r\ndate range.",
+        "description": "Returns the current live state for all non-deleted scheduled workouts within the chosen\r\nwindow. The visibility union is server-computed: caller's personal rows plus explicit\r\ntraining-group memberships (with the mid-flight rule per requirements §7.1) plus\r\nimplicit Coach/Admin/Owner participation in every group of their gyms.\r\n            \r\nThree calling shapes are supported:\r\n<list type=\"bullet\"><item><description>Single day: pass `date`.</description></item><item><description>Range: pass both `from` and `to` (inclusive).</description></item><item><description>If `from`/`to` are present, they take precedence and `date` is ignored.</description></item></list>\r\n            \r\nAt least one of `date` or the `from`/`to` pair must be provided. `to`\r\nmust be on or after `from`.\r\n            \r\nEach record includes its full hydrated `exerciseLogs` array.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "date",
             "in": "query",
-            "description": "The date to query in `YYYY-MM-DD` format.",
+            "description": "Optional single date in `YYYY-MM-DD` format. Ignored if `from`/`to` are both present.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Optional inclusive lower bound for `ScheduledDate`. Requires `to`.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Optional inclusive upper bound for `ScheduledDate`. Requires `from`.",
             "schema": {
               "type": "string",
               "format": "date"
@@ -2161,7 +4020,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Returns the list of scheduled workouts for the given date.",
+            "description": "Returns the list of scheduled workouts in the requested window.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2173,64 +4032,12 @@
               }
             }
           },
-          "401": {
-            "description": "Token is missing, expired, or invalid.",
+          "400": {
+            "description": "Neither `date` nor a complete `from`/`to` pair was provided, or `to` is before `from`.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/athletes/{id}/scheduledworkouts": {
-      "get": {
-        "tags": [
-          "Mobile - ScheduledWorkouts"
-        ],
-        "summary": "Retrieve the scheduled workouts that the authenticated athlete has programmed for a specific target athlete.",
-        "description": "This is an on-demand social endpoint — it always returns the current live state (no `since` delta).\r\nSoft-deleted records are excluded.\r\n            \r\nThe authenticated athlete must have an accepted `AthleteConnection` with the target athlete\r\nat the `ProgramWorkouts` permission level. A `ViewWorkouts`-only connection is not sufficient.\r\nReturns `403 Forbidden` if no such connection exists.\r\n            \r\nOnly returns workouts where `programmedByAthleteId == currentAthlete` for the target.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "The ID of the target athlete whose programmed workouts to retrieve.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "description": "1-based page number. Defaults to 1.",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 1
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "description": "Number of records per page. Defaults to 100, capped at 500.",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 100
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Returns a paginated list of scheduled workouts programmed for the target athlete.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScheduledWorkoutResponsePagedResponse"
                 }
               }
             }
@@ -2241,88 +4048,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "No accepted `ProgramWorkouts` connection exists between the authenticated athlete and the target.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mobile/athletes/{id}/scheduledworkouts": {
-      "get": {
-        "tags": [
-          "Mobile - ScheduledWorkouts"
-        ],
-        "summary": "Retrieve the scheduled workouts that the authenticated athlete has programmed for a specific target athlete.",
-        "description": "This is an on-demand social endpoint — it always returns the current live state (no `since` delta).\r\nSoft-deleted records are excluded.\r\n            \r\nThe authenticated athlete must have an accepted `AthleteConnection` with the target athlete\r\nat the `ProgramWorkouts` permission level. A `ViewWorkouts`-only connection is not sufficient.\r\nReturns `403 Forbidden` if no such connection exists.\r\n            \r\nOnly returns workouts where `programmedByAthleteId == currentAthlete` for the target.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "The ID of the target athlete whose programmed workouts to retrieve.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "description": "1-based page number. Defaults to 1.",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 1
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "description": "Number of records per page. Defaults to 100, capped at 500.",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 100
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Returns a paginated list of scheduled workouts programmed for the target athlete.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScheduledWorkoutResponsePagedResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Token is missing, expired, or invalid.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "No accepted `ProgramWorkouts` connection exists between the authenticated athlete and the target.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ParseWorkoutErrorResponse"
                 }
               }
             }
@@ -2336,7 +4061,7 @@
           "Mobile - Social"
         ],
         "summary": "Retrieve the activity feed for the authenticated athlete.",
-        "description": "Returns completed workouts from two sources, deduplicated:\r\n(1) athletes the authenticated user shares an accepted `ViewWorkouts` connection with\r\nin <b>either direction</b> (symmetric peer relationship); and\r\n(2) workouts the authenticated user programmed for someone else\r\n(`ProgrammedByAthleteId == currentAthlete`), regardless of who owns the row.\r\nThe user's own workouts are excluded. A `ProgramWorkouts`-only connection does not\r\npull the grantor's other workouts into the feed — only the specific workouts the\r\nauthenticated user authored. Results are ordered by completion date descending and\r\npaginated. The initial release includes completed workouts only — PRs and streak milestones\r\nare deferred to a future iteration.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Returns completed workouts from two sources, deduplicated:\r\n(1) athletes the authenticated user shares an accepted `ViewWorkouts` connection with\r\nin <b>either direction</b> (symmetric peer relationship); and\r\n(2) workouts the authenticated user programmed for someone else\r\n(`ProgrammedByAthleteId == currentAthlete`), regardless of who owns the row.\r\nThe user's own workouts are excluded. Gym membership alone does not surface other gym\r\nmembers' workouts in the feed — a peer `ViewWorkouts` connection is still required.\r\nResults are ordered by completion date descending and paginated. The initial release\r\nincludes completed workouts only — PRs and streak milestones are deferred to a future\r\niteration.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "page",
@@ -2392,7 +4117,7 @@
           "Mobile - Social"
         ],
         "summary": "Retrieve the activity feed for the authenticated athlete.",
-        "description": "Returns completed workouts from two sources, deduplicated:\r\n(1) athletes the authenticated user shares an accepted `ViewWorkouts` connection with\r\nin <b>either direction</b> (symmetric peer relationship); and\r\n(2) workouts the authenticated user programmed for someone else\r\n(`ProgrammedByAthleteId == currentAthlete`), regardless of who owns the row.\r\nThe user's own workouts are excluded. A `ProgramWorkouts`-only connection does not\r\npull the grantor's other workouts into the feed — only the specific workouts the\r\nauthenticated user authored. Results are ordered by completion date descending and\r\npaginated. The initial release includes completed workouts only — PRs and streak milestones\r\nare deferred to a future iteration.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Returns completed workouts from two sources, deduplicated:\r\n(1) athletes the authenticated user shares an accepted `ViewWorkouts` connection with\r\nin <b>either direction</b> (symmetric peer relationship); and\r\n(2) workouts the authenticated user programmed for someone else\r\n(`ProgrammedByAthleteId == currentAthlete`), regardless of who owns the row.\r\nThe user's own workouts are excluded. Gym membership alone does not surface other gym\r\nmembers' workouts in the feed — a peer `ViewWorkouts` connection is still required.\r\nResults are ordered by completion date descending and paginated. The initial release\r\nincludes completed workouts only — PRs and streak milestones are deferred to a future\r\niteration.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "page",
@@ -2580,7 +4305,7 @@
           "Mobile - Social"
         ],
         "summary": "Toggle a reaction on a completed workout.",
-        "description": "Each athlete can have one reaction per workout. Sending the same reaction type toggles it\r\noff (soft-delete). Sending a different type replaces the previous reaction.\r\n            \r\nRequires one of: (a) the authenticated athlete is the workout owner;\r\n(b) the authenticated athlete is the workout's programmer (`ProgrammedByAthleteId`); or\r\n(c) an accepted `ViewWorkouts` connection exists between the authenticated athlete and the\r\nworkout owner in <b>either direction</b>. A bare `ProgramWorkouts` connection on its own\r\nis not sufficient — only the specific workouts the authenticated athlete authored are accessible\r\nvia the programmer branch.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Each athlete can have one reaction per workout. Sending the same reaction type toggles it\r\noff (soft-delete). Sending a different type replaces the previous reaction.\r\n            \r\nRequires one of: (a) the authenticated athlete is the workout owner;\r\n(b) the authenticated athlete is the workout's programmer (`ProgrammedByAthleteId`); or\r\n(c) an accepted `ViewWorkouts` connection exists between the authenticated athlete and the\r\nworkout owner in <b>either direction</b>. Gym membership alone does not confer access — feed\r\nvisibility is purely peer-driven per requirements §9.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "workoutLogId",
@@ -2677,7 +4402,7 @@
           "Mobile - Social"
         ],
         "summary": "Toggle a reaction on a completed workout.",
-        "description": "Each athlete can have one reaction per workout. Sending the same reaction type toggles it\r\noff (soft-delete). Sending a different type replaces the previous reaction.\r\n            \r\nRequires one of: (a) the authenticated athlete is the workout owner;\r\n(b) the authenticated athlete is the workout's programmer (`ProgrammedByAthleteId`); or\r\n(c) an accepted `ViewWorkouts` connection exists between the authenticated athlete and the\r\nworkout owner in <b>either direction</b>. A bare `ProgramWorkouts` connection on its own\r\nis not sufficient — only the specific workouts the authenticated athlete authored are accessible\r\nvia the programmer branch.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Each athlete can have one reaction per workout. Sending the same reaction type toggles it\r\noff (soft-delete). Sending a different type replaces the previous reaction.\r\n            \r\nRequires one of: (a) the authenticated athlete is the workout owner;\r\n(b) the authenticated athlete is the workout's programmer (`ProgrammedByAthleteId`); or\r\n(c) an accepted `ViewWorkouts` connection exists between the authenticated athlete and the\r\nworkout owner in <b>either direction</b>. Gym membership alone does not confer access — feed\r\nvisibility is purely peer-driven per requirements §9.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "workoutLogId",
@@ -2774,7 +4499,7 @@
           "Mobile - Social"
         ],
         "summary": "Add a comment to a completed workout.",
-        "description": "Comments are displayed in chronological order beneath the workout detail view.\r\nRequires one of: (a) the authenticated athlete is the workout owner;\r\n(b) the authenticated athlete is the workout's programmer (`ProgrammedByAthleteId`); or\r\n(c) an accepted `ViewWorkouts` connection exists between the authenticated athlete and the\r\nworkout owner in <b>either direction</b>. A bare `ProgramWorkouts` connection on its own\r\nis not sufficient — only the specific workouts the authenticated athlete authored are accessible\r\nvia the programmer branch.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Comments are displayed in chronological order beneath the workout detail view.\r\nRequires one of: (a) the authenticated athlete is the workout owner;\r\n(b) the authenticated athlete is the workout's programmer (`ProgrammedByAthleteId`); or\r\n(c) an accepted `ViewWorkouts` connection exists between the authenticated athlete and the\r\nworkout owner in <b>either direction</b>. Gym membership alone does not confer access — feed\r\nvisibility is purely peer-driven per requirements §9.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "workoutLogId",
@@ -2871,7 +4596,7 @@
           "Mobile - Social"
         ],
         "summary": "Add a comment to a completed workout.",
-        "description": "Comments are displayed in chronological order beneath the workout detail view.\r\nRequires one of: (a) the authenticated athlete is the workout owner;\r\n(b) the authenticated athlete is the workout's programmer (`ProgrammedByAthleteId`); or\r\n(c) an accepted `ViewWorkouts` connection exists between the authenticated athlete and the\r\nworkout owner in <b>either direction</b>. A bare `ProgramWorkouts` connection on its own\r\nis not sufficient — only the specific workouts the authenticated athlete authored are accessible\r\nvia the programmer branch.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Comments are displayed in chronological order beneath the workout detail view.\r\nRequires one of: (a) the authenticated athlete is the workout owner;\r\n(b) the authenticated athlete is the workout's programmer (`ProgrammedByAthleteId`); or\r\n(c) an accepted `ViewWorkouts` connection exists between the authenticated athlete and the\r\nworkout owner in <b>either direction</b>. Gym membership alone does not confer access — feed\r\nvisibility is purely peer-driven per requirements §9.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "workoutLogId",
@@ -3575,6 +5300,657 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WorkoutResponsePagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/{gymId}/groups": {
+      "post": {
+        "tags": [
+          "Training Groups"
+        ],
+        "summary": "Create a training group inside a gym. Owner or Admin only.",
+        "description": "Requires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Group name and optional description.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateTrainingGroupRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms/{gymId}/groups`. Owner or Admin only."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateTrainingGroupRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms/{gymId}/groups`. Owner or Admin only."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateTrainingGroupRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms/{gymId}/groups`. Owner or Admin only."
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Group created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingGroupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not an Admin or Owner of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Training Groups"
+        ],
+        "summary": "List training groups in a gym. Visible to any active gym member.",
+        "description": "Pass `since` for delta sync (returns tombstones).\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Delta-sync watermark.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of groups.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrainingGroupResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not a member of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/{gymId}/groups/{groupId}": {
+      "patch": {
+        "tags": [
+          "Training Groups"
+        ],
+        "summary": "Update a group's name and description. Owner or Admin only.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID (must match the group's gym).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "description": "Group ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Updated name and description.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UpdateTrainingGroupRequest"
+                  }
+                ],
+                "description": "Request body for `PATCH /api/gyms/{gymId}/groups/{groupId}`. Owner or Admin only."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UpdateTrainingGroupRequest"
+                  }
+                ],
+                "description": "Request body for `PATCH /api/gyms/{gymId}/groups/{groupId}`. Owner or Admin only."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UpdateTrainingGroupRequest"
+                  }
+                ],
+                "description": "Request body for `PATCH /api/gyms/{gymId}/groups/{groupId}`. Owner or Admin only."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Group updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingGroupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not an Admin or Owner of the group's gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Group not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Training Groups"
+        ],
+        "summary": "Soft-delete a training group. Owner or Admin only.",
+        "description": "Cascades by soft-deleting every `TrainingGroupMembership` in the group. Past\r\ncompleted workouts are retained per requirements §8.3. The cascade of upcoming\r\ngroup-targeted `ScheduledWorkout` rows is handled in Phase G.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "description": "Group ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Group deleted."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not an Admin or Owner of the group's gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Group not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/{gymId}/groups/{groupId}/members": {
+      "post": {
+        "tags": [
+          "Training Groups"
+        ],
+        "summary": "Add an athlete to a training group. Owner or Admin only.",
+        "description": "The athlete must already be an active member of the group's gym.\r\nIdempotent: if the athlete is already in the group, the existing membership is returned.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "description": "Group ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Athlete to assign.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AssignTrainingGroupMemberRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms/{gymId}/groups/{groupId}/members`. The athlete must\r\nalready be an active member of the gym."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AssignTrainingGroupMemberRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms/{gymId}/groups/{groupId}/members`. The athlete must\r\nalready be an active member of the gym."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AssignTrainingGroupMemberRequest"
+                  }
+                ],
+                "description": "Request body for `POST /api/gyms/{gymId}/groups/{groupId}/members`. The athlete must\r\nalready be an active member of the gym."
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Member added.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingGroupMembershipResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not an Admin or Owner of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Group not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Athlete is not a member of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Training Groups"
+        ],
+        "summary": "List the explicit members of a training group. Coach, Admin, or Owner only.",
+        "description": "Does <b>not</b> include Coaches/Admins/Owner — they are implicit participants in every\r\ngroup in their gym and do not have membership rows.\r\n            \r\nPass `since` for delta sync.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "description": "Group ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Delta-sync watermark.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of group memberships.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrainingGroupMembershipResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not Coach, Admin, or Owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Group not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/{gymId}/groups/{groupId}/members/{athleteId}": {
+      "delete": {
+        "tags": [
+          "Training Groups"
+        ],
+        "summary": "Remove an athlete from a training group. Owner or Admin only.",
+        "description": "Soft-deletes the membership. Past completed workouts are preserved per §8.3. The\r\ncascade of upcoming group-targeted `ScheduledWorkout` rows for this athlete is\r\nhandled in Phase G.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "description": "Group ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "athleteId",
+            "in": "path",
+            "description": "Athlete to remove.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Member removed."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not an Admin or Owner of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Group not found, or athlete is not in the group.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/athletes/me/training-group-memberships": {
+      "get": {
+        "tags": [
+          "Training Groups"
+        ],
+        "summary": "List the authenticated athlete's training group memberships across every gym.",
+        "description": "Pass `since` for delta sync. Requires Bearer authentication.",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Delta-sync watermark.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the list of memberships.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrainingGroupMembershipResponse"
+                  }
                 }
               }
             }
@@ -4652,6 +7028,31 @@
         "additionalProperties": false,
         "description": "Response returned when a connection invite is accepted. Contains both the updated invite\r\nand the newly created (or upgraded) athlete connection, allowing the mobile client to\r\nstore both entities locally without requiring an additional sync call."
       },
+      "AcceptGymInviteResponse": {
+        "type": "object",
+        "properties": {
+          "invite": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GymMembershipInviteResponse"
+              }
+            ],
+            "description": "The invite with `Status` flipped to `Accepted`.",
+            "nullable": true
+          },
+          "membership": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GymMembershipResponse"
+              }
+            ],
+            "description": "The resulting membership row at the offered role.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Returned by `POST /api/gyms/invites/{id}/accept` reflecting the updated invite\r\nand the resulting membership (newly created or role-upgraded)."
+      },
       "ActivityFeedExerciseLogResponse": {
         "type": "object",
         "properties": {
@@ -4916,6 +7317,47 @@
         "additionalProperties": false,
         "description": "Request body for adding a comment to a completed workout."
       },
+      "ApproveGymJoinRequestResponse": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GymJoinRequestResponse"
+              }
+            ],
+            "description": "The join request with `Status` flipped to `Approved`.",
+            "nullable": true
+          },
+          "membership": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GymMembershipResponse"
+              }
+            ],
+            "description": "The membership row created by the approval, at the exact role the athlete requested.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Returned by `POST /api/gyms/join-requests/{id}/approve` reflecting the updated request\r\nand the newly created membership row in one envelope (one transactional outcome → one response)."
+      },
+      "AssignTrainingGroupMemberRequest": {
+        "required": [
+          "athleteId"
+        ],
+        "type": "object",
+        "properties": {
+          "athleteId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Athlete ID (canonical `AspNetUsers.Id`) to add to the group.",
+            "example": "19ab1d55-9450-4282-89d8-0128e5f7e7cd"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for `POST /api/gyms/{gymId}/groups/{groupId}/members`. The athlete must\r\nalready be an active member of the gym."
+      },
       "AthleteConnectionInviteResponse": {
         "type": "object",
         "properties": {
@@ -4955,7 +7397,7 @@
                 "$ref": "#/components/schemas/ConnectionPermissionLevel"
               }
             ],
-            "description": "The permission level being requested. One of `ViewWorkouts` or `ProgramWorkouts`.",
+            "description": "The permission level being requested. Effectively always `ViewWorkouts` in the current\r\nmodel — new `ProgramWorkouts` invites are rejected with 409 and existing rows with\r\nthat value will be removed in the gym ownership data migration.",
             "example": "ViewWorkouts"
           },
           "status": {
@@ -5006,13 +7448,13 @@
           },
           "requestingAthleteId": {
             "type": "string",
-            "description": "The ID of the athlete who requested the connection (viewer or programmer).",
+            "description": "The ID of the athlete who requested the connection (the viewer in peer-share terms).",
             "nullable": true,
             "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
           },
           "grantingAthleteId": {
             "type": "string",
-            "description": "The ID of the athlete who grants access (whose data is shared or who receives programming).",
+            "description": "The ID of the athlete who grants visibility into their workouts.",
             "nullable": true,
             "example": "eccbc87e-4b5c-3332-8c9e-d5fc8848b87d"
           },
@@ -5022,7 +7464,7 @@
                 "$ref": "#/components/schemas/ConnectionPermissionLevel"
               }
             ],
-            "description": "The permission level granted by this connection. One of `ViewWorkouts` or `ProgramWorkouts`.",
+            "description": "The permission level granted by this connection. Effectively always `ViewWorkouts` in\r\nthe current model — the legacy `ProgramWorkouts` value is no longer issuable. Existing\r\nrows with that value will be removed in the gym ownership data migration.",
             "example": "ViewWorkouts"
           },
           "status": {
@@ -5128,6 +7570,25 @@
         },
         "additionalProperties": false
       },
+      "ChangeGymMemberRoleRequest": {
+        "required": [
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GymRole"
+              }
+            ],
+            "description": "The new role for the member.",
+            "example": "Coach"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for `PATCH /api/gyms/{gymId}/members/{athleteId}`.\r\nEffective immediately — no acceptance step. Granting or revoking `Admin` requires the gym Owner."
+      },
       "ConnectionPermissionLevel": {
         "enum": [
           "ViewWorkouts",
@@ -5162,12 +7623,37 @@
                 "$ref": "#/components/schemas/ConnectionPermissionLevel"
               }
             ],
-            "description": "The permission level being requested. One of `ViewWorkouts` or `ProgramWorkouts`.",
+            "description": "The permission level being requested. Must be `ViewWorkouts`. The legacy\r\n`ProgramWorkouts` value is rejected with 409 — programming relationships are now\r\nexpressed via gym membership (see `POST /api/gyms/join-requests`).",
             "example": "ViewWorkouts"
           }
         },
         "additionalProperties": false,
         "description": "Represents a single connection invite to be created during a sync operation.\r\nThe requesting athlete provides the granting athlete's email address;\r\nthe API resolves it to an athlete ID server-side."
+      },
+      "CreateGymRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string",
+            "description": "Display name for the gym. Required, 1–100 characters.",
+            "example": "Steluvi Fitness"
+          },
+          "description": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": "string",
+            "description": "Optional free-text description. Null if not provided.",
+            "nullable": true,
+            "example": "A small-group strength and conditioning gym in central Texas."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for `POST /api/gyms`. The caller becomes the gym's Owner."
       },
       "CreateOrUpdateQuoteRequest": {
         "required": [
@@ -5190,6 +7676,31 @@
         },
         "additionalProperties": false,
         "description": "Body for `POST .../quotes/mine` and `PUT .../quotes/mine/{id}` on both the\r\nmobile and webapp surfaces. Validation is enforced server-side per the Quote of the Day\r\nplan §5.4: `text` 1–1000 chars after trim; `author` 0–200 chars after trim\r\n(empty string treated as null)."
+      },
+      "CreateTrainingGroupRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string",
+            "description": "Group name. Required, 1–100 characters.",
+            "example": "Morning Crew"
+          },
+          "description": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": "string",
+            "description": "Optional free-text description. Null if not provided.",
+            "nullable": true,
+            "example": "5:30am sessions, Tue/Thu/Sat."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for `POST /api/gyms/{gymId}/groups`. Owner or Admin only."
       },
       "DashboardWorkoutCardResponse": {
         "type": "object",
@@ -5440,6 +7951,298 @@
           "Kilometers",
           "Miles",
           "Feet"
+        ],
+        "type": "string"
+      },
+      "GymErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Human-readable description of the failure suitable for surfacing in the client UI.",
+            "nullable": true,
+            "example": "You already have a pending request for this gym."
+          },
+          "code": {
+            "type": "string",
+            "description": "Machine-readable error code. Stable across releases — clients may switch on this value\r\nto drive specific UX behaviour (e.g., `GymsStillOwned` renders an actionable list).",
+            "nullable": true,
+            "example": "GymsStillOwned"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Standard error envelope returned by gym-ownership endpoints for 400/403/404/409 responses."
+      },
+      "GymJoinRequestResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for this join request (server-generated UUID).",
+            "nullable": true
+          },
+          "gymId": {
+            "type": "string",
+            "description": "The gym being requested to join.",
+            "nullable": true
+          },
+          "athleteId": {
+            "type": "string",
+            "description": "The athlete making the request.",
+            "nullable": true
+          },
+          "requestedRole": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GymRole"
+              }
+            ],
+            "description": "The role the athlete asked for. May be `Athlete` or `Coach` only."
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GymJoinRequestStatus"
+              }
+            ],
+            "description": "Lifecycle state: `Pending`, `Approved`, `Denied`, or `Cancelled`."
+          },
+          "decidedByAthleteId": {
+            "type": "string",
+            "description": "Athlete ID of the Owner/Admin who approved or denied the request. Null while\r\n`Status == Pending`, or when the request was cancelled by the requesting athlete.",
+            "nullable": true
+          },
+          "decidedAt": {
+            "type": "string",
+            "description": "UTC timestamp of approval/denial/cancellation. Null while `Status == Pending`.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "UTC timestamp of request creation.",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "UTC timestamp of last modification. Drives delta-sync.",
+            "format": "date-time"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "Tombstone flag; `true` rows should be removed from local mobile state."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wire representation of an athlete-initiated gym join request. Includes soft-deleted rows\r\nso clients can reconcile local state on delta pulls."
+      },
+      "GymJoinRequestStatus": {
+        "enum": [
+          "Pending",
+          "Approved",
+          "Denied",
+          "Cancelled"
+        ],
+        "type": "string"
+      },
+      "GymMembershipInviteResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier (server-generated UUID).",
+            "nullable": true
+          },
+          "gymId": {
+            "type": "string",
+            "description": "The gym the invitee is being added to.",
+            "nullable": true
+          },
+          "invitedAthleteId": {
+            "type": "string",
+            "description": "The invited athlete's ID.",
+            "nullable": true
+          },
+          "invitedByAthleteId": {
+            "type": "string",
+            "description": "Athlete ID of the Owner/Admin who issued the invite.",
+            "nullable": true
+          },
+          "offeredRole": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GymRole"
+              }
+            ],
+            "description": "The role offered by the invite."
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GymMembershipInviteStatus"
+              }
+            ],
+            "description": "Lifecycle state: `Pending`, `Accepted`, `Rejected`, or `Revoked`."
+          },
+          "decidedAt": {
+            "type": "string",
+            "description": "UTC timestamp the invite was accepted/rejected/revoked. Null while `Status == Pending`.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "UTC timestamp of invite creation.",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "UTC timestamp of last modification. Drives delta-sync.",
+            "format": "date-time"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "Tombstone flag; `true` rows should be removed from local mobile state."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wire representation of an owner/admin-initiated gym membership invite. Includes soft-deleted rows."
+      },
+      "GymMembershipInviteStatus": {
+        "enum": [
+          "Pending",
+          "Accepted",
+          "Rejected",
+          "Revoked"
+        ],
+        "type": "string"
+      },
+      "GymMembershipResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier (server-generated UUID).",
+            "nullable": true
+          },
+          "gymId": {
+            "type": "string",
+            "description": "The gym this membership belongs to.",
+            "nullable": true
+          },
+          "athleteId": {
+            "type": "string",
+            "description": "The member's athlete ID (canonical `AspNetUsers.Id`).",
+            "nullable": true
+          },
+          "athleteDisplayName": {
+            "type": "string",
+            "description": "Display name of the referenced athlete, projected from `AspNetUsers.Name` at query time.\r\nNull when the athlete hasn't set a display name — clients should render a placeholder\r\n(e.g., the email prefix or \"Athlete\") rather than the raw `AthleteId`.",
+            "nullable": true,
+            "example": "Jane Coach"
+          },
+          "athleteEmail": {
+            "type": "string",
+            "description": "Email of the referenced athlete, projected from `AspNetUsers.Email` at query time.\r\nAlways present (every account has an email). Useful for staff to disambiguate members\r\nwith the same display name. Subject to the same mild staleness caveat as\r\nFitEpic.Api.Models.Response.GymMembershipResponse.AthleteDisplayName.",
+            "nullable": true,
+            "example": "jane@example.com"
+          },
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GymRole"
+              }
+            ],
+            "description": "Member's role: `Athlete`, `Coach`, or `Admin`."
+          },
+          "joinedAt": {
+            "type": "string",
+            "description": "UTC timestamp when membership was first established.",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "UTC timestamp of last modification. Drives delta-sync.",
+            "format": "date-time"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "Tombstone flag; `true` rows should be removed from local mobile state."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wire representation of an athlete's membership in a gym. The gym Owner does NOT have a\r\nmembership row — ownership is identified by `Gym.OwnerAthleteId`. Includes soft-deleted rows."
+      },
+      "GymOwnerFlagResponse": {
+        "type": "object",
+        "properties": {
+          "isGymOwner": {
+            "type": "boolean",
+            "description": "Whether the authenticated athlete has gym ownership enabled.",
+            "example": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Returned by `PUT /api/gyms/me/owner-flag` reflecting the persisted value."
+      },
+      "GymResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique gym identifier (server-generated UUID).",
+            "nullable": true,
+            "example": "3a2b1c0d-1234-5678-90ab-cdef12345678"
+          },
+          "ownerAthleteId": {
+            "type": "string",
+            "description": "Athlete ID of the gym's Owner. Maps to `AspNetUsers.Id` system-wide.",
+            "nullable": true,
+            "example": "f1d353f3-ce63-4f56-a57d-bcd04d6096b2"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gym display name.",
+            "nullable": true,
+            "example": "Steluvi Fitness"
+          },
+          "description": {
+            "type": "string",
+            "description": "Free-text description. Null if not set.",
+            "nullable": true,
+            "example": "A small-group strength and conditioning gym in central Texas."
+          },
+          "gymCode": {
+            "type": "string",
+            "description": "6-character alphanumeric code shared out-of-band with prospective members for the join-request flow.\r\nMay be rotated via `POST /api/gyms/{id}/regenerate-code`.",
+            "nullable": true,
+            "example": "K7M3P9"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "UTC timestamp of gym creation.",
+            "format": "date-time",
+            "example": "2026-05-14T20:30:00Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "UTC timestamp of last modification. Drives delta-sync comparisons.",
+            "format": "date-time",
+            "example": "2026-05-14T20:30:00Z"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "True when the gym has been soft-deleted. Mobile clients should treat such rows as\r\ntombstones and clear their local copy."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wire representation of a gym. Includes soft-deleted rows so mobile clients can reconcile\r\nlocal state on delta pulls."
+      },
+      "GymRole": {
+        "enum": [
+          "Athlete",
+          "Coach",
+          "Admin"
         ],
         "type": "string"
       },
@@ -6229,46 +9032,6 @@
         "additionalProperties": false,
         "description": "Represents a scheduled workout record returned by the delta pull endpoint. Includes soft-deleted\r\nrecords and records programmed by a trainer so the mobile client can maintain a complete local view."
       },
-      "ScheduledWorkoutResponsePagedResponse": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ScheduledWorkoutResponse"
-            },
-            "description": "The items returned for the current page.",
-            "nullable": true
-          },
-          "page": {
-            "type": "integer",
-            "description": "The current 1-based page number that was returned.",
-            "format": "int32",
-            "example": 1
-          },
-          "pageSize": {
-            "type": "integer",
-            "description": "The maximum number of items per page as requested.",
-            "format": "int32",
-            "example": 100
-          },
-          "totalCount": {
-            "type": "integer",
-            "description": "The total number of items matching the query across all pages.",
-            "format": "int32",
-            "example": 847
-          },
-          "totalPages": {
-            "type": "integer",
-            "description": "The total number of pages available given FitEpic.Api.Models.Response.PagedResponse`1.TotalCount and FitEpic.Api.Models.Response.PagedResponse`1.PageSize.\r\nThe mobile client should continue requesting incrementing pages until FitEpic.Api.Models.Response.PagedResponse`1.Page equals FitEpic.Api.Models.Response.PagedResponse`1.TotalPages.",
-            "format": "int32",
-            "readOnly": true,
-            "example": 9
-          }
-        },
-        "additionalProperties": false,
-        "description": "A paginated response wrapper returned by Delta Pull endpoints.\r\nThe mobile client uses FitEpic.Api.Models.Response.PagedResponse`1.Page, FitEpic.Api.Models.Response.PagedResponse`1.PageSize, and FitEpic.Api.Models.Response.PagedResponse`1.TotalPages\r\nto loop through all pages during an initial bootstrap sync or subsequent delta pulls."
-      },
       "ScheduledWorkoutStatus": {
         "enum": [
           "Pending",
@@ -6315,6 +9078,79 @@
         },
         "additionalProperties": false,
         "description": "Returned by `GET /scheduledworkouts/sync`. Contains a paginated list of scheduled workout\r\nrecords changed since the requested timestamp, plus a server-generated cursor the mobile client\r\ncan use for subsequent delta pulls."
+      },
+      "SendGymInviteRequest": {
+        "required": [
+          "email",
+          "offeredRole"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Email address of the athlete being invited. The server resolves this to an internal\r\nathlete ID. If the email does not match any registered athlete the request is silently\r\ndropped — the response shape is identical to a successful invite, so the UI must not\r\nattempt to surface \"user not found\" feedback.",
+            "format": "email",
+            "example": "athlete@example.com"
+          },
+          "offeredRole": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GymRole"
+              }
+            ],
+            "description": "Role being offered. Granting `Admin` requires the gym Owner.",
+            "example": "Coach"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for `POST /api/gyms/{gymId}/invites`. An Owner or Admin invites an\r\nathlete to join the gym, optionally with an elevated role. The invitee is identified by\r\nemail address — the server resolves it to an athlete internally. The response is identical\r\nwhether or not the email maps to a registered athlete (silent no-op on unknown emails) to\r\nprevent account enumeration through the invite UI. See requirements §6.2."
+      },
+      "SendGymInviteResponse": {
+        "type": "object",
+        "properties": {
+          "gymId": {
+            "type": "string",
+            "description": "The gym the invite was issued against. Echoes the request path parameter.",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "description": "The email address that was submitted. Echoed so the UI can confirm what was sent.",
+            "nullable": true
+          },
+          "offeredRole": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GymRole"
+              }
+            ],
+            "description": "The role that was offered. Echoes the request body."
+          },
+          "status": {
+            "type": "string",
+            "description": "Always the literal value `Accepted`. The endpoint deliberately does not distinguish\r\nbetween \"invite created\" and \"email did not match a registered athlete\" — both outcomes\r\nreturn the same value.",
+            "nullable": true,
+            "example": "Accepted"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response body for `POST /api/gyms/{gymId}/invites`. Deliberately derived only from\r\nrequest inputs — never from server state — so the response is byte-identical regardless of\r\nwhether the supplied email matched a registered athlete. See requirements §6.2 for the\r\naccount-enumeration rationale. After a successful call the UI should re-fetch the gym's\r\ninvite list (`GET /api/gyms/{gymId}/invites`) to see the new pending row, since this\r\nresponse does not echo back the server-assigned invite Id or any timestamps."
+      },
+      "SetGymOwnerFlagRequest": {
+        "required": [
+          "isGymOwner"
+        ],
+        "type": "object",
+        "properties": {
+          "isGymOwner": {
+            "type": "boolean",
+            "description": "`true` to opt in to gym ownership (unlocks gym creation). `false` to opt out;\r\n            rejected with 400/`GymsStillOwned` when the athlete owns any non-deleted gyms.",
+            "example": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for `PUT /api/gyms/me/owner-flag`. Toggles the caller's\r\n`IsGymOwner` profile flag, which gates access to the gym management surface."
       },
       "SignInRequest": {
         "required": [
@@ -6465,6 +9301,39 @@
         "additionalProperties": false,
         "description": "Wire-format wrapper for request DTOs that distinguishes \"property absent from JSON\"\r\n(FitEpic.Api.Models.Json.JsonOptional`1.HasValue = `false`) from \"property present, value `null`\"\r\n(FitEpic.Api.Models.Json.JsonOptional`1.HasValue = `true`, FitEpic.Api.Models.Json.JsonOptional`1.Value = `null`). Used to express\r\ntri-state partial-update semantics: omit = leave unchanged; `null` = clear; value = set."
       },
+      "SubmitGymJoinRequestRequest": {
+        "required": [
+          "gymCode",
+          "requestedRole"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Optional client-generated UUID for this join request. When supplied, the endpoint is\r\nidempotent: a repeat call with the same `Id` by the same athlete returns the\r\nexisting row instead of creating a duplicate. Required by the mobile sync outbox pattern\r\nfor safe replay after partial network failures. When omitted, the server generates an Id.",
+            "nullable": true,
+            "example": "4f8e3a1c-1234-5678-90ab-cdef12345678"
+          },
+          "gymCode": {
+            "maxLength": 12,
+            "minLength": 4,
+            "type": "string",
+            "description": "The 6-character gym code shared by an Owner or Admin.",
+            "example": "K7M3P9"
+          },
+          "requestedRole": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GymRole"
+              }
+            ],
+            "description": "The role the athlete is requesting. Must be `Athlete` or `Coach`.\r\n`Admin` is rejected with 403 — Admin can only be granted via owner-initiated invite.",
+            "example": "Athlete"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for `POST /api/gyms/join-requests`. An athlete submits this to request\r\njoining a gym (and being granted a specific role) by entering the gym's public code."
+      },
       "SyncAthleteConnectionInvitesRequest": {
         "required": [
           "invites"
@@ -6520,7 +9389,7 @@
           },
           "resolution": {
             "type": "string",
-            "description": "Indicates whether the server accepted the change or detected a conflict.\r\n<list type=\"bullet\"><item><description>`Accepted` — the payload was newer than the server record and has been persisted.</description></item><item><description>`ConflictResolved` — the server record was newer (Last-Write-Wins); the mobile client should re-pull this entity.</description></item></list>",
+            "description": "Indicates how the server resolved this item. Stable string values — clients may switch on them.\r\n<list type=\"bullet\"><item><description>`Accepted` — the payload was newer than the server record and has been persisted.</description></item><item><description>`ConflictResolved` — the server record was newer (Last-Write-Wins); the client should re-pull this entity.</description></item><item><description>`Forbidden` — the caller does not have permission to write this row (e.g., not Coach/Admin/Owner of the workout's gym, or a peer-connection programming attempt). Other rows in the batch are unaffected.</description></item><item><description>`BlockedByHistory` — emitted when attempting to delete a gym workout that has one or more `ScheduledWorkout` rows with `Status == Completed`. The workout must be archived (set `IsArchived: true`) instead so completed history remains resolvable. Other rows in the batch are unaffected.</description></item><item><description>`ScoreRequiresCompleted` — emitted on `ScheduledWorkout` sync when an incoming row has a non-empty `ScoreResult` but `Status` other than `Completed`. Mark the row `Completed` before retrying.</description></item></list>",
             "nullable": true,
             "example": "Accepted"
           }
@@ -6543,6 +9412,119 @@
         },
         "additionalProperties": false,
         "description": "Request body for toggling a reaction on a completed workout."
+      },
+      "TrainingGroupMembershipResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier (server-generated UUID).",
+            "nullable": true
+          },
+          "trainingGroupId": {
+            "type": "string",
+            "description": "The training group.",
+            "nullable": true
+          },
+          "athleteId": {
+            "type": "string",
+            "description": "The assigned athlete's ID.",
+            "nullable": true
+          },
+          "athleteDisplayName": {
+            "type": "string",
+            "description": "Display name of the assigned athlete, projected at query time. Null when the athlete\r\nhasn't set one. Subject to mild staleness — see `GymMembershipResponse.AthleteDisplayName`.",
+            "nullable": true
+          },
+          "athleteEmail": {
+            "type": "string",
+            "description": "Email of the assigned athlete, projected at query time. Always present.",
+            "nullable": true
+          },
+          "assignedAt": {
+            "type": "string",
+            "description": "UTC timestamp the athlete was assigned to the group. Used by the mid-flight visibility\r\nrule (an athlete sees scheduled workouts with `ScheduledDate >= AssignedAt` only).",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "UTC timestamp of last modification. Drives delta-sync.",
+            "format": "date-time"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "Tombstone flag; `true` rows should be removed from local mobile state."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wire representation of an athlete's explicit assignment to a training group.\r\nIncludes soft-deleted rows."
+      },
+      "TrainingGroupResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier (server-generated UUID).",
+            "nullable": true
+          },
+          "gymId": {
+            "type": "string",
+            "description": "The gym this group belongs to.",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Group name.",
+            "nullable": true,
+            "example": "Morning Crew"
+          },
+          "description": {
+            "type": "string",
+            "description": "Free-text description. Null if not set.",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "UTC timestamp of group creation.",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "UTC timestamp of last modification. Drives delta-sync.",
+            "format": "date-time"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "Tombstone flag; `true` rows should be removed from local mobile state."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Wire representation of a training group within a gym. Includes soft-deleted rows so\r\nclients can reconcile local state on delta pulls."
+      },
+      "UpdateGymRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string",
+            "description": "Display name for the gym. Required, 1–100 characters.",
+            "example": "Steluvi Fitness"
+          },
+          "description": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": "string",
+            "description": "Optional free-text description. Send `null` to clear.",
+            "nullable": true,
+            "example": "Premier CrossFit-style training in central Texas."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for `PATCH /api/gyms/{id}`. Owner or Admin only."
       },
       "UpdateMobileAthleteSelfProfileRequest": {
         "type": "object",
@@ -6586,6 +9568,31 @@
           }
         },
         "additionalProperties": false
+      },
+      "UpdateTrainingGroupRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string",
+            "description": "Group name. Required, 1–100 characters.",
+            "example": "Morning Crew"
+          },
+          "description": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": "string",
+            "description": "Free-text description. Send `null` to clear.",
+            "nullable": true,
+            "example": "5:30am sessions, Tue/Thu/Sat. Now also Sun."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request body for `PATCH /api/gyms/{gymId}/groups/{groupId}`. Owner or Admin only."
       },
       "WeatherForecast": {
         "type": "object",
@@ -7317,8 +10324,13 @@
           "athleteId": {
             "minLength": 1,
             "type": "string",
-            "description": "The ID of the athlete who owns this workout.",
+            "description": "The ID of the athlete who authored this workout. For personal workouts the athlete is\r\nalso the owner. For gym-scoped workouts (where FitEpic.Api.Models.Request.WorkoutRequest.GymId is non-null) this is\r\nthe audit-author field — gym ownership is determined by FitEpic.Api.Models.Request.WorkoutRequest.GymId and the\r\ncaller's role within that gym, not by this value.",
             "example": "a87ff679-a2f3-4e61-8eb5-59fd2b8b45e5"
+          },
+          "gymId": {
+            "type": "string",
+            "description": "When non-null, this workout is scoped to the named gym. Setting this requires the caller\r\nto be Coach, Admin, or Owner of the gym. Null for personal workouts.",
+            "nullable": true
           },
           "name": {
             "type": "string",
@@ -7396,6 +10408,10 @@
           "isDeleted": {
             "type": "boolean",
             "description": "Whether this workout has been soft-deleted on the mobile client."
+          },
+          "isArchived": {
+            "type": "boolean",
+            "description": "Whether this workout is archived. Archived workouts are hidden from default library\r\nqueries (`GET /api/gyms/{gymId}/workouts`) but continue to flow through delta sync\r\nas live rows so historical scheduled-workout references can still resolve and render\r\nthe workout's name and exercises. Toggle `true` to archive, `false` to\r\nunarchive. Archive is never blocked, regardless of completed scheduled instances —\r\nunlike FitEpic.Api.Models.Request.WorkoutRequest.IsDeleted, which is rejected per-row with `BlockedByHistory`\r\nfor gym workouts that have completed history. Defaults to `false`."
           }
         },
         "additionalProperties": false,
@@ -7412,9 +10428,14 @@
           },
           "athleteId": {
             "type": "string",
-            "description": "The ID of the athlete who owns this workout.",
+            "description": "The ID of the athlete who authored this workout. For personal workouts the athlete is also\r\nthe owner. For gym-scoped workouts (where FitEpic.Api.Models.Response.WorkoutResponse.GymId is non-null) the gym owns the\r\nworkout and this field is an informational author/audit reference only — coach departure\r\ndoes not transfer ownership.",
             "nullable": true,
             "example": "a87ff679-a2f3-4e61-8eb5-59fd2b8b45e5"
+          },
+          "gymId": {
+            "type": "string",
+            "description": "When non-null, this workout is owned by the named gym and may be scheduled to the gym's\r\ntraining groups. Null for personal workouts.",
+            "nullable": true
           },
           "name": {
             "type": "string",
@@ -7503,6 +10524,10 @@
           "isDeleted": {
             "type": "boolean",
             "description": "`true` if this workout has been soft-deleted. The mobile client must remove this record\r\n            from its local store when this field is `true`."
+          },
+          "isArchived": {
+            "type": "boolean",
+            "description": "`true` if this workout is archived. Archived workouts are excluded from default\r\n            library queries (`GET /api/gyms/{gymId}/workouts`) but continue to flow through\r\n            delta sync as live rows so the mobile client can render the workout name and exercises\r\n            on completed scheduled-workout history. The local sync layer should retain archived\r\n            rows in its cache regardless of how list views filter them."
           }
         },
         "additionalProperties": false,
@@ -7604,6 +10629,18 @@
       "name": "FitEpic.Api"
     },
     {
+      "name": "Gym Invites"
+    },
+    {
+      "name": "Gym Join Requests"
+    },
+    {
+      "name": "Gym Memberships"
+    },
+    {
+      "name": "Gyms"
+    },
+    {
       "name": "Mobile - AthleteProfiles"
     },
     {
@@ -7629,6 +10666,9 @@
     },
     {
       "name": "Mobile - Workouts"
+    },
+    {
+      "name": "Training Groups"
     },
     {
       "name": "User"

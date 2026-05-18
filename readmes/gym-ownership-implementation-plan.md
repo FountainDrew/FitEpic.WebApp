@@ -1,7 +1,7 @@
 # Gym Ownership — Web App Implementation Plan
 
-**Date:** 2026-05-16
-**Status:** Draft v1 — pending resolution of open questions in [gym-ownership-webapp-contract.md §12](../../FitEpic.Api/readmes/gym-ownership-webapp-contract.md)
+**Date:** 2026-05-18
+**Status:** Draft v2 — all open questions resolved by API team on 2026-05-16; ready to start.
 **Audience:** FitEpic.WebApp team
 **Companion docs:**
 - `FitEpic.Api/readmes/gym-ownership-requirements.md` — product requirements
@@ -17,13 +17,17 @@ The plan is sequenced so each phase ships a usable slice and can be QA'd against
 
 ---
 
-## Blocking questions
+## Resolutions baked into this plan (from contract §12, 2026-05-16)
 
-Implementation does not start until the open questions in [contract §12](../../FitEpic.Api/readmes/gym-ownership-webapp-contract.md) are resolved. The phases below note which questions gate which work:
-
-- **Phase 0** blocks on Q1 (error envelope shape), Q2 (web-app endpoint mirrors).
-- **Phase 4** blocks on Q3 (athlete-lookup endpoint for the invite picker).
-- **Phase 6** blocks on Q4 (gym workouts response shape), Q5 (scheduled-workouts date filtering), Q6 (gym workout deletion).
+- **Q1 — Error envelope.** `GymErrorResponse { code, error }` stays. Web app builds a small adapter normalizing the three shapes (`GymErrorResponse`, `WebAppErrorEnvelope`, `ParseWorkoutErrorResponse`) into one internal type.
+- **Q2 — Endpoint prefix.** No `/api/webapp/...` mirror for the gym surface. Consume `/api/gyms/...` directly.
+- **Q3 — Athlete lookup.** No lookup endpoint will be built (account-enumeration concern). Invite is by `Email`, response is **always 202 Accepted with an identical body** whether the email resolves or not. UI must not show "user not found" — echo the email and let the user send.
+- **Q4 — Gym workouts response.** `List<WorkoutResponse>` with new `GymId` and `IsArchived` fields. Default excludes archived + soft-deleted; admin backdoor via `?includeArchived=true` / `?includeDeleted=true`. No pagination today.
+- **Q5 — Date filtering.** `GET /api/mobile/scheduled-workouts` accepts optional `from: DateOnly?` / `to: DateOnly?`. Use these for the calendar view.
+- **Q6 — Archive + delete semantics.** Workouts gain `IsArchived` (toggle via the same sync endpoint; never blocked). Soft-delete on a gym workout is **rejected per-row with `"BlockedByHistory"`** if any `ScheduledWorkout` with `Status == Completed` references it. When delete is allowed, server cascade-soft-deletes non-completed scheduled instances in the same transaction. New invariant: a `ScheduledWorkout` sync row with non-null `ScoreResult` must have `Status == Completed`.
+- **Q7 — Invite accept reconciliation.** In-place update preserves `Id` when the invitee already holds a lower-role active membership — **but** if the prior membership was soft-deleted (athlete previously left), accept issues a new `Id`. Reconcile defensively by `(GymId, AthleteId)`, not by `Id`.
+- **Q8 — Idempotency keys on other mutating endpoints.** Not added. Web app guards with disable-on-pending in the UI for every mutating call.
+- **Q9 — Stale projected names.** Re-fetch `GET /api/gyms/{gymId}/members`. No special endpoint.
 
 ---
 
@@ -31,16 +35,18 @@ Implementation does not start until the open questions in [contract §12](../../
 
 Set up the generated client and shared plumbing every later phase depends on.
 
-- [ ] Confirm API team has shipped Phase A–E of their implementation plan and `swagger.json` renders cleanly.
-- [ ] Run `npm run gen:api` against the updated swagger; review the diff in `src/app/core/api/generated/`.
-- [ ] Decide on gym-domain error envelope handling (depends on contract Q1):
-  - [ ] If gym endpoints use `GymErrorResponse { code, error }` as-is: extend [error-code.ts](../fitepic-web-app/src/app/core/api/error-code.ts) with `getGymErrorCode()` / `getGymErrorMessage()` helpers that read the alternate shape.
-  - [ ] If gym endpoints are re-shaped to match `WebAppErrorEnvelope`: no change needed beyond regen.
-- [ ] Add `GymRole` enum + `GymRoleService` under `src/app/core/gyms/`:
-  - [ ] Combines `Gym.OwnerAthleteId` (Owner has no membership row) and `GymMembership.Role` to return `Owner | Admin | Coach | Athlete | null`.
-  - [ ] Exposes `signal<Record<gymId, GymRole>>` keyed by gym for components to read reactively.
-- [ ] Add `GymsService` under `src/app/core/gyms/` as the thin RxJS wrapper over the generated `Gyms` service (mirroring `ProfileService` style).
-- [ ] Add a shared `gymErrorSnackbar()` helper that maps stable codes from [contract §5.9](../../FitEpic.Api/readmes/gym-ownership-webapp-contract.md) to user-facing toasts.
+- [x] Confirm API team has shipped Phase A–E of their implementation plan and `swagger.json` renders cleanly.
+- [x] Run `npm run gen:api` against the updated swagger; review the diff in `src/app/core/api/generated/`.
+- [x] Refactor [error-code.ts](../fitepic-web-app/src/app/core/api/error-code.ts) into a unified error adapter:
+  - [x] Define an internal `NormalizedApiError { code: string | null, message: string | null }` type.
+  - [x] Parse `GymErrorResponse` (flat `{ code, error }`), `WebAppErrorEnvelope` (nested `{ error: { code, message } }`), and `ParseWorkoutErrorResponse` into the same shape.
+  - [x] Export `getApiErrorCode(err)` / `getApiErrorMessage(err)` as the single callsite for all consumers; keep the legacy helpers as thin wrappers during migration.
+- [x] Add `GymRole` enum + `GymRoleService` under `src/app/core/gyms/`:
+  - [x] Combines `Gym.OwnerAthleteId` (Owner has no membership row) and `GymMembership.Role` to return `Owner | Admin | Coach | Athlete | null`.
+  - [x] Exposes `signal<Record<gymId, GymRole>>` keyed by gym for components to read reactively.
+- [x] Add `GymsService` under `src/app/core/gyms/` as the thin RxJS wrapper over the generated `Gyms` service (mirroring `ProfileService` style).
+- [x] Add a shared `gymErrorSnackbar()` helper that maps stable codes from [contract §5.9](../../FitEpic.Api/readmes/gym-ownership-webapp-contract.md) to user-facing toasts.
+- [x] Add a small `disableOnPending` directive or signal utility for use on every mutating button (no server-side idempotency per Q8 — UI guards against double-submit).
 
 ---
 
@@ -145,16 +151,18 @@ Both the staff-side queues and the athlete-side inboxes.
 ### Owner/Admin-initiated invites
 
 - [ ] Build `SendInviteDialog`:
-  - [ ] Athlete picker (email lookup — depends on Q3).
+  - [ ] **Email input only** — no athlete picker, no "user not found" feedback (per Q3 — account-enumeration concern).
   - [ ] Offered role selector (`Athlete | Coach | Admin`; `Admin` shown only to Owner).
-  - [ ] `POST /api/gyms/{gymId}/invites`.
+  - [ ] `POST /api/gyms/{gymId}/invites` with `{ Email, OfferedRole }`.
+  - [ ] Success UX: confirm "Invite sent to {email}" on 202; **do not** branch UI on whether the address resolved server-side.
+  - [ ] Surface the typed email in the outbox even if the invitee never appears (silent drops are by design).
   - [ ] Handle `InviteDuplicate`, `InviteAlreadyMember`, `InsufficientRole`, `NotOwner`.
 - [ ] Build `InvitesTab` (Admin/Owner only) on gym detail:
   - [ ] `GET /api/gyms/{gymId}/invites?status=Pending` (default), with status filter.
   - [ ] Revoke action: `POST /api/gyms/invites/{id}/revoke`.
 - [ ] Build `MyInvitesList`:
   - [ ] `GET /api/athletes/me/gym-invites`.
-  - [ ] Accept: `POST /api/gyms/invites/{id}/accept` → optimistically add the returned `Membership` to `/gyms?role=member` cache.
+  - [ ] Accept: `POST /api/gyms/invites/{id}/accept` → reconcile the returned `Membership` into `/gyms?role=member` cache **by `(GymId, AthleteId)`, not by `Id`** (per Q7 — re-invite after a soft-deleted past membership issues a new row).
   - [ ] Reject: `POST /api/gyms/invites/{id}/reject`.
   - [ ] Handle `InviteNotPending`.
 
@@ -188,24 +196,46 @@ CRUD plus rosters.
 
 The core programming flow.
 
+### Library + authoring
+
 - [ ] Build `WorkoutsTab` on gym detail (visible to all gym members; author/edit gated to Coach/Admin/Owner):
-  - [ ] `GET /api/gyms/{gymId}/workouts` to list the gym's workout library (depends on Q4 for response shape).
+  - [ ] `GET /api/gyms/{gymId}/workouts` to list the gym's workout library. Response is `List<WorkoutResponse>` with `GymId` and `IsArchived` populated.
+  - [ ] By default the list excludes archived + soft-deleted rows. Add a "Show archived" toggle (Admin/Owner only) that re-fetches with `?includeArchived=true`. A "Show deleted" toggle behind the same admin gate uses `?includeDeleted=true`.
 - [ ] Build `AuthorWorkoutPage` (Coach/Admin/Owner):
   - [ ] Reuse the existing workout authoring components if possible; otherwise scaffold fresh.
   - [ ] Submit via single-row batch to `POST /api/mobile/workouts/sync` with `GymId` set on the row.
   - [ ] Handle per-row `Forbidden` from the sync response shape.
-- [ ] Build `DeleteWorkoutAction` (depends on Q6 — confirm whether `IsDeleted: true` on a sync row deletes a gym workout, and whether non-staff can do this).
+
+### Archive + delete
+
+- [ ] Build `ArchiveWorkoutAction` (Coach/Admin/Owner):
+  - [ ] Single-row batch to `POST /api/mobile/workouts/sync` with `IsArchived: true` (or `false` to restore).
+  - [ ] Never blocked. Archived workouts still resolve in historical scheduled-workout references.
+  - [ ] After success, remove the row from the default library view (it remains accessible via "Show archived").
+- [ ] Build `DeleteWorkoutDialog` (Coach/Admin/Owner) with explicit warning copy:
+  - [ ] Confirm copy: "Delete this workout? Any scheduled instances that haven't been completed will also be removed. If athletes have already completed a session of this workout, the delete will be blocked — archive it instead."
+  - [ ] Submit via single-row batch to `POST /api/mobile/workouts/sync` with `IsDeleted: true`.
+  - [ ] If the per-row resolution comes back `"BlockedByHistory"`: show a follow-up dialog offering "Archive instead" (one click → re-submit with `IsArchived: true`).
+  - [ ] On success, surface the cascade: "Removed N upcoming scheduled instances."
+
+### Scheduling
+
 - [ ] Build `ScheduleTab` on gym detail (Coach/Admin/Owner author; all gym members can read their visibility slice):
-  - [ ] `GET /api/mobile/scheduled-workouts` (depends on Q5 for date range filtering).
+  - [ ] `GET /api/mobile/scheduled-workouts?from=<startOfView>&to=<endOfView>` scoped to the visible calendar window.
   - [ ] Filter client-side to the current gym's groups + own personal rows.
   - [ ] Calendar view (month/week) with each row tagged by group.
 - [ ] Build `ScheduleWorkoutDialog`:
-  - [ ] Pick group, workout (from gym library), date.
+  - [ ] Pick group, workout (from gym library — exclude archived/deleted), date.
   - [ ] Submit via single-row batch to `POST /api/mobile/scheduled-workouts/sync` with `TrainingGroupId`, `WorkoutId`, `ScheduledDate`, `AthleteId = null`.
+  - [ ] **Never set `ScoreResult` on a non-completed row** — the server now enforces "non-null `ScoreResult` ⇒ `Status == Completed`" and rejects violators per-row. The scheduling dialog only ever creates `Pending` rows so this is implicit; flag in code review if any future scheduling path tries to seed a score.
   - [ ] Reflect `IsLocked = true` returned on group rows (display as read-only after creation).
 - [ ] Update any existing scheduled-workout rendering to handle nullable `AthleteId` + new `TrainingGroupId`:
   - [ ] Audit [features/dashboard](../fitepic-web-app/src/app/features/dashboard/) for callsites that assume `AthleteId` is non-null.
-- [ ] Manual QA: author a workout → schedule it for a group → verify it appears for athletes in the group on next fetch; verify coaches/admins/owner see it via implicit participation.
+- [ ] Manual QA:
+  - [ ] Author a workout → schedule it for a group → verify it appears for athletes in the group on next fetch; verify coaches/admins/owner see it via implicit participation.
+  - [ ] Archive a workout → verify it disappears from the default library view, still resolves in historical references.
+  - [ ] Try to delete a workout that has a completed scheduled instance → verify `BlockedByHistory` UX → choose "Archive instead" → verify archive succeeds.
+  - [ ] Delete a workout with only pending instances → verify cascade-soft-delete count is correct.
 
 ---
 
@@ -252,3 +282,8 @@ Tear down the legacy coach→athlete UI.
 ## Change log
 
 - **2026-05-16 — v1 draft.** Initial phased plan pending resolution of contract §12 questions.
+- **2026-05-18 — v2.** API team resolved Q1–Q9 on 2026-05-16. Plan updated:
+  - Phase 0: error-envelope step collapsed into a single normalization adapter (Q1); added `disableOnPending` utility (Q8).
+  - Phase 4: invite UX rewritten — email-only input, no picker, no "user not found" feedback (Q3); accept reconciliation by `(GymId, AthleteId)` not `Id` (Q7).
+  - Phase 6: added `IsArchived` library toggle and archive action; rewrote delete flow to handle the `BlockedByHistory` per-row resolution and offer "Archive instead"; switched calendar fetch to use `from`/`to`; noted the new `ScoreResult` ⇒ `Status == Completed` server invariant (Q4/Q5/Q6).
+  - Status flipped from "pending" to "ready to start".

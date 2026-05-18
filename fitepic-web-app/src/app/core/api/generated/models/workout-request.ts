@@ -12,7 +12,10 @@ import { WorkoutType } from '../models/workout-type';
 export interface WorkoutRequest {
 
   /**
-   * The ID of the athlete who owns this workout.
+   * The ID of the athlete who authored this workout. For personal workouts the athlete is
+   * also the owner. For gym-scoped workouts (where FitEpic.Api.Models.Request.WorkoutRequest.GymId is non-null) this is
+   * the audit-author field — gym ownership is determined by FitEpic.Api.Models.Request.WorkoutRequest.GymId and the
+   * caller's role within that gym, not by this value.
    */
   athleteId: string;
 
@@ -36,6 +39,12 @@ export interface WorkoutRequest {
   exercises: Array<WorkoutExerciseRequest>;
 
   /**
+   * When non-null, this workout is scoped to the named gym. Setting this requires the caller
+   * to be Coach, Admin, or Owner of the gym. Null for personal workouts.
+   */
+  gymId?: string | null;
+
+  /**
    * The mobile-generated UUID that uniquely identifies this workout.
    */
   id: string;
@@ -44,6 +53,17 @@ export interface WorkoutRequest {
    * Free-text instructions or notes for the workout. Null if not provided.
    */
   instructions?: string | null;
+
+  /**
+   * Whether this workout is archived. Archived workouts are hidden from default library
+   * queries (`GET /api/gyms/{gymId}/workouts`) but continue to flow through delta sync
+   * as live rows so historical scheduled-workout references can still resolve and render
+   * the workout's name and exercises. Toggle `true` to archive, `false` to
+   * unarchive. Archive is never blocked, regardless of completed scheduled instances —
+   * unlike FitEpic.Api.Models.Request.WorkoutRequest.IsDeleted, which is rejected per-row with `BlockedByHistory`
+   * for gym workouts that have completed history. Defaults to `false`.
+   */
+  isArchived?: boolean;
 
   /**
    * Whether this workout has been soft-deleted on the mobile client.

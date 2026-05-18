@@ -22,7 +22,9 @@ export interface CreateAthleteConnectionInviteRequest {
   id: string;
 
   /**
-   * The permission level being requested. One of `ViewWorkouts` or `ProgramWorkouts`.
+   * The permission level being requested. Must be `ViewWorkouts`. The legacy
+   * `ProgramWorkouts` value is rejected with 409 — programming relationships are now
+   * expressed via gym membership (see `POST /api/gyms/join-requests`).
    */
   permissionLevel: ConnectionPermissionLevel;
 }
