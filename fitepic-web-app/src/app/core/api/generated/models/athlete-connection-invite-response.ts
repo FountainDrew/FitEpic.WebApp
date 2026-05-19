@@ -39,7 +39,9 @@ export interface AthleteConnectionInviteResponse {
   isDeleted?: boolean;
 
   /**
-   * The permission level being requested. One of `ViewWorkouts` or `ProgramWorkouts`.
+   * The permission level being requested. Effectively always `ViewWorkouts` in the current
+   * model — new `ProgramWorkouts` invites are rejected with 409 and existing rows with
+   * that value will be removed in the gym ownership data migration.
    */
   permissionLevel?: ConnectionPermissionLevel;
 

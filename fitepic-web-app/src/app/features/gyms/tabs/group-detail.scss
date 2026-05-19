@@ -1,0 +1,109 @@
+:host {
+  display: block;
+}
+
+.back-row {
+  margin-bottom: 16px;
+}
+
+.placeholder {
+  padding: 24px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.info-card {
+  border: 1px dashed var(--fe-border);
+  padding: 24px;
+  max-width: 720px;
+  opacity: 0.85;
+  font-size: 14px;
+}
+
+.group-header {
+  margin-bottom: 16px;
+}
+
+.group-name {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.group-description {
+  margin: 4px 0 0;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.assign-card,
+.roster-card,
+.personal-feed-card {
+  border: 1px solid var(--fe-border);
+  margin-bottom: 16px;
+}
+
+.personal-feed-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.personal-feed-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.personal-feed-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.personal-feed-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  opacity: 0.7;
+  line-height: 1.4;
+}
+
+.assign-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.assign-field {
+  flex: 1 1 280px;
+  min-width: 220px;
+}
+
+.roster-table {
+  width: 100%;
+}
+
+.member-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.member-name {
+  font-weight: 500;
+}
+
+.member-email {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.actions-col {
+  width: 56px;
+  text-align: right;
+}
+
+.muted {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.7;
+}

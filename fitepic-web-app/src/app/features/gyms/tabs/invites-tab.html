@@ -1,0 +1,74 @@
+<div class="tab-toolbar">
+  <mat-button-toggle-group
+    [value]="filter()"
+    (change)="onFilterChange($event.value)"
+    aria-label="Status filter"
+  >
+    @for (f of filters; track f) {
+      <mat-button-toggle [value]="f">{{ f }}</mat-button-toggle>
+    }
+  </mat-button-toggle-group>
+  <span class="spacer"></span>
+  <button mat-flat-button color="primary" (click)="openSend()">
+    <mat-icon>send</mat-icon>
+    Send invite
+  </button>
+</div>
+
+@if (loading()) {
+  <div class="placeholder-card">Loading invites…</div>
+} @else if (error()) {
+  <mat-card class="info-card">
+    <mat-card-content>
+      <p class="info-text">{{ error() }}</p>
+    </mat-card-content>
+  </mat-card>
+} @else if (rows().length === 0) {
+  <mat-card class="info-card">
+    <mat-card-content>
+      <p class="info-text">No invites in this view.</p>
+    </mat-card-content>
+  </mat-card>
+} @else {
+  <mat-card class="invites-card">
+    <mat-card-content>
+      <table mat-table [dataSource]="rows()" class="invites-table">
+        <ng-container matColumnDef="invitedAthlete">
+          <th mat-header-cell *matHeaderCellDef>Invitee</th>
+          <td mat-cell *matCellDef="let row">{{ invitedLabel(row) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="role">
+          <th mat-header-cell *matHeaderCellDef>Offered role</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="role-chip" [attr.data-role]="row.offeredRole">{{ row.offeredRole }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="created">
+          <th mat-header-cell *matHeaderCellDef>Sent</th>
+          <td mat-cell *matCellDef="let row">{{ formatCreated(row.createdAt) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="status-chip" [attr.data-status]="row.status">{{ row.status }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="actions-col"></th>
+          <td mat-cell *matCellDef="let row" class="actions-col">
+            @if (row.status === 'Pending') {
+              <button mat-stroked-button (click)="revoke(row)">Revoke</button>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </mat-card-content>
+  </mat-card>
+}

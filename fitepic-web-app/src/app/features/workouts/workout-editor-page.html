@@ -1,0 +1,293 @@
+<header class="editor-header">
+  <button mat-icon-button aria-label="Back" (click)="onCancel()">
+    <mat-icon>arrow_back</mat-icon>
+  </button>
+  <h1 class="editor-title">
+    {{ editMode() ? 'Edit workout' : 'New workout' }}
+  </h1>
+</header>
+
+@if (editLoadError(); as err) {
+  <mat-card class="editor-card error-card">
+    <mat-card-content>
+      <p class="muted">{{ err }}</p>
+    </mat-card-content>
+  </mat-card>
+} @else if (loadingExisting()) {
+  <div class="editor-stack" aria-hidden="true">
+    <span class="skeleton editor-skeleton"></span>
+    <span class="skeleton editor-skeleton"></span>
+  </div>
+} @else {
+<div class="editor-stack">
+  <!-- Raw text + analyze. -->
+  <mat-card class="editor-card raw-text-card">
+    <mat-card-header>
+      <mat-card-title>Raw text</mat-card-title>
+      <mat-card-subtitle>
+        Paste a workout to parse it automatically, or skip this and build the workout manually below.
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <mat-form-field appearance="outline" class="raw-text-field">
+        <mat-label>Raw text (optional)</mat-label>
+        <textarea
+          matInput
+          rows="4"
+          [ngModel]="workout().rawText"
+          (ngModelChange)="authoring.patchWorkout({ rawText: $event })"
+          placeholder="e.g. 21-15-9 Thrusters 95lb and Pull-ups for time"
+        ></textarea>
+      </mat-form-field>
+      <div class="analyze-row">
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          [disabled]="!workout().rawText.trim() || analyzing()"
+          (click)="onAnalyze()"
+        >
+          <mat-icon>auto_awesome</mat-icon>
+          {{ analyzing() ? 'Analyzing…' : 'Analyze' }}
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Metadata section. -->
+  <mat-card class="editor-card">
+    <mat-card-header>
+      <mat-card-title>Workout details</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="grid two-col">
+        <mat-form-field appearance="outline">
+          <mat-label>Name</mat-label>
+          <input
+            matInput
+            [ngModel]="workout().name"
+            (ngModelChange)="setName($event)"
+            maxlength="100"
+            required
+            autocomplete="off"
+          />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Workout duration (hh:mm:ss)</mat-label>
+          <input
+            matInput
+            [ngModel]="workout().duration ?? ''"
+            (ngModelChange)="setDuration($event)"
+            placeholder="00:20:00"
+            autocomplete="off"
+          />
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Instructions (optional)</mat-label>
+        <textarea
+          matInput
+          rows="2"
+          [ngModel]="workout().instructions"
+          (ngModelChange)="setInstructions($event)"
+        ></textarea>
+      </mat-form-field>
+
+      <div class="grid two-col">
+        <mat-form-field appearance="outline">
+          <mat-label>Type</mat-label>
+          <mat-select
+            [ngModel]="workout().workoutType"
+            (ngModelChange)="setWorkoutType($event)"
+            required
+          >
+            @for (t of workoutTypes; track t) {
+              <mat-option [value]="t">{{ t }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Score</mat-label>
+          <mat-select
+            [ngModel]="workout().scoreType"
+            (ngModelChange)="setScoreType($event)"
+            required
+          >
+            @for (s of scoreTypes; track s) {
+              <mat-option [value]="s">{{ s }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      @if (isIntervals()) {
+        <mat-form-field appearance="outline" class="rounds-field">
+          <mat-label>Rounds</mat-label>
+          <input
+            matInput
+            type="number"
+            min="1"
+            [ngModel]="workout().roundCount ?? ''"
+            (ngModelChange)="setRoundCount($event)"
+          />
+          <mat-hint>Required for Intervals workouts.</mat-hint>
+        </mat-form-field>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Exercises -->
+  <mat-card class="editor-card">
+    <mat-card-header>
+      <mat-card-title>Exercises</mat-card-title>
+      <mat-card-subtitle>
+        Add the movements that make up this workout.
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content class="exercise-list-content">
+      @if (visibleExercises().length === 0) {
+        <p class="muted">No exercises yet. Add one to get started.</p>
+      } @else {
+        <ol
+          class="exercise-list"
+          cdkDropList
+          (cdkDropListDropped)="onDropExercise($event)"
+        >
+          @for (exercise of visibleExercises(); track exercise.id) {
+            <li
+              class="exercise-row"
+              [class.removed]="exercise.isRemoved"
+              cdkDrag
+              [cdkDragDisabled]="exercise.isRemoved"
+            >
+              <span
+                class="drag-handle"
+                cdkDragHandle
+                [class.disabled]="exercise.isRemoved"
+                aria-label="Drag to reorder"
+              >
+                <mat-icon>drag_indicator</mat-icon>
+              </span>
+              <div class="exercise-body">
+                <div class="exercise-title">
+                  <span class="exercise-name">{{ exercise.userEnteredExerciseName }}</span>
+                  @if (exercise.isNew && !exercise.isRemoved) {
+                    <span class="badge badge-new">NEW</span>
+                  }
+                  @if (exercise.isRemoved) {
+                    <span class="badge badge-removed">REMOVED</span>
+                  }
+                </div>
+                @if (exerciseSummary(exercise); as summary) {
+                  @if (summary !== '—') {
+                    <div class="exercise-meta">{{ summary }}</div>
+                  }
+                }
+              </div>
+              <div class="exercise-actions">
+                @if (exercise.isRemoved) {
+                  <button
+                    mat-icon-button
+                    type="button"
+                    (click)="onRestore(exercise.id)"
+                    aria-label="Restore"
+                  >
+                    <mat-icon>restore</mat-icon>
+                  </button>
+                } @else {
+                  <button
+                    mat-icon-button
+                    type="button"
+                    (click)="onEditExercise(exercise)"
+                    aria-label="Edit"
+                  >
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    type="button"
+                    (click)="onRemoveExercise(exercise.id)"
+                    aria-label="Remove"
+                  >
+                    <mat-icon>close</mat-icon>
+                  </button>
+                }
+              </div>
+            </li>
+          }
+        </ol>
+      }
+      <button
+        mat-stroked-button
+        color="primary"
+        type="button"
+        class="add-exercise-button"
+        (click)="onAddExercise()"
+      >
+        <mat-icon>add</mat-icon>
+        Add exercise
+      </button>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Context / save-to footer. When the editor is locked to a gym the
+       picker is replaced with a sentence describing where the workout will
+       land and (when scheduling) when and for which groups. -->
+  <mat-card class="editor-card">
+    <mat-card-content class="footer-card-content">
+      @if (gymLocked()) {
+        <p class="context-message">
+          Workout will be added to
+          <strong>{{ lockedGymName() || 'this gym' }}</strong>
+          workout library
+          @if (hasAutoSchedule()) {
+            and scheduled for
+            <strong>{{ autoScheduleDate() }}</strong>
+            for training groups:
+            <strong>{{
+              autoScheduleGroupNames().length
+                ? autoScheduleGroupNames().join(', ')
+                : autoScheduleGroupIds().length + ' group(s)'
+            }}</strong
+            >.
+          } @else {
+            .
+          }
+        </p>
+      } @else {
+        <mat-form-field appearance="outline" class="save-to-field">
+          <mat-label>Save to</mat-label>
+          <mat-select
+            [ngModel]="workout().gymId"
+            (ngModelChange)="setGym($event)"
+            [disabled]="gymOptions().length <= 1"
+          >
+            @for (opt of gymOptions(); track opt.gymId) {
+              <mat-option [value]="opt.gymId">{{ opt.label }}</mat-option>
+            }
+          </mat-select>
+          @if (gymOptions().length <= 1) {
+            <mat-hint>You only have one library available.</mat-hint>
+          }
+        </mat-form-field>
+      }
+
+      <div class="footer-actions">
+        <button mat-button type="button" (click)="onCancel()">Cancel</button>
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          [disabled]="!canSave()"
+          (click)="onSave()"
+        >
+          {{ saveLabel() }}
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
+}

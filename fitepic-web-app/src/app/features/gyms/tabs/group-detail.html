@@ -1,0 +1,124 @@
+<div class="back-row">
+  <a mat-stroked-button [routerLink]="['/gyms', gymId(), 'groups']">
+    <mat-icon>arrow_back</mat-icon>
+    All groups
+  </a>
+</div>
+
+@if (loading()) {
+  <div class="placeholder">Loading group…</div>
+} @else if (!group()) {
+  <mat-card class="info-card">
+    <mat-card-content>This group is no longer available.</mat-card-content>
+  </mat-card>
+} @else {
+  <header class="group-header">
+    <h2 class="group-name">{{ group()!.name }}</h2>
+    @if (group()!.description) {
+      <p class="group-description">{{ group()!.description }}</p>
+    }
+  </header>
+
+  @if (canTogglePersonalFeed()) {
+    <mat-card class="personal-feed-card">
+      <mat-card-content class="personal-feed-row">
+        <div class="personal-feed-text">
+          <p class="personal-feed-title">Show on my personal calendar</p>
+          <p class="personal-feed-hint">
+            Toggle on to see this group's scheduled workouts on your own training
+            calendar. Your role-based ability to oversee the group is unaffected
+            either way.
+          </p>
+        </div>
+        <mat-slide-toggle
+          [checked]="subscribedToFeed()"
+          [disabled]="personalFeedSaving()"
+          (change)="onTogglePersonalFeed($event.checked)"
+          aria-label="Show this group's workouts on my personal calendar"
+        ></mat-slide-toggle>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  @if (canManage()) {
+    <mat-card class="assign-card">
+      <mat-card-content>
+        <div class="assign-row">
+          <mat-form-field appearance="outline" class="assign-field">
+            <mat-label>Add athlete</mat-label>
+            <mat-select
+              [ngModel]="selectedAthleteId()"
+              (ngModelChange)="selectedAthleteId.set($event)"
+              [disabled]="assignableMembers().length === 0"
+            >
+              @for (m of assignableMembers(); track m.athleteId) {
+                <mat-option [value]="m.athleteId">{{ athleteOptionLabel(m) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <button
+            mat-flat-button
+            color="primary"
+            [disabled]="!selectedAthleteId()"
+            (click)="assign()"
+          >
+            Add
+          </button>
+        </div>
+        @if (assignableMembers().length === 0) {
+          <p class="muted">
+            Every athlete in this gym is already in this group.
+          </p>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <mat-card class="roster-card">
+    <mat-card-content>
+      @if (activeMembers().length === 0) {
+        <p class="muted">No members in this group yet.</p>
+      } @else {
+        <table mat-table [dataSource]="activeMembers()" class="roster-table">
+          <ng-container matColumnDef="athlete">
+            <th mat-header-cell *matHeaderCellDef>Athlete</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="member-cell">
+                <span class="member-name">
+                  {{ row.athleteDisplayName || row.athleteEmail || row.athleteId }}
+                </span>
+                @if (row.athleteEmail && row.athleteDisplayName) {
+                  <span class="member-email">{{ row.athleteEmail }}</span>
+                }
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="assignedAt">
+            <th mat-header-cell *matHeaderCellDef>Assigned</th>
+            <td mat-cell *matCellDef="let row">{{ formatAssignedAt(row.assignedAt) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="actions-col"></th>
+            <td mat-cell *matCellDef="let row" class="actions-col">
+              @if (canManage()) {
+                <button
+                  mat-icon-button
+                  (click)="remove(row)"
+                  matTooltip="Remove from this group"
+                  aria-label="Remove from this group"
+                >
+                  <mat-icon>person_remove</mat-icon>
+                </button>
+              }
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+      }
+    </mat-card-content>
+  </mat-card>
+}

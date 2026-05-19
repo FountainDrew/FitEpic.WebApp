@@ -1,0 +1,74 @@
+<header class="page-header">
+  <div class="header-text">
+    <h1 class="page-title">Gyms</h1>
+    <p class="page-subtitle">Gyms you own, coach, or train with.</p>
+  </div>
+  <div class="header-actions">
+    @if (isGymOwner()) {
+      <button mat-flat-button color="primary" (click)="openCreate()">
+        <mat-icon>add</mat-icon>
+        Create gym
+      </button>
+    }
+    <a mat-stroked-button routerLink="/gyms/join">
+      <mat-icon>vpn_key</mat-icon>
+      Join a gym
+    </a>
+    <a mat-stroked-button routerLink="/gyms/my-inbox">
+      <mat-icon>inbox</mat-icon>
+      My inbox
+    </a>
+  </div>
+</header>
+
+@if (loading()) {
+  <div class="gym-grid" aria-hidden="true">
+    <span class="skeleton skeleton-card"></span>
+    <span class="skeleton skeleton-card"></span>
+    <span class="skeleton skeleton-card"></span>
+  </div>
+} @else if (error()) {
+  <mat-card class="empty-card">
+    <mat-card-content>
+      <p class="empty-line">{{ error() }}</p>
+    </mat-card-content>
+  </mat-card>
+} @else if (liveGyms().length === 0) {
+  <mat-card class="empty-card">
+    <mat-card-content>
+      <p class="empty-line">
+        You're not in any gyms yet.
+        @if (isGymOwner()) {
+          Create one, or
+        }
+        join a gym with a code from its owner.
+      </p>
+    </mat-card-content>
+  </mat-card>
+} @else {
+  <div class="gym-grid">
+    @for (gym of liveGyms(); track gym.id) {
+      <a class="gym-card-link" [routerLink]="['/gyms', gym.id]">
+        <mat-card class="gym-card">
+          <mat-card-header>
+            <mat-card-title>{{ gym.name }}</mat-card-title>
+            <mat-card-subtitle class="gym-code">
+              <span class="code-label">Code</span>
+              <span class="code-value">{{ gym.gymCode }}</span>
+            </mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            @if (gym.description) {
+              <p class="gym-description">{{ gym.description }}</p>
+            }
+          </mat-card-content>
+          <mat-card-actions>
+            @if (roleFor(gym); as role) {
+              <span class="role-chip" [attr.data-role]="role">{{ role }}</span>
+            }
+          </mat-card-actions>
+        </mat-card>
+      </a>
+    }
+  </div>
+}

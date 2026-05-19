@@ -1,0 +1,67 @@
+<div class="tab-toolbar">
+  <span class="tab-toolbar-title">Training groups</span>
+  <span class="spacer"></span>
+  @if (canManage()) {
+    <button mat-flat-button color="primary" (click)="openCreate()">
+      <mat-icon>add</mat-icon>
+      New group
+    </button>
+  }
+</div>
+
+@if (loading()) {
+  <div class="placeholder">Loading groups…</div>
+} @else if (error()) {
+  <mat-card class="info-card">
+    <mat-card-content>{{ error() }}</mat-card-content>
+  </mat-card>
+} @else if (liveGroups().length === 0) {
+  <mat-card class="info-card">
+    <mat-card-content>
+      @if (canManage()) {
+        No training groups yet — create one to start scheduling workouts.
+      } @else {
+        This gym has no training groups yet.
+      }
+    </mat-card-content>
+  </mat-card>
+} @else {
+  <div class="group-grid">
+    @for (group of liveGroups(); track group.id) {
+      <mat-card class="group-card">
+        <mat-card-header>
+          <mat-card-title>
+            <a [routerLink]="['./', group.id]" class="group-title-link">{{ group.name }}</a>
+          </mat-card-title>
+          @if (canManage()) {
+            <button
+              mat-icon-button
+              class="group-menu"
+              [matMenuTriggerFor]="menu"
+              aria-label="Group actions"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu="matMenu">
+              <button mat-menu-item (click)="openEdit(group)">
+                <mat-icon>edit</mat-icon>
+                Edit
+              </button>
+              <button mat-menu-item (click)="openDelete(group)">
+                <mat-icon>delete</mat-icon>
+                Delete
+              </button>
+            </mat-menu>
+          }
+        </mat-card-header>
+        <mat-card-content>
+          @if (group.description) {
+            <p class="group-description">{{ group.description }}</p>
+          } @else {
+            <p class="muted">No description.</p>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+}

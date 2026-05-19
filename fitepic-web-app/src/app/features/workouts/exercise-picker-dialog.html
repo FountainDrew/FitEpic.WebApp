@@ -1,0 +1,37 @@
+<h2 mat-dialog-title>Add an exercise</h2>
+<mat-dialog-content class="picker-content">
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>Search exercises</mat-label>
+    <input
+      matInput
+      [ngModel]="query()"
+      (ngModelChange)="query.set($event)"
+      autocomplete="off"
+      cdkFocusInitial
+    />
+    <mat-icon matSuffix>search</mat-icon>
+  </mat-form-field>
+
+  @if (loading()) {
+    <p class="muted">Loading exercise catalog…</p>
+  } @else if (filtered().length === 0 && !canAddCustom()) {
+    <p class="muted">No matches.</p>
+  } @else {
+    <mat-list class="results">
+      @for (exercise of filtered(); track exercise.id) {
+        <mat-list-item (click)="pick(exercise)" class="result-row">
+          <span matListItemTitle>{{ exercise.name }}</span>
+        </mat-list-item>
+      }
+    </mat-list>
+    @if (canAddCustom()) {
+      <button mat-stroked-button color="primary" class="custom-button" (click)="addCustom()">
+        <mat-icon>add</mat-icon>
+        Add "{{ query() }}" as a custom exercise
+      </button>
+    }
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+</mat-dialog-actions>

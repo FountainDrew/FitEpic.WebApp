@@ -13,7 +13,10 @@ import { WorkoutType } from '../models/workout-type';
 export interface WorkoutResponse {
 
   /**
-   * The ID of the athlete who owns this workout.
+   * The ID of the athlete who authored this workout. For personal workouts the athlete is also
+   * the owner. For gym-scoped workouts (where FitEpic.Api.Models.Response.WorkoutResponse.GymId is non-null) the gym owns the
+   * workout and this field is an informational author/audit reference only — coach departure
+   * does not transfer ownership.
    */
   athleteId?: string | null;
 
@@ -36,6 +39,12 @@ export interface WorkoutResponse {
   exercises?: Array<WorkoutExerciseResponse> | null;
 
   /**
+   * When non-null, this workout is owned by the named gym and may be scheduled to the gym's
+   * training groups. Null for personal workouts.
+   */
+  gymId?: string | null;
+
+  /**
    * The unique identifier for this workout (mobile-generated UUID).
    */
   id?: string | null;
@@ -44,6 +53,15 @@ export interface WorkoutResponse {
    * Optional free-text instructions or notes for the workout. Null if not set.
    */
   instructions?: string | null;
+
+  /**
+   * `true` if this workout is archived. Archived workouts are excluded from default
+   *             library queries (`GET /api/gyms/{gymId}/workouts`) but continue to flow through
+   *             delta sync as live rows so the mobile client can render the workout name and exercises
+   *             on completed scheduled-workout history. The local sync layer should retain archived
+   *             rows in its cache regardless of how list views filter them.
+   */
+  isArchived?: boolean;
 
   /**
    * `true` if this workout has been soft-deleted. The mobile client must remove this record

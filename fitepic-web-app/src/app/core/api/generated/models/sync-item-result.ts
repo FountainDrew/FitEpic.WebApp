@@ -14,8 +14,8 @@ export interface SyncItemResult {
   id?: string | null;
 
   /**
-   * Indicates whether the server accepted the change or detected a conflict.
-   * <list type="bullet"><item><description>`Accepted` — the payload was newer than the server record and has been persisted.</description></item><item><description>`ConflictResolved` — the server record was newer (Last-Write-Wins); the mobile client should re-pull this entity.</description></item></list>
+   * Indicates how the server resolved this item. Stable string values — clients may switch on them.
+   * <list type="bullet"><item><description>`Accepted` — the payload was newer than the server record and has been persisted.</description></item><item><description>`ConflictResolved` — the server record was newer (Last-Write-Wins); the client should re-pull this entity.</description></item><item><description>`Forbidden` — the caller does not have permission to write this row (e.g., not Coach/Admin/Owner of the workout's gym, or a peer-connection programming attempt). Other rows in the batch are unaffected.</description></item><item><description>`BlockedByHistory` — emitted when attempting to delete a gym workout that has one or more `ScheduledWorkout` rows with `Status == Completed`. The workout must be archived (set `IsArchived: true`) instead so completed history remains resolvable. Other rows in the batch are unaffected.</description></item><item><description>`ScoreRequiresCompleted` — emitted on `ScheduledWorkout` sync when an incoming row has a non-empty `ScoreResult` but `Status` other than `Completed`. Mark the row `Completed` before retrying.</description></item></list>
    */
   resolution?: string | null;
 

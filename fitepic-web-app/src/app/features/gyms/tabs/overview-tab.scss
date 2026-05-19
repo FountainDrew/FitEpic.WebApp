@@ -1,0 +1,55 @@
+.overview-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 720px;
+}
+
+.overview-card {
+  border: 1px solid var(--fe-border);
+}
+
+.details-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 24px;
+  margin: 0;
+
+  dt {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+    align-self: center;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 14px;
+    color: var(--fe-text);
+  }
+}
+
+.muted {
+  opacity: 0.6;
+}
+
+.code-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.4s ease;
+
+  &.just-rotated {
+    background-color: rgba(76, 175, 80, 0.18);
+  }
+}
+
+.code-value {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+}

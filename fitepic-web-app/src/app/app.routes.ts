@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 
 import { authGuard, guestGuard } from './core/auth/auth.guard';
+import { workoutEditorCanDeactivate } from './features/workouts/unsaved-changes.guard';
 
 export const routes: Routes = [
   {
@@ -47,6 +48,86 @@ export const routes: Routes = [
         path: 'profile',
         pathMatch: 'full',
         redirectTo: 'settings',
+      },
+      {
+        path: 'gyms',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/gyms/gyms-list-page').then((m) => m.GymsListPage),
+      },
+      {
+        path: 'gyms/join',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/gyms/join-gym-page').then((m) => m.JoinGymPage),
+      },
+      {
+        path: 'gyms/my-inbox',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/gyms/my-inbox-page').then((m) => m.MyInboxPage),
+      },
+      {
+        path: 'gyms/:gymId',
+        loadComponent: () =>
+          import('./features/gyms/gym-detail-shell').then((m) => m.GymDetailShell),
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'overview' },
+          {
+            path: 'overview',
+            loadComponent: () =>
+              import('./features/gyms/tabs/overview-tab').then((m) => m.OverviewTab),
+          },
+          {
+            path: 'members',
+            loadComponent: () =>
+              import('./features/gyms/tabs/members-tab').then((m) => m.MembersTab),
+          },
+          {
+            path: 'groups',
+            loadComponent: () =>
+              import('./features/gyms/tabs/groups-tab').then((m) => m.GroupsTab),
+          },
+          {
+            path: 'groups/:groupId',
+            loadComponent: () =>
+              import('./features/gyms/tabs/group-detail').then((m) => m.GroupDetail),
+          },
+          {
+            path: 'requests',
+            loadComponent: () =>
+              import('./features/gyms/tabs/requests-tab').then((m) => m.RequestsTab),
+          },
+          {
+            path: 'invites',
+            loadComponent: () =>
+              import('./features/gyms/tabs/invites-tab').then((m) => m.InvitesTab),
+          },
+          {
+            path: 'workouts',
+            loadComponent: () =>
+              import('./features/gyms/tabs/workouts-tab').then((m) => m.WorkoutsTab),
+          },
+          {
+            path: 'schedule',
+            loadComponent: () =>
+              import('./features/gyms/tabs/schedule-tab').then((m) => m.ScheduleTab),
+          },
+        ],
+      },
+      {
+        path: 'workouts/new',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/workouts/workout-editor-page').then((m) => m.WorkoutEditorPage),
+        canDeactivate: [workoutEditorCanDeactivate],
+      },
+      {
+        path: 'workouts/:id/edit',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/workouts/workout-editor-page').then((m) => m.WorkoutEditorPage),
+        canDeactivate: [workoutEditorCanDeactivate],
       },
       {
         path: 'settings',

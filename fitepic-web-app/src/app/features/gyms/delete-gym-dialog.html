@@ -1,0 +1,23 @@
+<h2 mat-dialog-title>Delete gym</h2>
+<mat-dialog-content>
+  <p>
+    Deleting <strong>{{ data.gymName }}</strong> will remove all memberships, training groups, and
+    upcoming group-scheduled workouts. Completed workout history is preserved.
+  </p>
+  <p>To confirm, type the gym's name below.</p>
+  <mat-form-field appearance="outline">
+    <mat-label>Gym name</mat-label>
+    <input
+      matInput
+      [ngModel]="typedName()"
+      (ngModelChange)="typedName.set($event)"
+      autocomplete="off"
+    />
+  </mat-form-field>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-flat-button color="warn" [disabled]="!canDelete()" (click)="onConfirm()">
+    Delete
+  </button>
+</mat-dialog-actions>

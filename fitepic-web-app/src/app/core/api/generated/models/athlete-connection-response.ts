@@ -16,7 +16,7 @@ export interface AthleteConnectionResponse {
   createdAt?: string;
 
   /**
-   * The ID of the athlete who grants access (whose data is shared or who receives programming).
+   * The ID of the athlete who grants visibility into their workouts.
    */
   grantingAthleteId?: string | null;
 
@@ -32,12 +32,14 @@ export interface AthleteConnectionResponse {
   isDeleted?: boolean;
 
   /**
-   * The permission level granted by this connection. One of `ViewWorkouts` or `ProgramWorkouts`.
+   * The permission level granted by this connection. Effectively always `ViewWorkouts` in
+   * the current model — the legacy `ProgramWorkouts` value is no longer issuable. Existing
+   * rows with that value will be removed in the gym ownership data migration.
    */
   permissionLevel?: ConnectionPermissionLevel;
 
   /**
-   * The ID of the athlete who requested the connection (viewer or programmer).
+   * The ID of the athlete who requested the connection (the viewer in peer-share terms).
    */
   requestingAthleteId?: string | null;
 

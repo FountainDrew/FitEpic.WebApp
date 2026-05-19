@@ -8,11 +8,14 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { ProfileService } from '../../core/profile/profile.service';
 import { QuoteService } from '../../core/quotes/quote.service';
-import { getWebAppErrorCode, getWebAppErrorMessage } from '../../core/api/error-code';
+import { getApiErrorCode, getWebAppErrorCode, getWebAppErrorMessage } from '../../core/api/error-code';
+import { showGymError } from '../../core/gyms/gym-error-messages';
+import { createPendingAction } from '../../core/async/pending-action';
 import { COMMON_TIMEZONES } from './common-timezones';
 
 @Component({
@@ -26,6 +29,7 @@ import { COMMON_TIMEZONES } from './common-timezones';
     MatSelectModule,
     MatButtonModule,
     MatIconModule,
+    MatSlideToggleModule,
   ],
   templateUrl: './settings-page.html',
   styleUrl: './settings-page.scss',
@@ -49,6 +53,11 @@ export class SettingsPage implements OnInit {
 
   protected readonly quoteCount = signal<number | null>(null);
   protected readonly quoteCountLoading = signal(true);
+
+  /** Current value of the `IsGymOwner` profile flag. Hydrated from the profile GET. */
+  protected readonly gymOwner = signal(false);
+  private readonly gymOwnerAction = createPendingAction<void>();
+  protected readonly gymOwnerSaving = this.gymOwnerAction.pending;
 
   protected readonly canSaveProfile = computed(
     () => !this.profileSaving() && this.displayName().trim().length > 0 && !!this.timezone(),
@@ -87,6 +96,42 @@ export class SettingsPage implements OnInit {
     }
   }
 
+  /**
+   * Optimistically flip the gym-ownership flag and call the API. Reverts the UI
+   * if the request fails (e.g., `GymsStillOwned` when toggling off). Drops the
+   * event if another toggle is already in flight.
+   */
+  protected async onGymOwnerToggle(next: boolean): Promise<void> {
+    if (this.gymOwnerSaving()) return;
+    const previous = this.gymOwner();
+    if (previous === next) return;
+    this.gymOwner.set(next);
+    await this.gymOwnerAction.run(async () => {
+      try {
+        await this.profileService.setGymOwnerFlag(next);
+        this.snackBar.open(
+          next ? 'Gym ownership enabled.' : 'Gym ownership disabled.',
+          'Dismiss',
+          { duration: 2500 },
+        );
+      } catch (err) {
+        this.gymOwner.set(previous);
+        if (getApiErrorCode(err) === 'GymsStillOwned') {
+          this.snackBar
+            .open(
+              'You still own one or more gyms — delete them before disabling gym ownership.',
+              'Manage gyms',
+              { duration: 6000 },
+            )
+            .onAction()
+            .subscribe(() => void this.router.navigateByUrl('/gyms'));
+          return;
+        }
+        showGymError(this.snackBar, err, 'Could not update gym ownership.');
+      }
+    });
+  }
+
   protected detectBrowserTimezone(): void {
     this.timezone.set(Intl.DateTimeFormat().resolvedOptions().timeZone);
   }
@@ -102,6 +147,7 @@ export class SettingsPage implements OnInit {
       this.displayName.set(profile.displayName ?? '');
       this.timezone.set(profile.timezone ?? null);
       this.streakStartDate.set(profile.streakAndDayCountStartDate ?? '');
+      this.gymOwner.set(profile.isGymOwner ?? false);
     } finally {
       this.profileLoading.set(false);
     }

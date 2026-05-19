@@ -1,0 +1,70 @@
+:host {
+  display: block;
+}
+
+.tab-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tab-toolbar-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.placeholder {
+  padding: 24px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.info-card {
+  border: 1px dashed var(--fe-border);
+  padding: 24px;
+  max-width: 720px;
+  opacity: 0.85;
+  font-size: 14px;
+}
+
+.group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.group-card {
+  border: 1px solid var(--fe-border);
+  position: relative;
+}
+
+.group-title-link {
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.group-menu {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.group-description {
+  margin: 0;
+  font-size: 14px;
+}
+
+.muted {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.6;
+}

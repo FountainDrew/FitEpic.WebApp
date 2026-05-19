@@ -11,9 +11,12 @@ import { WorkoutScoreType } from '../models/workout-score-type';
 export interface ScheduledWorkoutRequest {
 
   /**
-   * The ID of the athlete this workout is scheduled for.
+   * The athlete this workout is scheduled for. Set for personal-scheduling rows. Null when
+   * FitEpic.Api.Models.Request.ScheduledWorkoutRequest.TrainingGroupId is set (group-targeted scheduling — every athlete in the
+   * group sees the row). Exactly one of `AthleteId` / `TrainingGroupId` must be
+   * non-null per row; sending neither (or both) is rejected.
    */
-  athleteId: string;
+  athleteId?: string | null;
 
   /**
    * The UTC timestamp when this scheduled workout was first created on the mobile client.
@@ -78,6 +81,15 @@ export interface ScheduledWorkoutRequest {
    * The current completion status of this scheduled workout.
    */
   status?: ScheduledWorkoutStatus;
+
+  /**
+   * The training group this workout is scheduled for. Set by Coach/Admin/Owner when
+   * programming for a group; the row becomes visible to every athlete in the group (with
+   * the mid-flight rule applied per requirements §7.1). Null for personal scheduling
+   * (in which case FitEpic.Api.Models.Request.ScheduledWorkoutRequest.AthleteId must be set). Group rows always come back
+   * from the server with `IsLocked = true`.
+   */
+  trainingGroupId?: string | null;
 
   /**
    * The UTC timestamp of the most recent local modification. Used for Last-Write-Wins conflict resolution.
