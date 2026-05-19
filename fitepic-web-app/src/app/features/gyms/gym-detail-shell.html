@@ -1,0 +1,44 @@
+@if (loading()) {
+  <div class="gym-header skeleton-header" aria-hidden="true">
+    <span class="skeleton skeleton-title"></span>
+    <span class="skeleton skeleton-subtitle"></span>
+  </div>
+} @else if (notFound() || !gym()) {
+  <div class="not-found">
+    <h2>This gym is no longer available.</h2>
+    <p>It may have been deleted, or you may not be a member.</p>
+    <button mat-stroked-button (click)="back()">Back to gyms</button>
+  </div>
+} @else {
+  <header class="gym-header">
+    <div class="gym-header-text">
+      <button class="back-button" mat-icon-button aria-label="Back to gyms" (click)="back()">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="gym-title-block">
+        <h1 class="gym-title">{{ gym()?.name }}</h1>
+        @if (role(); as r) {
+          <span class="role-chip" [attr.data-role]="r">{{ r }}</span>
+        }
+      </div>
+    </div>
+  </header>
+
+  <nav class="gym-tabs" mat-tab-nav-bar>
+    @for (tab of visibleTabs(); track tab.path) {
+      <a
+        mat-tab-link
+        [routerLink]="['/gyms', gymId(), tab.path]"
+        routerLinkActive
+        #rla="routerLinkActive"
+        [active]="rla.isActive"
+      >
+        {{ tab.label }}
+      </a>
+    }
+  </nav>
+
+  <section class="tab-content">
+    <router-outlet></router-outlet>
+  </section>
+}

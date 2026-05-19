@@ -20,6 +20,15 @@ export interface MyAthleteProfileResponse {
   id?: string | null;
 
   /**
+   * Whether the athlete has opted in to gym ownership. Toggled via
+   * `PUT /api/gyms/me/owner-flag` (which carries its own `GymsStillOwned`
+   * validation when turning off). The web app reads this on app load to drive the
+   * "Create gym" FAB visibility, the settings toggle's initial state, and proactive
+   * handling of the `NotGymOwner` case before any gym-creation attempt.
+   */
+  isGymOwner?: boolean;
+
+  /**
    * The date the athlete has chosen as the start of their streak / day-count tracking
    * history; null when not set.
    */

@@ -1,12 +1,18 @@
 <header class="page-header">
-  <h1 class="page-title">Dashboard</h1>
-  @if (stats(); as s) {
-    <p class="page-subtitle">
-      Week of {{ s.weekStart | date:'mediumDate' }} – {{ s.weekEnd | date:'mediumDate' }}
-    </p>
-  } @else if (statsLoading()) {
-    <span class="skeleton skeleton-week-range" aria-hidden="true"></span>
-  }
+  <div class="page-header-text">
+    <h1 class="page-title">Dashboard</h1>
+    @if (stats(); as s) {
+      <p class="page-subtitle">
+        Week of {{ s.weekStart | date:'mediumDate' }} – {{ s.weekEnd | date:'mediumDate' }}
+      </p>
+    } @else if (statsLoading()) {
+      <span class="skeleton skeleton-week-range" aria-hidden="true"></span>
+    }
+  </div>
+  <a mat-flat-button color="primary" routerLink="/workouts/new">
+    <mat-icon>add</mat-icon>
+    New workout
+  </a>
 </header>
 
 <app-quote-card />

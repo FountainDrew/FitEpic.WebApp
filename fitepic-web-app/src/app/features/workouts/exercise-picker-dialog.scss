@@ -1,0 +1,32 @@
+.picker-content {
+  min-width: 480px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.search-field {
+  width: 100%;
+}
+
+.results {
+  padding: 0;
+}
+
+.result-row {
+  cursor: pointer;
+
+  &:hover {
+    background: var(--fe-surface-alt, rgba(0, 0, 0, 0.05));
+  }
+}
+
+.custom-button {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.muted {
+  margin: 8px 0;
+  font-size: 14px;
+  opacity: 0.7;
+}

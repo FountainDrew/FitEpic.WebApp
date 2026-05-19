@@ -1,0 +1,23 @@
+.grid {
+  display: grid;
+  gap: 12px;
+}
+
+.two-col {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.three-col {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+
+@media (max-width: 600px) {
+  .two-col,
+  .three-col {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+mat-form-field {
+  width: 100%;
+}

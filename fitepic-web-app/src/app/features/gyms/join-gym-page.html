@@ -1,0 +1,55 @@
+<header class="page-header">
+  <h1 class="page-title">Join a gym</h1>
+  <p class="page-subtitle">
+    Enter the 6-character code shared by the gym's owner or admin and pick the role you're
+    joining as.
+  </p>
+</header>
+
+<mat-card class="join-card">
+  <mat-card-content>
+    <form class="join-form" (ngSubmit)="onSubmit()">
+      <mat-form-field appearance="outline">
+        <mat-label>Gym code</mat-label>
+        <input
+          matInput
+          name="code"
+          [ngModel]="code()"
+          (ngModelChange)="code.set($event)"
+          maxlength="6"
+          autocomplete="off"
+          autocapitalize="characters"
+          spellcheck="false"
+          required
+        />
+        <mat-hint>6 characters, letters and digits.</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Joining as</mat-label>
+        <mat-select
+          name="role"
+          [ngModel]="role()"
+          (ngModelChange)="role.set($event)"
+          required
+        >
+          @for (r of roleOptions; track r) {
+            <mat-option [value]="r">{{ r }}</mat-option>
+          }
+        </mat-select>
+        <mat-hint>Admin can only be granted by an existing Owner via invite.</mat-hint>
+      </mat-form-field>
+
+      <div class="actions">
+        <button
+          mat-flat-button
+          color="primary"
+          type="submit"
+          [disabled]="!canSubmit()"
+        >
+          {{ submitting() ? 'Sending…' : 'Send request' }}
+        </button>
+      </div>
+    </form>
+  </mat-card-content>
+</mat-card>

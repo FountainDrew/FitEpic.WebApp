@@ -54,6 +54,22 @@ ng e2e
 
 Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
+## Gym ownership
+
+The Gyms surface (`/gyms`, `/gyms/:gymId`, `/gyms/join`, `/gyms/my-inbox`) implements the
+Gym → Training Group → Athlete model described in the API contract. See
+[../readmes/gym-ownership-implementation-plan.md](../readmes/gym-ownership-implementation-plan.md)
+for the phased plan and which items are landed vs. deferred.
+
+Phase status (as of 2026-05-19):
+
+- Phases 0–5 complete: foundation, profile flag, gym CRUD + nav, members, requests + invites,
+  training groups.
+- Phase 6 partial: gym workout library with archive/restore/delete (including
+  `BlockedByHistory` UX) is live. Group scheduling is on hold pending API contract Q11
+  (`ScheduledWorkoutRequest` schema needs `trainingGroupId` + nullable `athleteId`).
+- Phase 7 complete: legacy `ProgramWorkouts` connection-invite surface confirmed absent.
+
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

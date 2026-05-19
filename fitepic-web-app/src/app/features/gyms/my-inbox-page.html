@@ -1,0 +1,107 @@
+<header class="page-header">
+  <div class="header-text">
+    <h1 class="page-title">My inbox</h1>
+    <p class="page-subtitle">Pending gym invites and your join requests.</p>
+  </div>
+  <div class="header-actions">
+    <a mat-stroked-button routerLink="/gyms">
+      <mat-icon>arrow_back</mat-icon>
+      Back to gyms
+    </a>
+  </div>
+</header>
+
+@if (loading()) {
+  <div class="placeholder">Loading…</div>
+} @else {
+  <div class="section">
+    <h2 class="section-title">Pending invites</h2>
+    @if (pendingInvites().length === 0) {
+      <mat-card class="empty-card">
+        <mat-card-content>No pending invites.</mat-card-content>
+      </mat-card>
+    } @else {
+      @for (invite of pendingInvites(); track invite.id) {
+        <mat-card class="inbox-card">
+          <mat-card-content>
+            <div class="card-row">
+              <div class="card-text">
+                <p class="card-title">Invited to join a gym</p>
+                <p class="card-sub">
+                  Role offered:
+                  <span class="role-chip" [attr.data-role]="invite.offeredRole">{{
+                    invite.offeredRole
+                  }}</span>
+                </p>
+                <p class="card-meta">Sent {{ formatDate(invite.createdAt) }}</p>
+              </div>
+              <div class="card-actions">
+                <button mat-flat-button color="primary" (click)="accept(invite)">
+                  Accept
+                </button>
+                <button mat-stroked-button (click)="reject(invite)">Decline</button>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+    }
+  </div>
+
+  <div class="section">
+    <h2 class="section-title">Pending requests</h2>
+    @if (pendingRequests().length === 0) {
+      <mat-card class="empty-card">
+        <mat-card-content>No pending requests.</mat-card-content>
+      </mat-card>
+    } @else {
+      @for (req of pendingRequests(); track req.id) {
+        <mat-card class="inbox-card">
+          <mat-card-content>
+            <div class="card-row">
+              <div class="card-text">
+                <p class="card-title">Awaiting approval</p>
+                <p class="card-sub">
+                  Requested role:
+                  <span class="role-chip" [attr.data-role]="req.requestedRole">{{
+                    req.requestedRole
+                  }}</span>
+                </p>
+                <p class="card-meta">Submitted {{ formatDate(req.createdAt) }}</p>
+              </div>
+              <div class="card-actions">
+                <button mat-stroked-button (click)="cancel(req)">Cancel</button>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+    }
+  </div>
+
+  @if (otherInvites().length > 0 || otherRequests().length > 0) {
+    <div class="section">
+      <h2 class="section-title">History</h2>
+      <mat-card class="history-card">
+        <mat-card-content>
+          <ul class="history-list">
+            @for (invite of otherInvites(); track invite.id) {
+              <li>
+                <span class="status-chip" [attr.data-status]="invite.status">{{
+                  invite.status
+                }}</span>
+                Invite ({{ invite.offeredRole }}) — {{ formatDate(invite.createdAt) }}
+              </li>
+            }
+            @for (req of otherRequests(); track req.id) {
+              <li>
+                <span class="status-chip" [attr.data-status]="req.status">{{ req.status }}</span>
+                Request ({{ req.requestedRole }}) — {{ formatDate(req.createdAt) }}
+              </li>
+            }
+          </ul>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+}

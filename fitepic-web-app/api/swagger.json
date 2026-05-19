@@ -8424,6 +8424,11 @@
             "format": "date",
             "nullable": true,
             "example": "2026-04-01"
+          },
+          "isGymOwner": {
+            "type": "boolean",
+            "description": "Whether the athlete has opted in to gym ownership. Toggled via\r\n`PUT /api/gyms/me/owner-flag` (which carries its own `GymsStillOwned`\r\nvalidation when turning off). The web app reads this on app load to drive the\r\n\"Create gym\" FAB visibility, the settings toggle's initial state, and proactive\r\nhandling of the `NotGymOwner` case before any gym-creation attempt.",
+            "example": false
           }
         },
         "additionalProperties": false,

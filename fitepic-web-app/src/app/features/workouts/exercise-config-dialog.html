@@ -1,0 +1,151 @@
+<h2 mat-dialog-title>
+  {{ data.mode === 'add' ? 'Add exercise' : 'Edit exercise' }}
+</h2>
+<mat-dialog-content>
+  <form class="dialog-form" (ngSubmit)="onSave()">
+    <mat-form-field appearance="outline">
+      <mat-label>Exercise name</mat-label>
+      <input
+        matInput
+        [ngModel]="name()"
+        (ngModelChange)="name.set($event)"
+        name="name"
+        required
+        autocomplete="off"
+      />
+    </mat-form-field>
+
+    <div class="grid two-col">
+      <mat-form-field appearance="outline">
+        <mat-label>Sets</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          [ngModel]="sets()"
+          (ngModelChange)="sets.set($event)"
+          name="sets"
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Reps</mat-label>
+        <input
+          matInput
+          [ngModel]="reps()"
+          (ngModelChange)="reps.set($event)"
+          name="reps"
+          placeholder="e.g. 21-15-9 or Max"
+        />
+      </mat-form-field>
+    </div>
+
+    @if (!data.isIntervals) {
+      <mat-form-field appearance="outline">
+        <mat-label>Primary measurement</mat-label>
+        <mat-select
+          [ngModel]="measurementType()"
+          (ngModelChange)="measurementType.set($event)"
+          name="measurementType"
+        >
+          @for (m of measurementTypes; track m) {
+            <mat-option [value]="m">{{ m }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    } @else {
+      <mat-form-field appearance="outline">
+        <mat-label>Per-round metric</mat-label>
+        <mat-select
+          [ngModel]="perRoundMetric()"
+          (ngModelChange)="perRoundMetric.set($event)"
+          name="perRoundMetric"
+        >
+          <mat-option [value]="null">— None —</mat-option>
+          @for (m of perRoundMetrics; track m) {
+            <mat-option [value]="m">{{ m }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
+
+    <div class="grid two-col">
+      <mat-form-field appearance="outline">
+        <mat-label>Target weight (lb)</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          step="any"
+          [ngModel]="targetWeight()"
+          (ngModelChange)="targetWeight.set($event)"
+          name="targetWeight"
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Duration (hh:mm:ss)</mat-label>
+        <input
+          matInput
+          [ngModel]="duration()"
+          (ngModelChange)="duration.set($event)"
+          name="duration"
+          placeholder="00:01:30"
+        />
+      </mat-form-field>
+    </div>
+
+    <div class="grid three-col">
+      <mat-form-field appearance="outline">
+        <mat-label>Target distance</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          step="any"
+          [ngModel]="targetDistance()"
+          (ngModelChange)="targetDistance.set($event)"
+          name="targetDistance"
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Unit</mat-label>
+        <mat-select
+          [ngModel]="targetDistanceUnit()"
+          (ngModelChange)="targetDistanceUnit.set($event)"
+          name="targetDistanceUnit"
+        >
+          @for (u of distanceUnits; track u) {
+            <mat-option [value]="u">{{ u }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Target calories</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          step="any"
+          [ngModel]="targetCalories()"
+          (ngModelChange)="targetCalories.set($event)"
+          name="targetCalories"
+        />
+      </mat-form-field>
+    </div>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="onCancel()">Cancel</button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    [disabled]="!canSave()"
+    (click)="onSave()"
+  >
+    {{ data.mode === 'add' ? 'Add' : 'Save' }}
+  </button>
+</mat-dialog-actions>

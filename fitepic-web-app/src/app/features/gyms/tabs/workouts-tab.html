@@ -1,0 +1,112 @@
+<div class="tab-toolbar">
+  <span class="tab-toolbar-title">Workout library</span>
+  <mat-checkbox
+    [checked]="includeArchived()"
+    (change)="onToggleArchived($event.checked)"
+  >
+    Show archived
+  </mat-checkbox>
+  <span class="spacer"></span>
+  @if (canAuthor()) {
+    <button mat-flat-button color="primary" (click)="openCreate()">
+      <mat-icon>add</mat-icon>
+      New workout
+    </button>
+  }
+</div>
+
+@if (loading()) {
+  <div class="placeholder">Loading workouts…</div>
+} @else if (error()) {
+  <mat-card class="info-card">
+    <mat-card-content>{{ error() }}</mat-card-content>
+  </mat-card>
+} @else if (rows().length === 0) {
+  <mat-card class="info-card">
+    <mat-card-content>
+      @if (canAuthor()) {
+        No workouts in this library yet — add one to start programming.
+      } @else {
+        This gym has no workouts to show.
+      }
+    </mat-card-content>
+  </mat-card>
+} @else {
+  <mat-card class="library-card">
+    <mat-card-content>
+      <table mat-table [dataSource]="rows()" class="library-table">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Name</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="name-cell">
+              <span class="workout-name">{{ row.name || 'Untitled workout' }}</span>
+              @if (row.instructions) {
+                <span class="workout-instructions">{{ row.instructions }}</span>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef>Type</th>
+          <td mat-cell *matCellDef="let row">{{ row.workoutType || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="updated">
+          <th mat-header-cell *matHeaderCellDef>Updated</th>
+          <td mat-cell *matCellDef="let row">{{ formatUpdated(row.updatedAt) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.isArchived) {
+              <span class="status-chip status-chip-archived">Archived</span>
+            } @else {
+              <span class="status-chip status-chip-active">Active</span>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="actions-col"></th>
+          <td mat-cell *matCellDef="let row" class="actions-col">
+            @if (canAuthor()) {
+              <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Actions">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="openEdit(row)">
+                  <mat-icon>edit</mat-icon>
+                  Edit
+                </button>
+                @if (row.isArchived) {
+                  <button mat-menu-item (click)="toggleArchive(row)">
+                    <mat-icon>unarchive</mat-icon>
+                    Restore
+                  </button>
+                } @else {
+                  <button mat-menu-item (click)="toggleArchive(row)">
+                    <mat-icon>archive</mat-icon>
+                    Archive
+                  </button>
+                }
+                <button mat-menu-item (click)="deleteWorkout(row)">
+                  <mat-icon>delete</mat-icon>
+                  Delete
+                </button>
+              </mat-menu>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          [class.archived-row]="row.isArchived"
+        ></tr>
+      </table>
+    </mat-card-content>
+  </mat-card>
+}

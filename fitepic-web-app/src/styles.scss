@@ -19,7 +19,8 @@ body {
   color: var(--fe-text);
 }
 
-.fe-info-dialog {
+.fe-info-dialog,
+.fe-dialog {
   --mdc-dialog-container-color: var(--fe-surface);
   --mdc-dialog-subhead-color: var(--fe-text);
   --mdc-dialog-supporting-text-color: var(--fe-text);
@@ -27,6 +28,29 @@ body {
   .mat-mdc-dialog-surface {
     background-color: var(--fe-surface);
     color: var(--fe-text);
+  }
+}
+
+// Standard layout for stacked form dialogs (gym CRUD, invites, training groups,
+// workouts). Add `panelClass: 'fe-dialog'` to the `MatDialog.open()` call to opt
+// in to both the surface fix above and the form layout below.
+.fe-dialog {
+  .dialog-form {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 360px;
+  }
+
+  .dialog-form mat-form-field {
+    width: 100%;
+  }
+
+  .dialog-note {
+    margin: 0 0 12px;
+    font-size: 13px;
+    opacity: 0.75;
+    line-height: 1.5;
   }
 }
 

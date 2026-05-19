@@ -1,0 +1,103 @@
+@if (loading()) {
+  <div class="placeholder-card">Loading members…</div>
+} @else if (error()) {
+  <mat-card class="info-card">
+    <mat-card-content>
+      <p class="info-text">{{ error() }}</p>
+    </mat-card-content>
+  </mat-card>
+} @else {
+  <mat-card class="members-card">
+    <mat-card-content>
+      <table mat-table [dataSource]="rows()" class="members-table">
+        <ng-container matColumnDef="athlete">
+          <th mat-header-cell *matHeaderCellDef>Member</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="member-cell">
+              <span class="member-name">
+                {{ row.athleteDisplayName || row.athleteEmail || row.athleteId }}
+                @if (row.isCallerSelf) {
+                  <span class="self-tag">(you)</span>
+                }
+              </span>
+              @if (row.athleteEmail && row.athleteDisplayName) {
+                <span class="member-email">{{ row.athleteEmail }}</span>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="role">
+          <th mat-header-cell *matHeaderCellDef>Role</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="role-chip" [attr.data-role]="row.role">{{ row.role }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="joinedAt">
+          <th mat-header-cell *matHeaderCellDef>Joined</th>
+          <td mat-cell *matCellDef="let row">{{ formatJoinedAt(row.joinedAt) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="actions-col"></th>
+          <td mat-cell *matCellDef="let row" class="actions-col">
+            @if (
+              canPromoteToCoach(row) ||
+              canDemoteToAthlete(row) ||
+              canGrantAdmin(row) ||
+              canRevokeAdmin(row) ||
+              canRemove(row) ||
+              canLeave(row)
+            ) {
+              <button mat-icon-button [matMenuTriggerFor]="rowMenu" aria-label="Actions">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #rowMenu="matMenu">
+                @if (canPromoteToCoach(row)) {
+                  <button mat-menu-item (click)="changeRole(row, 'Coach')">
+                    <mat-icon>upgrade</mat-icon>
+                    Make Coach
+                  </button>
+                }
+                @if (canDemoteToAthlete(row)) {
+                  <button mat-menu-item (click)="changeRole(row, 'Athlete')">
+                    <mat-icon>downgrade</mat-icon>
+                    Demote to Athlete
+                  </button>
+                }
+                @if (canGrantAdmin(row)) {
+                  <button mat-menu-item (click)="changeRole(row, 'Admin')">
+                    <mat-icon>admin_panel_settings</mat-icon>
+                    Grant Admin
+                  </button>
+                }
+                @if (canRevokeAdmin(row)) {
+                  <button mat-menu-item (click)="changeRole(row, 'Coach')">
+                    <mat-icon>person</mat-icon>
+                    Revoke Admin (→ Coach)
+                  </button>
+                }
+                @if (canRemove(row)) {
+                  <button mat-menu-item (click)="remove(row)">
+                    <mat-icon>person_remove</mat-icon>
+                    Remove
+                  </button>
+                }
+                @if (canLeave(row)) {
+                  <button mat-menu-item (click)="leave()">
+                    <mat-icon>logout</mat-icon>
+                    Leave gym
+                  </button>
+                }
+              </mat-menu>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </mat-card-content>
+  </mat-card>
+}

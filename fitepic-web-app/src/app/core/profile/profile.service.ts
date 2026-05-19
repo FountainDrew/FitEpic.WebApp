@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { ApiConfiguration } from '../api/generated/api-configuration';
 import { apiWebappAthletesProfileV1Get } from '../api/generated/fn/web-app-athletes/api-webapp-athletes-profile-v-1-get';
 import { apiWebappAthletesProfileV1Put } from '../api/generated/fn/web-app-athletes/api-webapp-athletes-profile-v-1-put';
+import { apiGymsMeOwnerFlagPut } from '../api/generated/fn/gyms/api-gyms-me-owner-flag-put';
 import { MyAthleteProfileResponse } from '../api/generated/models/my-athlete-profile-response';
 import { UpdateMyAthleteProfileRequest } from '../api/generated/models/update-my-athlete-profile-request';
 
@@ -55,6 +56,29 @@ export class ProfileService {
     );
     this.profileSignal.set(res.body);
     return res.body;
+  }
+
+  /**
+   * Toggles the caller's `IsGymOwner` flag via `PUT /api/gyms/me/owner-flag`.
+   * On success, patches the in-memory profile from the response — the profile GET
+   * is `Cache-Control: private, max-age=60`, so a refetch would race the cache; the
+   * optimistic update keeps the UI in sync without a follow-up request. On failure
+   * (e.g., `GymsStillOwned` when toggling off), the in-memory state is left
+   * untouched and the caller decides how to surface the error.
+   */
+  async setGymOwnerFlag(value: boolean): Promise<MyAthleteProfileResponse> {
+    const res = await firstValueFrom(
+      apiGymsMeOwnerFlagPut(this.http, this.config.rootUrl, {
+        body: { isGymOwner: value },
+      }),
+    );
+    const persisted = res.body?.isGymOwner ?? value;
+    const current = this.profileSignal();
+    const next: MyAthleteProfileResponse = current
+      ? { ...current, isGymOwner: persisted }
+      : { isGymOwner: persisted };
+    this.profileSignal.set(next);
+    return next;
   }
 
   /**
