@@ -1,0 +1,125 @@
+<div class="tab-toolbar">
+  <mat-form-field appearance="outline" class="group-select" subscriptSizing="dynamic">
+    <mat-label>Training group</mat-label>
+    <mat-select
+      [ngModel]="selectedGroupId()"
+      (ngModelChange)="onGroupChange($event)"
+      [disabled]="groups().length === 0"
+    >
+      @for (g of groups(); track g.id) {
+        <mat-option [value]="g.id">{{ g.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <div class="week-nav">
+    <button
+      mat-icon-button
+      type="button"
+      (click)="onPreviousWeek()"
+      [disabled]="loading()"
+      matTooltip="Previous week"
+      aria-label="Previous week"
+    >
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <span class="week-range">
+      {{ windowStart() | date:'mediumDate' }} – {{ windowEnd() | date:'mediumDate' }}
+    </span>
+    <button
+      mat-icon-button
+      type="button"
+      (click)="onNextWeek()"
+      [disabled]="loading()"
+      matTooltip="Next week"
+      aria-label="Next week"
+    >
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+    <button mat-stroked-button type="button" (click)="onToday()" [disabled]="loading()">
+      Today
+    </button>
+  </div>
+
+  <span class="spacer"></span>
+
+  @if (canSchedule()) {
+    <button
+      mat-flat-button
+      color="primary"
+      type="button"
+      [disabled]="scheduling() || groups().length === 0"
+      (click)="openSchedule()"
+    >
+      <mat-icon>add</mat-icon>
+      Schedule workout
+    </button>
+  }
+</div>
+
+@if (loading()) {
+  <div class="schedule-skeleton" aria-hidden="true">
+    @for (_ of [0, 1, 2]; track $index) {
+      <section class="day-section">
+        <span class="skeleton skeleton-day-header"></span>
+        <div class="day-list">
+          @for (__ of [0, 1]; track $index) {
+            <span class="skeleton skeleton-schedule-card"></span>
+          }
+        </div>
+      </section>
+    }
+  </div>
+} @else if (error()) {
+  <mat-card class="info-card">
+    <mat-card-content>{{ error() }}</mat-card-content>
+  </mat-card>
+} @else if (groups().length === 0) {
+  <mat-card class="info-card">
+    <mat-card-content>
+      No training groups yet. Create a group before scheduling workouts.
+    </mat-card-content>
+  </mat-card>
+} @else if (dayGroups().length === 0) {
+  <mat-card class="info-card">
+    <mat-card-content>
+      Nothing scheduled for this group in this window.
+      @if (canSchedule()) {
+        Tap "Schedule workout" to add one.
+      }
+    </mat-card-content>
+  </mat-card>
+} @else {
+  @for (group of dayGroups(); track group.date) {
+    <section class="day-section">
+      <header class="day-header">
+        <h3 class="day-date">{{ group.date | date:'EEEE, MMM d' }}</h3>
+      </header>
+      <div class="day-list">
+        @for (row of group.rows; track row.scheduled.id) {
+          <mat-card class="schedule-card">
+            <mat-card-content class="schedule-card-content">
+              <div class="schedule-text">
+                <p class="schedule-title">{{ row.workoutName }}</p>
+                <p class="schedule-meta">
+                  @if (row.scheduled.status; as status) {
+                    <span class="status-chip" [attr.data-status]="status">{{ status }}</span>
+                  }
+                  @if (row.scheduled.isLocked) {
+                    <span
+                      class="locked-tag"
+                      matTooltip="Programmed by staff — template fields are locked"
+                    >
+                      <mat-icon>lock</mat-icon>
+                      locked
+                    </span>
+                  }
+                </p>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    </section>
+  }
+}

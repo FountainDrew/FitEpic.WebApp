@@ -132,6 +132,36 @@ export class WorkoutEditorPage implements OnInit {
   protected readonly returnUrl = signal<string>('/');
   protected readonly gymLocked = signal(false);
 
+  /**
+   * When set (from `?scheduleGroupId=` + `?scheduleDate=` query params), the
+   * editor auto-schedules the saved workout against these groups on `date` in
+   * the same flow. `scheduleGroupId` may repeat in the URL to target multiple
+   * groups in one save. Used by the gym Schedule tab's "Create a new workout"
+   * branch.
+   */
+  protected readonly autoScheduleGroupIds = signal<string[]>([]);
+  protected readonly autoScheduleDate = signal<string | null>(null);
+  protected readonly hasAutoSchedule = computed(
+    () => this.autoScheduleGroupIds().length > 0 && !!this.autoScheduleDate(),
+  );
+
+  /** Names of the groups in `autoScheduleGroupIds`, fetched on init when set. */
+  protected readonly autoScheduleGroupNames = signal<string[]>([]);
+
+  /** Name of the gym when the editor is locked to one via `?gymId=`. */
+  protected readonly lockedGymName = computed(() => {
+    if (!this.gymLocked()) return null;
+    const id = this.workout().gymId;
+    if (!id) return null;
+    return this.gymsService.gyms().find((g) => g.id === id)?.name ?? null;
+  });
+
+  /** Button label flips when auto-schedule is wired so the action is honest. */
+  protected readonly saveLabel = computed(() => {
+    if (this.saving()) return this.hasAutoSchedule() ? 'Saving…' : 'Saving…';
+    return this.hasAutoSchedule() ? 'Save and schedule' : 'Save';
+  });
+
   protected readonly gymOptions = computed<GymOption[]>(() => {
     const me = this.profileService.profile()?.id ?? null;
     const roles = this.roleService.roles();
@@ -171,6 +201,23 @@ export class WorkoutEditorPage implements OnInit {
       });
     }
 
+    // Auto-schedule wiring. Both params must be present; we only schedule
+    // after a successful save AND only when the saved workout is gym-scoped
+    // (the schedule endpoint requires the caller to be Coach/Admin/Owner of
+    // the target group's gym).
+    const scheduleGroupIds = query.getAll('scheduleGroupId');
+    const scheduleDate = query.get('scheduleDate');
+    if (scheduleGroupIds.length > 0 && scheduleDate) {
+      this.autoScheduleGroupIds.set(scheduleGroupIds);
+      this.autoScheduleDate.set(scheduleDate);
+      // Pre-fill a sensible default name. The parser can still override this
+      // on Analyze (handled via `nameEditedByUser` inside the authoring
+      // service), and the user typing in the field also wins.
+      if (!id) {
+        this.authoring.setDefaultName(formatDefaultWorkoutName(scheduleDate));
+      }
+    }
+
     // Make sure the gym picker can render even if the user hit this route
     // directly (e.g., from a deep link).
     if (this.gymsService.gyms().length === 0) {
@@ -185,6 +232,22 @@ export class WorkoutEditorPage implements OnInit {
         await this.profileService.load();
       } catch {
         // Author id will be guarded at save time.
+      }
+    }
+
+    // Resolve group names for the context message when auto-scheduling.
+    if (gymIdParam && this.hasAutoSchedule()) {
+      try {
+        const groups = await this.gymsService.listGroups(gymIdParam);
+        const ids = new Set(this.autoScheduleGroupIds());
+        this.autoScheduleGroupNames.set(
+          groups
+            .filter((g) => g.id && ids.has(g.id))
+            .map((g) => g.name ?? '')
+            .filter((name): name is string => !!name),
+        );
+      } catch {
+        // Fall back to silent — the message will still be useful without names.
       }
     }
 
@@ -211,7 +274,7 @@ export class WorkoutEditorPage implements OnInit {
   }
 
   protected setName(v: string): void {
-    this.authoring.patchWorkout({ name: v });
+    this.authoring.setNameFromUser(v);
   }
   protected setInstructions(v: string): void {
     this.authoring.patchWorkout({ instructions: v });
@@ -288,14 +351,6 @@ export class WorkoutEditorPage implements OnInit {
         );
       }
     });
-  }
-
-  protected onMoveUp(id: string): void {
-    this.authoring.moveExercise(id, 'up');
-  }
-
-  protected onMoveDown(id: string): void {
-    this.authoring.moveExercise(id, 'down');
   }
 
   protected onDropExercise(event: CdkDragDrop<unknown>): void {
@@ -412,10 +467,14 @@ export class WorkoutEditorPage implements OnInit {
         }
         this.authoring.markClean();
         this.guardBypassed = true;
+
+        const scheduleMessage = await this.maybeAutoSchedule(payload.id ?? '');
+
         this.snackBar.open(
-          this.editMode() ? 'Workout updated.' : 'Workout saved.',
+          scheduleMessage ??
+            (this.editMode() ? 'Workout updated.' : 'Workout saved.'),
           'Dismiss',
-          { duration: 2500 },
+          { duration: 3000 },
         );
         await this.router.navigateByUrl(this.returnUrl());
       } catch (err) {
@@ -427,4 +486,67 @@ export class WorkoutEditorPage implements OnInit {
       }
     });
   }
+
+  /**
+   * If `scheduleGroupId` + `scheduleDate` query params are present (i.e. the
+   * editor was launched from the gym Schedule tab's "Create a new workout"
+   * branch), schedule the just-saved workout against every requested group on
+   * `date`. Aggregates per-row outcomes into a single snackbar message. Returns
+   * null if no auto-schedule is requested.
+   */
+  private async maybeAutoSchedule(workoutId: string): Promise<string | null> {
+    const groupIds = this.autoScheduleGroupIds();
+    const date = this.autoScheduleDate();
+    if (groupIds.length === 0 || !date || !workoutId) return null;
+
+    let succeeded = 0;
+    let forbidden = 0;
+    let errored = 0;
+    for (const groupId of groupIds) {
+      try {
+        const sync = await this.workoutsService.syncScheduledWorkout({
+          id: crypto.randomUUID(),
+          workoutId,
+          trainingGroupId: groupId,
+          athleteId: null,
+          scheduledDate: date,
+          status: 'Pending',
+          exerciseLogs: [],
+          updatedAt: new Date().toISOString(),
+        });
+        if (sync?.resolution === 'Forbidden') forbidden += 1;
+        else succeeded += 1;
+      } catch {
+        errored += 1;
+      }
+    }
+
+    const total = groupIds.length;
+    if (succeeded === total && total === 1) return 'Workout saved and scheduled.';
+    if (succeeded === total) return `Workout saved and scheduled for ${total} groups.`;
+    if (succeeded === 0 && forbidden === total) {
+      return 'Workout saved, but you cannot schedule for those groups.';
+    }
+    if (succeeded === 0) {
+      return 'Workout saved, but scheduling failed. Try from the Schedule tab.';
+    }
+    const parts = [`Workout saved and scheduled for ${succeeded} of ${total} groups.`];
+    if (forbidden > 0) parts.push(`${forbidden} rejected.`);
+    if (errored > 0) parts.push(`${errored} failed.`);
+    return parts.join(' ');
+  }
+}
+
+/**
+ * Default workout name used when launching the editor from a scheduling
+ * context. Format: `mddyy_Workout` — month with no leading zero, day
+ * zero-padded to two digits, two-digit year. E.g. `51926_Workout` for
+ * `2026-05-19`, `10526_Workout` for `2026-01-05`.
+ */
+function formatDefaultWorkoutName(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  if (!y || !m || !d) return 'Workout';
+  const dd = String(d).padStart(2, '0');
+  const yy = String(y).slice(-2);
+  return `${m}${dd}${yy}_Workout`;
 }

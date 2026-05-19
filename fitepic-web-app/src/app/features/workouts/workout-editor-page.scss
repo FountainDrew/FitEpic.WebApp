@@ -85,15 +85,37 @@
   opacity: 0.7;
 }
 
-.save-to-row {
+.footer-card-content {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 16px;
+}
+
+.context-message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--fe-text);
+
+  strong {
+    font-weight: 600;
+  }
 }
 
 .save-to-field {
   min-width: 280px;
   max-width: 360px;
+  width: 100%;
+}
+
+.footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--fe-border);
+  margin-top: 4px;
+  padding-top: 12px;
 }
 
 mat-form-field {
@@ -127,7 +149,7 @@ mat-form-field {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 4px 12px;
   border: 1px solid var(--fe-border);
   border-radius: 6px;
   background: var(--fe-surface, transparent);
@@ -141,17 +163,12 @@ mat-form-field {
   }
 }
 
-.exercise-order {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
 .drag-handle {
   display: inline-flex;
+  align-items: center;
   cursor: grab;
-  opacity: 0.6;
-  padding: 4px;
+  opacity: 0.5;
+  padding: 4px 2px;
 
   &:hover {
     opacity: 1;
@@ -159,7 +176,13 @@ mat-form-field {
 
   &.disabled {
     cursor: not-allowed;
-    opacity: 0.3;
+    opacity: 0.25;
+  }
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
   }
 }
 
@@ -193,13 +216,15 @@ mat-form-field {
   align-items: center;
   gap: 8px;
   font-weight: 500;
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1.3;
 }
 
 .exercise-meta {
-  font-size: 13px;
-  opacity: 0.75;
-  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 1px;
+  line-height: 1.3;
 }
 
 .exercise-actions {

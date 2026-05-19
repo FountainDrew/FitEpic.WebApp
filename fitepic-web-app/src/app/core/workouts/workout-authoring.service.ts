@@ -26,6 +26,15 @@ export class WorkoutAuthoringService {
   private readonly exercisesSignal = signal<DraftExercise[]>([]);
   private readonly dirtySignal = signal(false);
 
+  /**
+   * True once the user has typed in the name input. System-supplied names
+   * (defaults set by `setDefaultName`, parser results set by
+   * `loadFromParseResult`) don't flip this. We use it to decide whether a
+   * later parse can overwrite the current name: it can iff the user hasn't
+   * taken ownership of the field yet.
+   */
+  private readonly nameEditedByUser = signal(false);
+
   readonly workout = this.workoutSignal.asReadonly();
   readonly exercises = this.exercisesSignal.asReadonly();
   readonly dirty = this.dirtySignal.asReadonly();
@@ -43,6 +52,28 @@ export class WorkoutAuthoringService {
   patchWorkout(patch: Partial<DraftWorkout>): void {
     this.workoutSignal.update((w) => ({ ...w, ...patch }));
     this.dirtySignal.set(true);
+  }
+
+  /**
+   * Called when the user types into the name input. Records user-ownership so
+   * later parses leave the name alone.
+   */
+  setNameFromUser(name: string): void {
+    this.workoutSignal.update((w) => ({ ...w, name }));
+    this.nameEditedByUser.set(true);
+    this.dirtySignal.set(true);
+  }
+
+  /**
+   * System-supplied default (e.g., "Workout - 5_19_26" when launched from the
+   * Schedule tab). Only applies when the user hasn't typed their own name yet,
+   * and doesn't mark the draft dirty — closing without further edits should
+   * not prompt a "discard changes?" dialog.
+   */
+  setDefaultName(name: string): void {
+    if (this.nameEditedByUser()) return;
+    if (this.workoutSignal().name.trim().length > 0) return;
+    this.workoutSignal.update((w) => ({ ...w, name }));
   }
 
   // ─── Exercise operations ───────────────────────────────────────────────
@@ -128,14 +159,21 @@ export class WorkoutAuthoringService {
     this.workoutSignal.set(this.emptyWorkout());
     this.exercisesSignal.set([]);
     this.dirtySignal.set(false);
+    this.nameEditedByUser.set(false);
   }
 
   /** Initial parse — replaces the current draft with the parser's result. */
   loadFromParseResult(result: ParseWorkoutResponse, rawText: string): void {
     const current = this.workoutSignal();
+    // Name precedence: user-edited > parser-supplied > current (system default
+    // or empty). This lets a `Workout - m_d_yy` default from scheduling
+    // context be replaced when the parser identifies a real name like "Fran".
+    const nextName = this.nameEditedByUser()
+      ? current.name
+      : (result.name?.trim() || current.name);
     this.workoutSignal.set({
       ...current,
-      name: current.name || (result.name ?? ''),
+      name: nextName,
       instructions: result.instructions ?? current.instructions,
       rawText: rawText,
       workoutType: coerceWorkoutType(result.workoutType) ?? current.workoutType,
@@ -143,8 +181,13 @@ export class WorkoutAuthoringService {
       roundCount: result.roundCount ?? current.roundCount,
       duration: result.duration ?? current.duration,
     });
+    // Initial parse sets `isNew: false` so the row baseline matches a freshly
+    // loaded workout. The NEW badge then only fires for things genuinely added
+    // mid-session — `addExercise` (manual picker) and the merge path's
+    // newly-detected rows. Otherwise every row on a fresh create would carry
+    // the badge and the signal becomes noise.
     this.exercisesSignal.set(
-      (result.exercises ?? []).map((e, i) => parsedToDraft(e, i, /* isNew */ true)),
+      (result.exercises ?? []).map((e, i) => parsedToDraft(e, i, /* isNew */ false)),
     );
     this.dirtySignal.set(true);
   }
@@ -241,6 +284,9 @@ export class WorkoutAuthoringService {
       })),
     );
     this.dirtySignal.set(false);
+    // Loaded server workout already has a real name — treat the field as
+    // user-owned so a later parse doesn't clobber it.
+    this.nameEditedByUser.set(true);
   }
 
   markClean(): void {

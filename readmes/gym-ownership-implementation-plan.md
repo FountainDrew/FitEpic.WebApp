@@ -159,15 +159,20 @@ The core programming flow.
 
 ### Scheduling
 
-- [ ] **Blocked on contract Q11.** The current `ScheduledWorkoutRequest` schema still has `athleteId` as `required` and no `trainingGroupId` field. The endpoint description references group scheduling but the schema doesn't yet match. Filed as Q11; `ScheduleTab` ships as a placeholder explaining the wait.
-- [ ] Once Q11 lands and the schema is updated: build calendar fetch using `from`/`to`, `ScheduleWorkoutDialog`, lock-state rendering, ScoreResult invariant audit.
-- [ ] Audit [features/dashboard](../fitepic-web-app/src/app/features/dashboard/) for callsites that assume `AthleteId` is non-null once `ScheduledWorkoutResponse.athleteId` is consumed for nullable scheduling.
+- [x] **Q11 resolved 2026-05-19** — schema updated; `athleteId` nullable, `trainingGroupId` added. Regenerated client picks it up.
+- [x] Schedule tab fetches with `from` / `to` over a 7-day window with prev / next / today navigation.
+- [x] `ScheduleWorkoutDialog` (pick group + workout + date); submits via `syncScheduledWorkout` with `athleteId: null` and `trainingGroupId` set.
+- [x] Locked-row indicator surfaces the `isLocked = true` server enforcement on group rows.
+- [x] Dashboard audit — dashboard consumes the server-projected `DashboardWorkoutCardResponse`, not raw `ScheduledWorkoutResponse`. No nullable-`athleteId` exposure on that path.
+- [ ] Status transitions (mark complete / log score) — deferred to a follow-up. The server enforces "non-null `scoreResult` → `status == Completed`", so any future log-results dialog must honor that invariant.
 
-### Manual QA (deferred until Q11)
+### Manual QA
 
 - [ ] Author a workout → archive → verify hidden from default view.
 - [ ] Try to delete a workout with completed history → confirm `BlockedByHistory` UX → "Archive instead" → succeed.
-- [ ] Delete a workout with only pending instances once scheduling lands.
+- [ ] Delete a workout with only pending instances → cascade-soft-delete on scheduled instances.
+- [ ] Schedule a workout for a group as Coach/Admin/Owner → verify it appears in the week.
+- [ ] Schedule attempt as a non-staff member → expect `Forbidden` per-row resolution.
 
 ---
 

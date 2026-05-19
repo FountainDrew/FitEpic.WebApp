@@ -37,9 +37,34 @@
 }
 
 .assign-card,
-.roster-card {
+.roster-card,
+.personal-feed-card {
   border: 1px solid var(--fe-border);
   margin-bottom: 16px;
+}
+
+.personal-feed-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.personal-feed-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.personal-feed-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.personal-feed-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  opacity: 0.7;
+  line-height: 1.4;
 }
 
 .assign-row {

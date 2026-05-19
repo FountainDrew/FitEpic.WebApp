@@ -285,6 +285,8 @@ export type { ApiGymsGymIdGroupsGroupIdMembersAthleteIdDelete$Params as ApiGymsG
 export { apiGymsGymIdGroupsGroupIdMembersAthleteIdDelete as apiGymsGymIdGroupsGroupIdMembersAthleteIdDelete } from './fn/training-groups/api-gyms-gym-id-groups-group-id-members-athlete-id-delete';
 export type { ApiAthletesMeTrainingGroupMembershipsGet$Params as ApiAthletesMeTrainingGroupMembershipsGet$Params } from './fn/training-groups/api-athletes-me-training-group-memberships-get';
 export { apiAthletesMeTrainingGroupMembershipsGet as apiAthletesMeTrainingGroupMembershipsGet } from './fn/training-groups/api-athletes-me-training-group-memberships-get';
+export type { ApiGymsGymIdGroupsGroupIdScheduledWorkoutsGet$Params as ApiGymsGymIdGroupsGroupIdScheduledWorkoutsGet$Params } from './fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-get';
+export { apiGymsGymIdGroupsGroupIdScheduledWorkoutsGet as apiGymsGymIdGroupsGroupIdScheduledWorkoutsGet } from './fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-get';
 export type { UserRegisterPost$Params as UserRegisterPost$Params } from './fn/user/user-register-post';
 export { userRegisterPost as userRegisterPost } from './fn/user/user-register-post';
 export type { UserSignInPost$Params as UserSignInPost$Params } from './fn/user/user-sign-in-post';

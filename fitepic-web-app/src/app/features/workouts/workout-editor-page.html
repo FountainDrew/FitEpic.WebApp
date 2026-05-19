@@ -1,20 +1,10 @@
 <header class="editor-header">
-  <button mat-icon-button aria-label="Cancel" (click)="onCancel()">
+  <button mat-icon-button aria-label="Back" (click)="onCancel()">
     <mat-icon>arrow_back</mat-icon>
   </button>
   <h1 class="editor-title">
     {{ editMode() ? 'Edit workout' : 'New workout' }}
   </h1>
-  <span class="spacer"></span>
-  <button mat-button (click)="onCancel()">Cancel</button>
-  <button
-    mat-flat-button
-    color="primary"
-    [disabled]="!canSave()"
-    (click)="onSave()"
-  >
-    {{ saving() ? 'Saving…' : 'Save' }}
-  </button>
 </header>
 
 @if (editLoadError(); as err) {
@@ -166,46 +156,21 @@
           cdkDropList
           (cdkDropListDropped)="onDropExercise($event)"
         >
-          @for (
-            exercise of visibleExercises();
-            track exercise.id;
-            let i = $index;
-            let last = $last
-          ) {
+          @for (exercise of visibleExercises(); track exercise.id) {
             <li
               class="exercise-row"
               [class.removed]="exercise.isRemoved"
               cdkDrag
               [cdkDragDisabled]="exercise.isRemoved"
             >
-              <div class="exercise-order">
-                <span
-                  class="drag-handle"
-                  cdkDragHandle
-                  [class.disabled]="exercise.isRemoved"
-                  aria-label="Drag to reorder"
-                >
-                  <mat-icon>drag_indicator</mat-icon>
-                </span>
-                <button
-                  mat-icon-button
-                  type="button"
-                  [disabled]="i === 0 || exercise.isRemoved"
-                  (click)="onMoveUp(exercise.id)"
-                  aria-label="Move up"
-                >
-                  <mat-icon>arrow_upward</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  type="button"
-                  [disabled]="last || exercise.isRemoved"
-                  (click)="onMoveDown(exercise.id)"
-                  aria-label="Move down"
-                >
-                  <mat-icon>arrow_downward</mat-icon>
-                </button>
-              </div>
+              <span
+                class="drag-handle"
+                cdkDragHandle
+                [class.disabled]="exercise.isRemoved"
+                aria-label="Drag to reorder"
+              >
+                <mat-icon>drag_indicator</mat-icon>
+              </span>
               <div class="exercise-body">
                 <div class="exercise-title">
                   <span class="exercise-name">{{ exercise.userEnteredExerciseName }}</span>
@@ -216,7 +181,11 @@
                     <span class="badge badge-removed">REMOVED</span>
                   }
                 </div>
-                <div class="exercise-meta">{{ exerciseSummary(exercise) }}</div>
+                @if (exerciseSummary(exercise); as summary) {
+                  @if (summary !== '—') {
+                    <div class="exercise-meta">{{ summary }}</div>
+                  }
+                }
               </div>
               <div class="exercise-actions">
                 @if (exercise.isRemoved) {
@@ -264,24 +233,60 @@
     </mat-card-content>
   </mat-card>
 
-  <!-- Save-to footer. -->
+  <!-- Context / save-to footer. When the editor is locked to a gym the
+       picker is replaced with a sentence describing where the workout will
+       land and (when scheduling) when and for which groups. -->
   <mat-card class="editor-card">
-    <mat-card-content class="save-to-row">
-      <mat-form-field appearance="outline" class="save-to-field">
-        <mat-label>Save to</mat-label>
-        <mat-select
-          [ngModel]="workout().gymId"
-          (ngModelChange)="setGym($event)"
-          [disabled]="gymOptions().length <= 1"
-        >
-          @for (opt of gymOptions(); track opt.gymId) {
-            <mat-option [value]="opt.gymId">{{ opt.label }}</mat-option>
+    <mat-card-content class="footer-card-content">
+      @if (gymLocked()) {
+        <p class="context-message">
+          Workout will be added to
+          <strong>{{ lockedGymName() || 'this gym' }}</strong>
+          workout library
+          @if (hasAutoSchedule()) {
+            and scheduled for
+            <strong>{{ autoScheduleDate() }}</strong>
+            for training groups:
+            <strong>{{
+              autoScheduleGroupNames().length
+                ? autoScheduleGroupNames().join(', ')
+                : autoScheduleGroupIds().length + ' group(s)'
+            }}</strong
+            >.
+          } @else {
+            .
           }
-        </mat-select>
-        @if (gymOptions().length <= 1) {
-          <mat-hint>You only have one library available.</mat-hint>
-        }
-      </mat-form-field>
+        </p>
+      } @else {
+        <mat-form-field appearance="outline" class="save-to-field">
+          <mat-label>Save to</mat-label>
+          <mat-select
+            [ngModel]="workout().gymId"
+            (ngModelChange)="setGym($event)"
+            [disabled]="gymOptions().length <= 1"
+          >
+            @for (opt of gymOptions(); track opt.gymId) {
+              <mat-option [value]="opt.gymId">{{ opt.label }}</mat-option>
+            }
+          </mat-select>
+          @if (gymOptions().length <= 1) {
+            <mat-hint>You only have one library available.</mat-hint>
+          }
+        </mat-form-field>
+      }
+
+      <div class="footer-actions">
+        <button mat-button type="button" (click)="onCancel()">Cancel</button>
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          [disabled]="!canSave()"
+          (click)="onSave()"
+        >
+          {{ saveLabel() }}
+        </button>
+      </div>
     </mat-card-content>
   </mat-card>
 </div>

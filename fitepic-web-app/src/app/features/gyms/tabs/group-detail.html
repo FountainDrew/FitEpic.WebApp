@@ -19,12 +19,33 @@
     }
   </header>
 
+  @if (canTogglePersonalFeed()) {
+    <mat-card class="personal-feed-card">
+      <mat-card-content class="personal-feed-row">
+        <div class="personal-feed-text">
+          <p class="personal-feed-title">Show on my personal calendar</p>
+          <p class="personal-feed-hint">
+            Toggle on to see this group's scheduled workouts on your own training
+            calendar. Your role-based ability to oversee the group is unaffected
+            either way.
+          </p>
+        </div>
+        <mat-slide-toggle
+          [checked]="subscribedToFeed()"
+          [disabled]="personalFeedSaving()"
+          (change)="onTogglePersonalFeed($event.checked)"
+          aria-label="Show this group's workouts on my personal calendar"
+        ></mat-slide-toggle>
+      </mat-card-content>
+    </mat-card>
+  }
+
   @if (canManage()) {
     <mat-card class="assign-card">
       <mat-card-content>
         <div class="assign-row">
           <mat-form-field appearance="outline" class="assign-field">
-            <mat-label>Add gym member</mat-label>
+            <mat-label>Add athlete</mat-label>
             <mat-select
               [ngModel]="selectedAthleteId()"
               (ngModelChange)="selectedAthleteId.set($event)"
@@ -46,7 +67,7 @@
         </div>
         @if (assignableMembers().length === 0) {
           <p class="muted">
-            Every gym member is already in this group.
+            Every athlete in this gym is already in this group.
           </p>
         }
       </mat-card-content>
@@ -82,7 +103,12 @@
             <th mat-header-cell *matHeaderCellDef class="actions-col"></th>
             <td mat-cell *matCellDef="let row" class="actions-col">
               @if (canManage()) {
-                <button mat-icon-button (click)="remove(row)" aria-label="Remove">
+                <button
+                  mat-icon-button
+                  (click)="remove(row)"
+                  matTooltip="Remove from this group"
+                  aria-label="Remove from this group"
+                >
                   <mat-icon>person_remove</mat-icon>
                 </button>
               }

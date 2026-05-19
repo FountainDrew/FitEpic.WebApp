@@ -19,6 +19,31 @@ body {
   color: var(--fe-text);
 }
 
+// `mat-select` opens its option list in a CDK overlay outside any component's
+// view encapsulation. Like the menu and dialog panels above, M3 doesn't apply
+// the surface token to it by default, so the list renders transparent and the
+// dialog content bleeds through. Force the surface color globally.
+.mat-mdc-select-panel {
+  --mat-select-panel-background-color: var(--fe-surface);
+  background-color: var(--fe-surface);
+  color: var(--fe-text);
+}
+
+// Same story for `mat-autocomplete`, used by future picker UX.
+.mat-mdc-autocomplete-panel {
+  --mat-autocomplete-background-color: var(--fe-surface);
+  background-color: var(--fe-surface);
+  color: var(--fe-text);
+}
+
+// Datepicker calendar overlay renders via the same CDK overlay pipeline.
+.mat-datepicker-content {
+  --mat-datepicker-calendar-container-background-color: var(--fe-surface);
+  --mat-datepicker-calendar-container-text-color: var(--fe-text);
+  background-color: var(--fe-surface);
+  color: var(--fe-text);
+}
+
 .fe-info-dialog,
 .fe-dialog {
   --mdc-dialog-container-color: var(--fe-surface);
@@ -40,6 +65,10 @@ body {
     flex-direction: column;
     gap: 4px;
     min-width: 360px;
+    // Outlined mat-form-fields render their floating label above the input
+    // bounds. Without a few pixels of top breathing room, the first label gets
+    // clipped against the dialog content's top edge.
+    padding-top: 8px;
   }
 
   .dialog-form mat-form-field {

@@ -3915,7 +3915,7 @@
           "Mobile - ScheduledWorkouts"
         ],
         "summary": "Retrieve scheduled workouts for the authenticated athlete on a single date or across a\r\ndate range.",
-        "description": "Returns the current live state for all non-deleted scheduled workouts within the chosen\r\nwindow. The visibility union is server-computed: caller's personal rows plus explicit\r\ntraining-group memberships (with the mid-flight rule per requirements §7.1) plus\r\nimplicit Coach/Admin/Owner participation in every group of their gyms.\r\n            \r\nThree calling shapes are supported:\r\n<list type=\"bullet\"><item><description>Single day: pass `date`.</description></item><item><description>Range: pass both `from` and `to` (inclusive).</description></item><item><description>If `from`/`to` are present, they take precedence and `date` is ignored.</description></item></list>\r\n            \r\nAt least one of `date` or the `from`/`to` pair must be provided. `to`\r\nmust be on or after `from`.\r\n            \r\nEach record includes its full hydrated `exerciseLogs` array.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Returns the current live state for all non-deleted scheduled workouts within the chosen\r\nwindow. The visibility union is server-computed: caller's personal rows plus explicit\r\ntraining-group memberships (with the mid-flight rule per requirements §7.1).\r\n**v6 (2026-05-19):** the previous implicit Coach/Admin/Owner participation branch was\r\ndropped from this endpoint — staff who want a group's scheduled workouts on their own\r\ncalendar must hold an explicit `TrainingGroupMembership` row. For an oversight view\r\nof a group's schedule without joining as a participant, see\r\n`GET /api/gyms/{gymId}/groups/{groupId}/scheduled-workouts`.\r\n            \r\nThree calling shapes are supported:\r\n<list type=\"bullet\"><item><description>Single day: pass `date`.</description></item><item><description>Range: pass both `from` and `to` (inclusive).</description></item><item><description>If `from`/`to` are present, they take precedence and `date` is ignored.</description></item></list>\r\n            \r\nAt least one of `date` or the `from`/`to` pair must be provided. `to`\r\nmust be on or after `from`.\r\n            \r\nEach record includes its full hydrated `exerciseLogs` array.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "date",
@@ -3988,7 +3988,7 @@
           "Mobile - ScheduledWorkouts"
         ],
         "summary": "Retrieve scheduled workouts for the authenticated athlete on a single date or across a\r\ndate range.",
-        "description": "Returns the current live state for all non-deleted scheduled workouts within the chosen\r\nwindow. The visibility union is server-computed: caller's personal rows plus explicit\r\ntraining-group memberships (with the mid-flight rule per requirements §7.1) plus\r\nimplicit Coach/Admin/Owner participation in every group of their gyms.\r\n            \r\nThree calling shapes are supported:\r\n<list type=\"bullet\"><item><description>Single day: pass `date`.</description></item><item><description>Range: pass both `from` and `to` (inclusive).</description></item><item><description>If `from`/`to` are present, they take precedence and `date` is ignored.</description></item></list>\r\n            \r\nAt least one of `date` or the `from`/`to` pair must be provided. `to`\r\nmust be on or after `from`.\r\n            \r\nEach record includes its full hydrated `exerciseLogs` array.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Returns the current live state for all non-deleted scheduled workouts within the chosen\r\nwindow. The visibility union is server-computed: caller's personal rows plus explicit\r\ntraining-group memberships (with the mid-flight rule per requirements §7.1).\r\n**v6 (2026-05-19):** the previous implicit Coach/Admin/Owner participation branch was\r\ndropped from this endpoint — staff who want a group's scheduled workouts on their own\r\ncalendar must hold an explicit `TrainingGroupMembership` row. For an oversight view\r\nof a group's schedule without joining as a participant, see\r\n`GET /api/gyms/{gymId}/groups/{groupId}/scheduled-workouts`.\r\n            \r\nThree calling shapes are supported:\r\n<list type=\"bullet\"><item><description>Single day: pass `date`.</description></item><item><description>Range: pass both `from` and `to` (inclusive).</description></item><item><description>If `from`/`to` are present, they take precedence and `date` is ignored.</description></item></list>\r\n            \r\nAt least one of `date` or the `from`/`to` pair must be provided. `to`\r\nmust be on or after `from`.\r\n            \r\nEach record includes its full hydrated `exerciseLogs` array.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "date",
@@ -5773,7 +5773,7 @@
           "Training Groups"
         ],
         "summary": "List the explicit members of a training group. Coach, Admin, or Owner only.",
-        "description": "Does <b>not</b> include Coaches/Admins/Owner — they are implicit participants in every\r\ngroup in their gym and do not have membership rows.\r\n            \r\nPass `since` for delta sync.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Returns every explicit `TrainingGroupMembership` row for the group. **v6\r\n(2026-05-19):** Coaches/Admins/Owner may appear in this list when they have explicitly\r\njoined the group to opt their personal feed in. Staff who have only role-based oversight\r\n(no explicit membership row) will not appear here — they still have full authorization\r\nto view, edit, and schedule for the group via their role.\r\n            \r\nPass `since` for delta sync.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "gymId",
@@ -5961,6 +5961,134 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/{gymId}/groups/{groupId}/scheduled-workouts": {
+      "get": {
+        "tags": [
+          "Training Groups"
+        ],
+        "summary": "Per-group oversight view of scheduled workouts. Coach/Admin/Owner only.",
+        "description": "Returns every scheduled workout targeted at the group, ignoring the caller's\r\n`TrainingGroupMembership` status. Authorization is by role (Coach/Admin/Owner of\r\nthe gym); no mid-flight rule applies.\r\n            \r\n**v6 (2026-05-19).** This is the staff oversight surface for \"show me what's scheduled\r\nfor Group X\" without polluting the caller's personal `GET /api/mobile/scheduled-workouts`\r\nfeed. Athletes use the personal endpoint, which now requires explicit\r\n`TrainingGroupMembership` for group visibility.\r\n            \r\nPass `since` for delta-style consumption (returns tombstones). Pass `from`/\r\n`to` for a date range. Both modes can be combined with paging.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "description": "Group ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Optional delta watermark.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Optional inclusive `ScheduledDate` lower bound.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Optional inclusive `ScheduledDate` upper bound.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "1-based page number. Defaults to 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Page size. Defaults to 100, capped at 500.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the page of scheduled workouts plus a server timestamp + pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledWorkoutSyncResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid date range (`to < from`) or only one of `from`/`to` supplied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not Coach, Admin, or Owner of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Gym or group not found, or the group does not belong to the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
                 }
               }
             }
@@ -8837,7 +8965,6 @@
       },
       "ScheduledWorkoutRequest": {
         "required": [
-          "athleteId",
           "exerciseLogs",
           "id",
           "scheduledDate",
@@ -8858,10 +8985,16 @@
             "example": "a87ff679-a2f3-4e61-8eb5-59fd2b8b45e5"
           },
           "athleteId": {
-            "minLength": 1,
             "type": "string",
-            "description": "The ID of the athlete this workout is scheduled for.",
+            "description": "The athlete this workout is scheduled for. Set for personal-scheduling rows. Null when\r\nFitEpic.Api.Models.Request.ScheduledWorkoutRequest.TrainingGroupId is set (group-targeted scheduling — every athlete in the\r\ngroup sees the row). Exactly one of `AthleteId` / `TrainingGroupId` must be\r\nnon-null per row; sending neither (or both) is rejected.",
+            "nullable": true,
             "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "trainingGroupId": {
+            "type": "string",
+            "description": "The training group this workout is scheduled for. Set by Coach/Admin/Owner when\r\nprogramming for a group; the row becomes visible to every athlete in the group (with\r\nthe mid-flight rule applied per requirements §7.1). Null for personal scheduling\r\n(in which case FitEpic.Api.Models.Request.ScheduledWorkoutRequest.AthleteId must be set). Group rows always come back\r\nfrom the server with `IsLocked = true`.",
+            "nullable": true,
+            "example": "b3fc1d55-9450-4282-89d8-0128e5f7e7cd"
           },
           "programmedByAthleteId": {
             "type": "string",
@@ -8955,9 +9088,15 @@
           },
           "athleteId": {
             "type": "string",
-            "description": "The ID of the athlete this workout is scheduled for.",
+            "description": "The athlete this workout is scheduled for. Set for personal-scheduling rows. Null when\r\nFitEpic.Api.Models.Response.ScheduledWorkoutResponse.TrainingGroupId is set (group-targeted scheduling — every athlete in the\r\ngroup sees the row). Exactly one of `AthleteId` / `TrainingGroupId` is\r\nnon-null on every server-returned row.",
             "nullable": true,
             "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "trainingGroupId": {
+            "type": "string",
+            "description": "The training group this workout is scheduled for. Non-null on group-targeted rows;\r\nnull on personal-scheduling rows. Group rows always come back with\r\nFitEpic.Api.Models.Response.ScheduledWorkoutResponse.IsLocked = `true`.",
+            "nullable": true,
+            "example": "b3fc1d55-9450-4282-89d8-0128e5f7e7cd"
           },
           "programmedByAthleteId": {
             "type": "string",
