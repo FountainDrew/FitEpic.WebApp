@@ -114,16 +114,27 @@
                   }
                 </p>
                 @if (row.body; as body) {
+                  <!-- Interpolation kept inline so `white-space: pre-wrap` on
+                       rawText bodies doesn't render the template's indentation
+                       as a leading space on line 1. -->
                   <div
                     class="schedule-body"
                     [class.body-rawtext]="body.kind === 'rawText'"
-                  >
-                    {{ body.text }}
-                  </div>
+                  >{{ body.text }}</div>
                 }
               </div>
               @if (canSchedule()) {
                 <div class="schedule-actions">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    [disabled]="scheduling()"
+                    (click)="editWorkout(row)"
+                    matTooltip="Edit workout"
+                    aria-label="Edit this workout"
+                  >
+                    <mat-icon>edit</mat-icon>
+                  </button>
                   <button
                     mat-icon-button
                     type="button"

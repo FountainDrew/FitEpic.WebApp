@@ -244,9 +244,7 @@
           <strong>{{ lockedGymName() || 'this gym' }}</strong>
           workout library
           @if (hasAutoSchedule()) {
-            and scheduled for
-            <strong>{{ autoScheduleDate() }}</strong>
-            for training groups:
+            and scheduled for training groups:
             <strong>{{
               autoScheduleGroupNames().length
                 ? autoScheduleGroupNames().join(', ')
@@ -257,6 +255,25 @@
             .
           }
         </p>
+        @if (hasAutoSchedule()) {
+          <mat-form-field appearance="outline" class="schedule-date-field">
+            <mat-label>Scheduled date</mat-label>
+            <input
+              matInput
+              [matDatepicker]="scheduleDatePicker"
+              [ngModel]="autoScheduleDatePicker.get()"
+              (ngModelChange)="autoScheduleDatePicker.set($event)"
+              name="scheduleDate"
+              required
+              readonly
+            />
+            <mat-datepicker-toggle
+              matIconSuffix
+              [for]="scheduleDatePicker"
+            ></mat-datepicker-toggle>
+            <mat-datepicker #scheduleDatePicker></mat-datepicker>
+          </mat-form-field>
+        }
       } @else {
         <mat-form-field appearance="outline" class="save-to-field">
           <mat-label>Save to</mat-label>

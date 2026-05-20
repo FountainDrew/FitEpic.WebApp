@@ -8,6 +8,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
@@ -85,8 +87,9 @@ interface GymOption {
     MatSelectModule,
     MatButtonModule,
     MatIconModule,
+    MatDatepickerModule,
   ],
-  providers: [WorkoutAuthoringService],
+  providers: [WorkoutAuthoringService, provideNativeDateAdapter()],
   templateUrl: './workout-editor-page.html',
   styleUrl: './workout-editor-page.scss',
 })
@@ -144,6 +147,29 @@ export class WorkoutEditorPage implements OnInit {
   protected readonly hasAutoSchedule = computed(
     () => this.autoScheduleGroupIds().length > 0 && !!this.autoScheduleDate(),
   );
+
+  /**
+   * `Date` view of the auto-schedule date for the `mat-datepicker` binding.
+   * Two-way wrapper around {@link autoScheduleDate}, which stores ISO
+   * `YYYY-MM-DD`. Local-time parsing/formatting avoids the UTC drift you get
+   * from `Date#toISOString()` near midnight.
+   */
+  protected readonly autoScheduleDatePicker = {
+    get: () => {
+      const iso = this.autoScheduleDate();
+      return iso ? parseIsoToLocalDate(iso) : null;
+    },
+    set: (d: Date | null) => {
+      const iso = d ? formatLocalDateToIso(d) : null;
+      this.autoScheduleDate.set(iso);
+      // Keep the default workout name in sync with the chosen date. Has no
+      // effect once the user has typed their own name (the authoring service
+      // tracks that flag and ignores the call).
+      if (iso && !this.editMode()) {
+        this.authoring.setDefaultName(formatDefaultWorkoutName(iso));
+      }
+    },
+  };
 
   /** Names of the groups in `autoScheduleGroupIds`, fetched on init when set. */
   protected readonly autoScheduleGroupNames = signal<string[]>([]);
@@ -549,4 +575,19 @@ function formatDefaultWorkoutName(isoDate: string): string {
   const dd = String(d).padStart(2, '0');
   const yy = String(y).slice(-2);
   return `${m}${dd}${yy}_Workout`;
+}
+
+/** Parse `YYYY-MM-DD` to a local-time `Date` (avoids UTC drift). */
+function parseIsoToLocalDate(iso: string): Date | null {
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+/** Format a local-time `Date` as `YYYY-MM-DD`. */
+function formatLocalDateToIso(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }

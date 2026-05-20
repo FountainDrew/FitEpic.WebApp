@@ -225,6 +225,23 @@ export class ScheduleTab implements OnInit {
   }
 
   /**
+   * Edit the workout template behind a scheduled row. Navigates to the workout
+   * editor in edit mode; saving propagates the change to every athlete who has
+   * the workout on their schedule, since gym-scoped workouts are shared.
+   */
+  protected async editWorkout(row: ScheduleRow): Promise<void> {
+    const id = this.gymId();
+    const workoutId = row.scheduled.workoutId;
+    if (!id || !workoutId) return;
+    await this.router.navigate(['/workouts', workoutId, 'edit'], {
+      queryParams: {
+        gymId: id,
+        returnUrl: `/gyms/${id}/schedule`,
+      },
+    });
+  }
+
+  /**
    * Reschedule an existing group-scheduled workout to a new date. Same workout,
    * same group — only the date changes. Any per-athlete results stay attached.
    */
