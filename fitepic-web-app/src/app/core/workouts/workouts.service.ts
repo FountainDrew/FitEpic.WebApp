@@ -26,6 +26,15 @@ export class WorkoutsService {
   private readonly http = inject(HttpClient);
   private readonly config = inject(ApiConfiguration);
 
+  /**
+   * Cache for {@link listPersonalWorkouts}. Repeated opens of the dashboard
+   * schedule slideout don't need to re-page through the workout endpoint — the
+   * library doesn't change between dialog opens unless the caller saves a new
+   * workout, and {@link syncWorkout} invalidates the cache when that happens.
+   */
+  private cachedPersonalWorkouts: WorkoutResponse[] | null = null;
+  private personalWorkoutsInFlight: Promise<WorkoutResponse[]> | null = null;
+
   // ─── Workout templates ─────────────────────────────────────────────────
 
   /** Sends raw text to the parser and returns the structured result. */
@@ -48,7 +57,64 @@ export class WorkoutsService {
     const res = await firstValueFrom(
       apiMobileWorkoutsSyncPost(this.http, this.config.rootUrl, { body: [payload] }),
     );
+    // Any sync touches the user's library (new row, archive flip, delete).
+    // Invalidate the cached personal-library projection so the next slideout
+    // open re-fetches.
+    this.cachedPersonalWorkouts = null;
     return res.body?.results?.[0] ?? null;
+  }
+
+  /**
+   * Returns the caller's personal workout library — workouts they authored
+   * that aren't scoped to any gym. Used by the dashboard's schedule slideout
+   * to show "pick an existing workout to schedule" options. Filters out
+   * archived and soft-deleted rows, sorts by most recently updated.
+   *
+   * Cached after first fetch; {@link syncWorkout} invalidates the cache so
+   * newly-saved workouts appear on the next call. Concurrent callers
+   * (e.g. slideout reopens while still loading) share a single in-flight
+   * request.
+   */
+  async listPersonalWorkouts(options?: {
+    forceRefresh?: boolean;
+  }): Promise<WorkoutResponse[]> {
+    if (!options?.forceRefresh && this.cachedPersonalWorkouts) {
+      return this.cachedPersonalWorkouts;
+    }
+    if (this.personalWorkoutsInFlight) return this.personalWorkoutsInFlight;
+    this.personalWorkoutsInFlight = this.fetchPersonalWorkouts()
+      .then((rows) => {
+        this.cachedPersonalWorkouts = rows;
+        return rows;
+      })
+      .finally(() => {
+        this.personalWorkoutsInFlight = null;
+      });
+    return this.personalWorkoutsInFlight;
+  }
+
+  private async fetchPersonalWorkouts(): Promise<WorkoutResponse[]> {
+    const out: WorkoutResponse[] = [];
+    let page = 1;
+    const pageSize = 100;
+    while (page <= 50) {
+      const res = await firstValueFrom(
+        apiMobileWorkoutsGet(this.http, this.config.rootUrl, { page, pageSize }),
+      );
+      const items = res.body?.items ?? [];
+      for (const w of items) {
+        if (w.gymId) continue; // skip gym-scoped
+        if (w.isDeleted) continue;
+        if (w.isArchived) continue;
+        if (w.isOwner === false) continue; // skip rows from a coach's library
+        out.push(w);
+      }
+      const totalPages = res.body?.totalPages ?? 0;
+      if (page >= totalPages || items.length === 0) break;
+      page += 1;
+    }
+    out.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
+    return out;
   }
 
   /**
@@ -94,6 +160,21 @@ export class WorkoutsService {
       apiMobileScheduledworkoutsGet(this.http, this.config.rootUrl, { from, to }),
     );
     return res.body ?? [];
+  }
+
+  /**
+   * Fetches the caller's `ScheduledWorkoutResponse` for a single row by its
+   * id, restricted to a known date. Useful for action handlers that have the
+   * dashboard's projected `DashboardWorkoutCardResponse` (which carries the
+   * scheduled-workout id and date but not the underlying `workoutId` /
+   * `athleteId` / `trainingGroupId` needed to construct a sync request).
+   */
+  async findScheduledWorkout(
+    id: string,
+    scheduledDate: string,
+  ): Promise<ScheduledWorkoutResponse | null> {
+    const rows = await this.listScheduledWorkouts(scheduledDate, scheduledDate);
+    return rows.find((r) => r.id === id) ?? null;
   }
 
   /**

@@ -1,0 +1,113 @@
+@if (service.row(); as row) {
+  <div class="drawer-backdrop" (click)="close()" aria-hidden="true"></div>
+  <aside
+    class="drawer"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="'gym-drawer-title'"
+  >
+    <header class="drawer-header">
+      <div class="drawer-header-text">
+        <h2 id="gym-drawer-title" class="drawer-title">{{ row.workoutName }}</h2>
+        <div class="drawer-subtitle">
+          @if (row.scheduled.status === 'Completed') {
+            <span class="status-badge status-completed">Completed</span>
+          } @else {
+            <span class="status-badge status-pending">Pending</span>
+          }
+          @if (metaLine()) {
+            <span class="drawer-meta">{{ metaLine() }}</span>
+          }
+        </div>
+      </div>
+      <button mat-icon-button (click)="close()" aria-label="Close">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <div class="drawer-body">
+      <div class="drawer-actions">
+        <button
+          mat-stroked-button
+          type="button"
+          class="drawer-action"
+          [disabled]="actionPending()"
+          (click)="editWorkout()"
+        >
+          <mat-icon>edit</mat-icon>
+          <span>Edit workout</span>
+        </button>
+        <button
+          mat-stroked-button
+          type="button"
+          class="drawer-action"
+          [disabled]="actionPending()"
+          (click)="reschedule()"
+        >
+          <mat-icon>event_repeat</mat-icon>
+          <span>Reschedule</span>
+        </button>
+        <button
+          mat-stroked-button
+          type="button"
+          class="drawer-action drawer-action-warn"
+          [disabled]="actionPending()"
+          (click)="unschedule()"
+        >
+          <mat-icon>event_busy</mat-icon>
+          <span>Unschedule</span>
+        </button>
+      </div>
+
+      @if (row.programmedByName || row.completion) {
+        <section class="drawer-section">
+          <div class="drawer-info-grid">
+            @if (row.programmedByName; as name) {
+              <div class="drawer-info-item">
+                <span class="drawer-info-label">Programmed by</span>
+                <span class="drawer-info-value">{{ name }}</span>
+              </div>
+            }
+            @if (row.completion; as c) {
+              <div class="drawer-info-item">
+                <span class="drawer-info-label">Logged</span>
+                <span class="drawer-info-value">{{ c.logged }} of {{ c.total }}</span>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      @if (hasRawText()) {
+        <section class="drawer-section">
+          <h3 class="section-title">Description</h3>
+          <pre class="raw-text">{{ row.workout!.rawText }}</pre>
+        </section>
+      }
+
+      @if (hasExercises()) {
+        <section class="drawer-section">
+          <h3 class="section-title">Exercises</h3>
+          <ul class="exercise-list">
+            @for (ex of visibleExercises(); track ex.id) {
+              <li class="exercise-item">
+                <div class="exercise-prescribed">
+                  <span class="exercise-name">{{ ex.userEnteredExerciseName }}</span>
+                  @if (exerciseSummary(ex); as summary) {
+                    <span class="exercise-summary">{{ summary }}</span>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (!hasRawText() && !hasExercises()) {
+        <section class="drawer-section">
+          <div class="placeholder">No additional workout info available.</div>
+        </section>
+      }
+    </div>
+  </aside>
+}

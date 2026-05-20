@@ -8,6 +8,7 @@ import { routes } from './app.routes';
 import { provideFitEpicApi } from './core/api/api.providers';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { notGymOwnerInterceptor } from './core/gyms/not-gym-owner.interceptor';
+import { provideProfileBootstrap } from './core/profile/profile.bootstrap';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -16,6 +17,10 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     provideHttpClient(withInterceptors([authInterceptor, notGymOwnerInterceptor])),
     provideFitEpicApi(),
+    // Load the authenticated user's profile during app initialization so the
+    // caller's identity (athlete id, display name, timezone, gym-owner flag,
+    // etc.) is available everywhere without lazy load-on-miss guards.
+    provideProfileBootstrap(),
     // Apply the project's opaque surface + standard form-dialog layout to every
     // dialog by default. Components that need a different look (e.g. the
     // dashboard's `fe-info-dialog`) override `panelClass` per-call. See

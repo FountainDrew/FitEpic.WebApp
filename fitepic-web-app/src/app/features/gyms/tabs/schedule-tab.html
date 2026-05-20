@@ -97,70 +97,11 @@
       </header>
       <div class="day-list">
         @for (row of group.rows; track row.scheduled.id) {
-          <mat-card class="schedule-card">
-            <mat-card-content class="schedule-card-content">
-              <div class="schedule-text">
-                <p class="schedule-title">
-                  {{ row.workoutName }}
-                  @if (row.scheduled.status === 'Completed') {
-                    <span
-                      class="logged-affordance"
-                      matTooltip="You logged this workout"
-                      aria-label="You logged this workout"
-                    >
-                      <mat-icon>check_circle</mat-icon>
-                      logged
-                    </span>
-                  }
-                </p>
-                @if (row.body; as body) {
-                  <!-- Interpolation kept inline so `white-space: pre-wrap` on
-                       rawText bodies doesn't render the template's indentation
-                       as a leading space on line 1. -->
-                  <div
-                    class="schedule-body"
-                    [class.body-rawtext]="body.kind === 'rawText'"
-                  >{{ body.text }}</div>
-                }
-              </div>
-              @if (canSchedule()) {
-                <div class="schedule-actions">
-                  <button
-                    mat-icon-button
-                    type="button"
-                    [disabled]="scheduling()"
-                    (click)="editWorkout(row)"
-                    matTooltip="Edit workout"
-                    aria-label="Edit this workout"
-                  >
-                    <mat-icon>edit</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    type="button"
-                    [disabled]="scheduling()"
-                    (click)="reschedule(row)"
-                    matTooltip="Reschedule"
-                    aria-label="Reschedule this workout"
-                  >
-                    <mat-icon>event_repeat</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    type="button"
-                    [disabled]="scheduling()"
-                    (click)="unschedule(row)"
-                    matTooltip="Unschedule"
-                    aria-label="Unschedule this workout"
-                  >
-                    <mat-icon>event_busy</mat-icon>
-                  </button>
-                </div>
-              }
-            </mat-card-content>
-          </mat-card>
+          <app-gym-schedule-card [row]="row" />
         }
       </div>
     </section>
   }
 }
+
+<app-gym-schedule-drawer />

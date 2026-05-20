@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -27,29 +28,15 @@ import {
   ScheduleWorkoutDialogResult,
 } from '../schedule-workout-dialog';
 import {
-  ConfirmActionDialog,
-  ConfirmActionDialogData,
-} from '../confirm-action-dialog';
-import {
-  RescheduleWorkoutDialog,
-  RescheduleWorkoutDialogData,
-  RescheduleWorkoutDialogResult,
-} from '../reschedule-workout-dialog';
-
-interface ScheduleRow {
-  scheduled: ScheduledWorkoutResponse;
-  workoutName: string;
-  /**
-   * Preview of the workout under the title. `kind: 'rawText'` preserves the
-   * coach's pasted formatting; `kind: 'exercises'` is a compact comma-separated
-   * list of exercise names + brief metrics. Null when neither is available.
-   */
-  body: { kind: 'rawText' | 'exercises'; text: string } | null;
-}
+  GymScheduleCard,
+  GymScheduleCardRow,
+} from '../gym-schedule-card/gym-schedule-card';
+import { GymScheduleDrawer } from '../gym-schedule-drawer/gym-schedule-drawer';
+import { GymScheduleDrawerService } from '../gym-schedule-drawer/gym-schedule-drawer.service';
 
 interface DayGroup {
   date: string;
-  rows: ScheduleRow[];
+  rows: GymScheduleCardRow[];
 }
 
 @Component({
@@ -63,6 +50,8 @@ interface DayGroup {
     MatTooltipModule,
     MatFormFieldModule,
     MatSelectModule,
+    GymScheduleCard,
+    GymScheduleDrawer,
   ],
   templateUrl: './schedule-tab.html',
   styleUrl: './schedule-tab.scss',
@@ -76,6 +65,7 @@ export class ScheduleTab implements OnInit {
   private readonly workoutsService = inject(WorkoutsService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly drawerService = inject(GymScheduleDrawerService);
 
   private readonly scheduleAction = createPendingAction<void>();
 
@@ -88,6 +78,12 @@ export class ScheduleTab implements OnInit {
   protected readonly selectedGroupId = signal<string | null>(null);
   protected readonly scheduled = signal<ScheduledWorkoutResponse[]>([]);
   protected readonly workoutsById = signal<Map<string, WorkoutResponse>>(new Map());
+  /**
+   * Athlete-id → display-name lookup, populated from the gym membership list
+   * plus the gym owner. Used to surface "Programmed by" on each schedule card.
+   * The gym owner doesn't have a membership row so they're added separately.
+   */
+  protected readonly displayNameByAthleteId = signal<Map<string, string>>(new Map());
 
   /** Inclusive start of the visible 7-day window. ISO `YYYY-MM-DD`. */
   protected readonly windowStart = signal<string>(startOfWeekIso(new Date()));
@@ -96,22 +92,28 @@ export class ScheduleTab implements OnInit {
   protected readonly role = computed(() => this.roleService.forGym(this.gymId()));
   protected readonly canSchedule = computed(() => canProgramWorkouts(this.role()));
 
-  protected readonly visibleRows = computed<ScheduleRow[]>(() => {
+  protected readonly visibleRows = computed<GymScheduleCardRow[]>(() => {
     const workouts = this.workoutsById();
+    const names = this.displayNameByAthleteId();
     return this.scheduled()
       .filter((s) => !s.isDeleted)
       .map((s) => {
         const workout = workouts.get(s.workoutId ?? '') ?? null;
+        const programmedById = s.programmedByAthleteId;
         return {
           scheduled: s,
+          workout,
           workoutName: workout?.name ?? 'Untitled workout',
-          body: buildWorkoutBody(workout),
+          programmedByName: programmedById ? (names.get(programmedById) ?? null) : null,
+          // Completion counts come from a per-group results endpoint the API
+          // hasn't exposed yet. Card hides the chip when null.
+          completion: null,
         };
       });
   });
 
   protected readonly dayGroups = computed<DayGroup[]>(() => {
-    const buckets = new Map<string, ScheduleRow[]>();
+    const buckets = new Map<string, GymScheduleCardRow[]>();
     for (const row of this.visibleRows()) {
       const key = row.scheduled.scheduledDate ?? 'unknown';
       const list = buckets.get(key) ?? [];
@@ -134,6 +136,16 @@ export class ScheduleTab implements OnInit {
         void this.loadSchedule(gymId, groupId);
       }
     });
+
+    // Drawer actions (reschedule / unschedule) bump this Subject on success;
+    // reload the visible week so the card list reflects the change.
+    this.drawerService.actionCompleted
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        const gymId = this.gymId();
+        const groupId = this.selectedGroupId();
+        if (gymId && groupId) void this.loadSchedule(gymId, groupId);
+      });
   }
 
   async ngOnInit(): Promise<void> {
@@ -224,128 +236,6 @@ export class ScheduleTab implements OnInit {
     });
   }
 
-  /**
-   * Edit the workout template behind a scheduled row. Navigates to the workout
-   * editor in edit mode; saving propagates the change to every athlete who has
-   * the workout on their schedule, since gym-scoped workouts are shared.
-   */
-  protected async editWorkout(row: ScheduleRow): Promise<void> {
-    const id = this.gymId();
-    const workoutId = row.scheduled.workoutId;
-    if (!id || !workoutId) return;
-    await this.router.navigate(['/workouts', workoutId, 'edit'], {
-      queryParams: {
-        gymId: id,
-        returnUrl: `/gyms/${id}/schedule`,
-      },
-    });
-  }
-
-  /**
-   * Reschedule an existing group-scheduled workout to a new date. Same workout,
-   * same group — only the date changes. Any per-athlete results stay attached.
-   */
-  protected async reschedule(row: ScheduleRow): Promise<void> {
-    const id = this.gymId();
-    const groupId = this.selectedGroupId();
-    const r = row.scheduled;
-    if (!id || !groupId || !r.id || !r.workoutId || !r.scheduledDate) return;
-    const result = await this.dialog
-      .open<
-        RescheduleWorkoutDialog,
-        RescheduleWorkoutDialogData,
-        RescheduleWorkoutDialogResult | undefined
-      >(RescheduleWorkoutDialog, {
-        data: { workoutName: row.workoutName, currentDate: r.scheduledDate },
-        width: '420px',
-        autoFocus: 'first-tabbable',
-      })
-      .afterClosed()
-      .toPromise();
-    if (!result) return;
-    await this.scheduleAction.run(async () => {
-      try {
-        const sync = await this.workoutsService.syncScheduledWorkout({
-          id: r.id!,
-          workoutId: r.workoutId!,
-          trainingGroupId: r.trainingGroupId ?? groupId,
-          athleteId: r.athleteId ?? null,
-          scheduledDate: result.scheduledDate,
-          status: r.status,
-          exerciseLogs: [],
-          updatedAt: new Date().toISOString(),
-        });
-        if (sync?.resolution === 'Forbidden') {
-          this.snackBar.open(
-            SYNC_RESULT_MESSAGES['Forbidden'] ?? 'You cannot reschedule this workout.',
-            'Dismiss',
-            { duration: 4000 },
-          );
-          return;
-        }
-        await this.loadSchedule(id, groupId);
-        this.snackBar.open('Workout rescheduled.', 'Dismiss', { duration: 2500 });
-      } catch (err) {
-        showGymError(this.snackBar, err, 'Could not reschedule the workout.');
-      }
-    });
-  }
-
-  /**
-   * Unschedule a workout from this group. Soft-deletes the row via the sync
-   * endpoint. The server preserves any completed history (an athlete who
-   * already completed the workout keeps it in their personal history per
-   * requirements §8.3); this just removes the row from the upcoming schedule.
-   */
-  protected async unschedule(row: ScheduleRow): Promise<void> {
-    const id = this.gymId();
-    const groupId = this.selectedGroupId();
-    const r = row.scheduled;
-    if (!id || !groupId || !r.id || !r.workoutId) return;
-    const dateLabel = r.scheduledDate ?? 'this date';
-    const confirmed = await this.dialog
-      .open<ConfirmActionDialog, ConfirmActionDialogData, boolean>(ConfirmActionDialog, {
-        data: {
-          title: 'Unschedule this workout?',
-          message: `Remove "${row.workoutName}" from the schedule for ${dateLabel}? Any athletes who already completed it keep it in their personal history.`,
-          confirmLabel: 'Unschedule',
-          warn: true,
-        },
-        width: '480px',
-      })
-      .afterClosed()
-      .toPromise();
-    if (!confirmed) return;
-    await this.scheduleAction.run(async () => {
-      try {
-        const sync = await this.workoutsService.syncScheduledWorkout({
-          id: r.id!,
-          workoutId: r.workoutId!,
-          trainingGroupId: r.trainingGroupId ?? groupId,
-          athleteId: r.athleteId ?? null,
-          scheduledDate: r.scheduledDate ?? '',
-          status: r.status,
-          exerciseLogs: [],
-          isDeleted: true,
-          updatedAt: new Date().toISOString(),
-        });
-        if (sync?.resolution === 'Forbidden') {
-          this.snackBar.open(
-            SYNC_RESULT_MESSAGES['Forbidden'] ?? 'You cannot unschedule this workout.',
-            'Dismiss',
-            { duration: 4000 },
-          );
-          return;
-        }
-        // Optimistic refresh — the row is gone from the server.
-        await this.loadSchedule(id, groupId);
-        this.snackBar.open('Workout unscheduled.', 'Dismiss', { duration: 2500 });
-      } catch (err) {
-        showGymError(this.snackBar, err, 'Could not unschedule the workout.');
-      }
-    });
-  }
-
   private buildScheduleSummary(
     succeeded: number,
     forbidden: number,
@@ -365,10 +255,10 @@ export class ScheduleTab implements OnInit {
   }
 
   /**
-   * One-time fetch of the group list + workout library for the gym. The group
-   * dropdown defaults to the first non-deleted group. The actual schedule
-   * fetch is driven by the effect in the constructor whenever group or window
-   * changes.
+   * One-time fetch of the group list + workout library + member roster for the
+   * gym. The group dropdown defaults to the first non-deleted group. The actual
+   * schedule fetch is driven by the effect in the constructor whenever group
+   * or window changes.
    */
   private async loadGroupsAndWorkouts(): Promise<void> {
     const id = this.gymId();
@@ -379,15 +269,28 @@ export class ScheduleTab implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [groups, workouts] = await Promise.all([
+      const [groups, workouts, members] = await Promise.all([
         this.gymsService.listGroups(id),
         this.gymsService.listGymWorkouts(id, { includeArchived: true }),
+        this.gymsService.listMembers(id),
       ]);
       const liveGroups = groups.filter((g) => !g.isDeleted);
       this.groups.set(liveGroups);
       this.workoutsById.set(
         new Map(workouts.filter((w) => w.id).map((w) => [w.id!, w])),
       );
+      // Build the athlete-id → display-name lookup from the gym membership
+      // roster. The gym owner doesn't have a membership row and the GymResponse
+      // doesn't currently carry an owner display name, so coach cards
+      // programmed by the owner will fall back to a hidden chip until the API
+      // exposes that field.
+      const names = new Map<string, string>();
+      for (const m of members) {
+        if (m.athleteId && m.athleteDisplayName) {
+          names.set(m.athleteId, m.athleteDisplayName);
+        }
+      }
+      this.displayNameByAthleteId.set(names);
       // Default to the first group if no selection yet.
       if (!this.selectedGroupId() && liveGroups.length > 0 && liveGroups[0].id) {
         this.selectedGroupId.set(liveGroups[0].id);
@@ -445,45 +348,4 @@ function addDaysIso(iso: string, days: number): string {
   const [y, m, day] = iso.split('-').map(Number);
   const next = new Date(y, (m ?? 1) - 1, (day ?? 1) + days);
   return next.toISOString().slice(0, 10);
-}
-
-/**
- * Builds the body preview shown under the workout name on a schedule row.
- * Prefer raw text (preserves the coach's original formatting); fall back to a
- * compact comma-separated exercises list when raw text is missing; return null
- * if the workout has neither.
- */
-function buildWorkoutBody(
-  workout: WorkoutResponse | null,
-): { kind: 'rawText' | 'exercises'; text: string } | null {
-  if (!workout) return null;
-  const rawText = workout.rawText?.trim();
-  if (rawText) return { kind: 'rawText', text: rawText };
-  const exercises = (workout.exercises ?? [])
-    .filter((e) => !e.isDeleted)
-    .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
-  if (exercises.length === 0) return null;
-  const names = exercises
-    .map((e) => formatExerciseInline(e))
-    .filter((s): s is string => !!s);
-  if (names.length === 0) return null;
-  return { kind: 'exercises', text: names.join(' · ') };
-}
-
-function formatExerciseInline(e: {
-  userEnteredExerciseName?: string | null;
-  reps?: string | null;
-  sets?: number | null;
-  targetWeight?: number | null;
-  duration?: string | null;
-}): string {
-  const name = e.userEnteredExerciseName?.trim();
-  if (!name) return '';
-  const parts: string[] = [name];
-  if (e.sets != null && e.reps) parts.push(`${e.sets}×${e.reps}`);
-  else if (e.reps) parts.push(e.reps);
-  else if (e.sets != null) parts.push(`${e.sets} sets`);
-  if (e.targetWeight != null) parts.push(`@${e.targetWeight}lb`);
-  if (e.duration) parts.push(e.duration);
-  return parts.join(' ');
 }

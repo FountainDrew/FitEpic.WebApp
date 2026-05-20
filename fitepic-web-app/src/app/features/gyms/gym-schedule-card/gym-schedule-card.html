@@ -1,0 +1,61 @@
+<mat-card
+  class="workout-card"
+  role="button"
+  tabindex="0"
+  (click)="open()"
+  (keydown)="onKeydown($event)"
+  [attr.aria-label]="'View details for ' + row().workoutName"
+>
+  <mat-card-content>
+    <header class="workout-card-header">
+      <h3 class="workout-card-title">{{ row().workoutName }}</h3>
+      @if (row().scheduled.status === 'Completed') {
+        <span class="status-badge status-completed">Completed</span>
+      } @else {
+        <span class="status-badge status-pending">Pending</span>
+      }
+    </header>
+
+    @if (metaLine()) {
+      <div class="workout-card-meta">{{ metaLine() }}</div>
+    }
+
+    <div class="gym-card-info">
+      @if (row().programmedByName; as name) {
+        <span class="gym-card-info-item" matTooltip="Programmed by">
+          <mat-icon>person</mat-icon>
+          <span>{{ name }}</span>
+        </span>
+      }
+      @if (row().completion; as c) {
+        <span class="gym-card-info-item" matTooltip="Athletes who have logged this workout">
+          <mat-icon>fact_check</mat-icon>
+          <span>{{ c.logged }} of {{ c.total }} logged</span>
+        </span>
+      }
+    </div>
+
+    <div class="workout-card-body">
+      @switch (bodyMode()) {
+        @case ('raw') {
+          <pre class="raw-text">{{ row().workout!.rawText }}</pre>
+        }
+        @case ('exercises') {
+          <ul class="exercise-list">
+            @for (ex of visibleExercises(); track ex.id) {
+              <li class="exercise-item">
+                <span class="exercise-name">{{ ex.userEnteredExerciseName }}</span>
+                @if (exerciseSummary(ex); as summary) {
+                  <span class="exercise-summary">{{ summary }}</span>
+                }
+              </li>
+            }
+          </ul>
+        }
+        @default {
+          <div class="placeholder">No additional workout info available.</div>
+        }
+      }
+    </div>
+  </mat-card-content>
+</mat-card>

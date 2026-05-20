@@ -1,0 +1,43 @@
+<mat-card
+  class="library-card"
+  role="button"
+  tabindex="0"
+  (click)="onClick()"
+  (keydown)="onKeydown($event)"
+  [attr.aria-label]="'Schedule ' + (workout().name || 'this workout')"
+>
+  <mat-card-content>
+    <header class="library-card-header">
+      <h3 class="library-card-title">{{ workout().name || 'Untitled workout' }}</h3>
+    </header>
+
+    @if (metaLine()) {
+      <div class="library-card-meta">{{ metaLine() }}</div>
+    }
+
+    <div class="library-card-body">
+      @switch (bodyMode()) {
+        @case ('raw') {
+          <pre class="raw-text">{{ workout().rawText }}</pre>
+        }
+        @case ('exercises') {
+          <ul class="exercise-list">
+            @for (ex of visibleExercises(); track ex.id) {
+              <li class="exercise-item">
+                <span class="exercise-name">{{ ex.userEnteredExerciseName }}</span>
+                @if (exerciseSummary(ex); as summary) {
+                  @if (summary) {
+                    <span class="exercise-summary">{{ summary }}</span>
+                  }
+                }
+              </li>
+            }
+          </ul>
+        }
+        @default {
+          <div class="placeholder">No additional workout info.</div>
+        }
+      }
+    </div>
+  </mat-card-content>
+</mat-card>

@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
@@ -24,7 +25,20 @@ import { QuoteCard } from './quote-card/quote-card';
 import { StreakActivity } from './streak-activity/streak-activity';
 import { WorkoutCard } from './workout-card/workout-card';
 import { WorkoutDrawer } from './workout-drawer/workout-drawer';
+import { WorkoutDrawerService } from './workout-drawer/workout-drawer.service';
 import { InfoDialog, InfoDialogData } from './info-dialog/info-dialog';
+import {
+  DashboardScheduleDialog,
+  DashboardScheduleDialogResult,
+} from './dashboard-schedule-dialog';
+import {
+  WorkoutLibraryDrawer,
+  WorkoutLibraryDrawerData,
+} from './workout-library-drawer/workout-library-drawer';
+import { WorkoutsService } from '../../core/workouts/workouts.service';
+import { WorkoutResponse } from '../../core/api/generated/models/workout-response';
+import { showGymError, SYNC_RESULT_MESSAGES } from '../../core/gyms/gym-error-messages';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 interface FutureGroup {
   date: string;
@@ -55,6 +69,18 @@ export class DashboardPage implements OnInit {
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
+  private readonly workoutsService = inject(WorkoutsService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly workoutDrawerService = inject(WorkoutDrawerService);
+
+  constructor() {
+    // Reload the workout cards whenever the drawer reports a successful
+    // mutating action (delete logs / unschedule / reschedule). The Subject
+    // is subscribed via takeUntilDestroyed so we don't need manual cleanup.
+    this.workoutDrawerService.actionCompleted
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => void this.loadWorkouts());
+  }
 
   protected readonly user = inject(AuthService).currentUser;
 
@@ -174,6 +200,80 @@ export class DashboardPage implements OnInit {
 
   protected openTotalDurationDetails(): void {
     this.router.navigate(['/dashboard/weekly-stats/duration']);
+  }
+
+  /**
+   * Open the personal-schedule flow. Two-step:
+   *  1. Small start dialog (instant — no data fetch) collects the date and
+   *     asks whether to create a new workout or pick from the library.
+   *  2a. **Create** → navigate to the workout editor with `scheduleDate` set;
+   *      editor handles auto-schedule on save.
+   *  2b. **Pick** → open a right-side slideout that loads the personal
+   *      library and renders each row as a card; selecting one syncs a
+   *      personal scheduled-workout row.
+   */
+  protected async openSchedule(): Promise<void> {
+    const result = await this.dialog
+      .open<DashboardScheduleDialog, void, DashboardScheduleDialogResult | undefined>(
+        DashboardScheduleDialog,
+        { width: '420px', autoFocus: 'first-tabbable' },
+      )
+      .afterClosed()
+      .toPromise();
+    if (!result) return;
+
+    if (result.mode === 'create') {
+      await this.router.navigate(['/workouts/new'], {
+        queryParams: { scheduleDate: result.scheduledDate, returnUrl: '/' },
+      });
+      return;
+    }
+
+    // Pick branch: open the library slideout. The selected workout (if any)
+    // is then synced as a personal scheduled-workout for the chosen date.
+    const picked = await this.dialog
+      .open<WorkoutLibraryDrawer, WorkoutLibraryDrawerData, WorkoutResponse | undefined>(
+        WorkoutLibraryDrawer,
+        {
+          data: { scheduledDate: result.scheduledDate },
+          panelClass: ['fe-dialog', 'fe-slideout'],
+          position: { right: '0', top: '0' },
+          autoFocus: 'first-tabbable',
+        },
+      )
+      .afterClosed()
+      .toPromise();
+    if (!picked?.id) return;
+
+    const me = this.profileService.profile()?.id;
+    if (!me) {
+      this.snackBar.open('Could not identify your account.', 'Dismiss', { duration: 3000 });
+      return;
+    }
+    try {
+      const sync = await this.workoutsService.syncScheduledWorkout({
+        id: crypto.randomUUID(),
+        workoutId: picked.id,
+        trainingGroupId: null,
+        athleteId: me,
+        scheduledDate: result.scheduledDate,
+        status: 'Pending',
+        exerciseLogs: [],
+        updatedAt: new Date().toISOString(),
+      });
+      if (sync?.resolution === 'Forbidden') {
+        this.snackBar.open(
+          SYNC_RESULT_MESSAGES['Forbidden'] ?? 'You cannot schedule this workout.',
+          'Dismiss',
+          { duration: 4000 },
+        );
+        return;
+      }
+      this.snackBar.open('Workout scheduled.', 'Dismiss', { duration: 2500 });
+      await this.loadWorkouts();
+    } catch (err) {
+      showGymError(this.snackBar, err, 'Could not schedule the workout.');
+    }
   }
 
   private openInfoDialog(data: InfoDialogData): void {

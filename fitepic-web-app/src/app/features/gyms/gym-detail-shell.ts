@@ -88,16 +88,10 @@ export class GymDetailShell implements OnInit {
     }
     this.loading.set(true);
     try {
-      // Role computation needs the caller's athlete id (from the profile) plus
-      // the gym + membership caches. Load anything that isn't already populated;
-      // running the three loads in parallel keeps deep-link navigation snappy.
+      // Role computation needs the gym + membership caches; the profile
+      // (caller's athlete id) is loaded up-front via the app initializer.
       const cached = this.gymsService.gyms().find((g) => g.id === id);
-      await Promise.all([
-        this.profileService.profile()
-          ? Promise.resolve()
-          : this.profileService.load().catch(() => undefined),
-        cached ? Promise.resolve() : this.gymsService.bootstrap(),
-      ]);
+      if (!cached) await this.gymsService.bootstrap();
       // Always refresh the targeted gym so we have its latest state.
       await this.gymsService.getGym(id);
     } catch (err: unknown) {

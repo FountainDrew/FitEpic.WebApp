@@ -83,6 +83,30 @@ body {
   }
 }
 
+// Right-side slideout dialog (workout library picker, future side-sheet flows).
+// Pair with `position: { right: '0', top: '0' }` and `height: '100vh'` in the
+// `MatDialog.open()` config. The dialog's inner surface fills the assigned
+// height and squares the right edge so it reads as a side panel rather than a
+// floating card.
+.fe-slideout {
+  max-width: min(560px, 100vw) !important;
+  width: min(560px, 100vw) !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+
+  .mat-mdc-dialog-surface {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 12px 0 0 12px !important;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+
+  .mat-mdc-dialog-container {
+    padding: 0 !important;
+  }
+}
+
 .skeleton {
   display: block;
   background: linear-gradient(

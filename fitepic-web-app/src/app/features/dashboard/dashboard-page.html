@@ -9,10 +9,16 @@
       <span class="skeleton skeleton-week-range" aria-hidden="true"></span>
     }
   </div>
-  <a mat-flat-button color="primary" routerLink="/workouts/new">
-    <mat-icon>add</mat-icon>
-    New workout
-  </a>
+  <div class="page-header-actions">
+    <a mat-stroked-button routerLink="/workouts/new">
+      <mat-icon>add</mat-icon>
+      New workout
+    </a>
+    <button mat-flat-button color="primary" type="button" (click)="openSchedule()">
+      <mat-icon>event_available</mat-icon>
+      Schedule workout
+    </button>
+  </div>
 </header>
 
 <app-quote-card />

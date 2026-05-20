@@ -274,6 +274,28 @@
             <mat-datepicker #scheduleDatePicker></mat-datepicker>
           </mat-form-field>
         }
+      } @else if (personalLocked()) {
+        <p class="context-message">
+          Workout will be added to <strong>your personal library</strong> and scheduled for this
+          date on your calendar.
+        </p>
+        <mat-form-field appearance="outline" class="schedule-date-field">
+          <mat-label>Scheduled date</mat-label>
+          <input
+            matInput
+            [matDatepicker]="personalScheduleDatePicker"
+            [ngModel]="autoScheduleDatePicker.get()"
+            (ngModelChange)="autoScheduleDatePicker.set($event)"
+            name="personalScheduleDate"
+            required
+            readonly
+          />
+          <mat-datepicker-toggle
+            matIconSuffix
+            [for]="personalScheduleDatePicker"
+          ></mat-datepicker-toggle>
+          <mat-datepicker #personalScheduleDatePicker></mat-datepicker>
+        </mat-form-field>
       } @else {
         <mat-form-field appearance="outline" class="save-to-field">
           <mat-label>Save to</mat-label>
