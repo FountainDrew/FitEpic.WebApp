@@ -47,12 +47,20 @@
           }
         </dl>
       </mat-card-content>
-      @if (canEdit()) {
+      @if (canEdit() || canDelete() || canLeave()) {
         <mat-card-actions align="end">
-          <button mat-stroked-button (click)="openEdit()">
-            <mat-icon>edit</mat-icon>
-            Edit
-          </button>
+          @if (canEdit()) {
+            <button mat-stroked-button (click)="openEdit()">
+              <mat-icon>edit</mat-icon>
+              Edit
+            </button>
+          }
+          @if (canLeave()) {
+            <button mat-stroked-button color="warn" (click)="leave()">
+              <mat-icon>logout</mat-icon>
+              Leave gym
+            </button>
+          }
           @if (canDelete()) {
             <button mat-stroked-button color="warn" (click)="openDelete()">
               <mat-icon>delete</mat-icon>

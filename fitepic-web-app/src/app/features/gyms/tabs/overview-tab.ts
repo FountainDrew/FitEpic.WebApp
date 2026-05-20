@@ -15,6 +15,10 @@ import { createPendingAction } from '../../../core/async/pending-action';
 import { GymResponse } from '../../../core/api/generated/models/gym-response';
 import { EditGymDialog, EditGymDialogData, EditGymDialogResult } from '../edit-gym-dialog';
 import { DeleteGymDialog, DeleteGymDialogData } from '../delete-gym-dialog';
+import {
+  ConfirmActionDialog,
+  ConfirmActionDialogData,
+} from '../confirm-action-dialog';
 
 @Component({
   selector: 'app-overview-tab',
@@ -44,6 +48,12 @@ export class OverviewTab implements OnInit {
   protected readonly role = computed(() => this.roleService.forGym(this.gymId()));
   protected readonly canEdit = computed(() => canManageGym(this.role()));
   protected readonly canDelete = computed(() => isOwner(this.role()));
+  /** Any active member can leave their own gym — except the Owner, who must
+   *  delete or transfer the gym (transfer is out of scope per requirements). */
+  protected readonly canLeave = computed(() => {
+    const r = this.role();
+    return r !== null && r !== 'Owner';
+  });
 
   ngOnInit(): void {
     // Parent shell already loaded the gym; just pick up the id from the URL.
@@ -105,6 +115,32 @@ export class OverviewTab implements OnInit {
         showGymError(this.snackBar, err, 'Could not rotate the gym code.');
       }
     });
+  }
+
+  protected async leave(): Promise<void> {
+    const id = this.gymId();
+    if (!id) return;
+    const confirmed = await this.dialog
+      .open<ConfirmActionDialog, ConfirmActionDialogData, boolean>(ConfirmActionDialog, {
+        data: {
+          title: 'Leave this gym?',
+          message:
+            'You will lose access to upcoming scheduled workouts. Completed history is preserved.',
+          confirmLabel: 'Leave',
+          warn: true,
+        },
+        width: '480px',
+      })
+      .afterClosed()
+      .toPromise();
+    if (!confirmed) return;
+    try {
+      await this.gymsService.leaveGym(id);
+      this.snackBar.open('You left the gym.', 'Dismiss', { duration: 2500 });
+      await this.router.navigateByUrl('/gyms');
+    } catch (err) {
+      showGymError(this.snackBar, err, 'Could not leave the gym.');
+    }
   }
 
   protected async openDelete(): Promise<void> {
