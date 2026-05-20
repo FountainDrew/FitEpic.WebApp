@@ -13,7 +13,12 @@ import { MatMenuModule } from '@angular/material/menu';
 
 import { GymsService } from '../../core/gyms/gyms.service';
 import { GymRoleService } from '../../core/gyms/gym-role.service';
-import { canManageGym, canViewRoster, isOwner } from '../../core/gyms/gym-role';
+import {
+  canManageGym,
+  canProgramWorkouts,
+  canViewRoster,
+  isOwner,
+} from '../../core/gyms/gym-role';
 import { ProfileService } from '../../core/profile/profile.service';
 import { GymResponse } from '../../core/api/generated/models/gym-response';
 
@@ -62,8 +67,11 @@ export class GymDetailShell implements OnInit {
     { label: 'Groups', path: 'groups', visible: () => true },
     { label: 'Requests', path: 'requests', visible: () => canManageGym(this.role()) },
     { label: 'Invites', path: 'invites', visible: () => canManageGym(this.role()) },
-    { label: 'Workouts', path: 'workouts', visible: () => true },
-    { label: 'Schedule', path: 'schedule', visible: () => true },
+    // Per v7: gym workout library and per-group schedule oversight are both
+    // staff-only surfaces. Athletes consume scheduled workouts through their
+    // personal feed (not yet surfaced on the web).
+    { label: 'Workouts', path: 'workouts', visible: () => canProgramWorkouts(this.role()) },
+    { label: 'Schedule', path: 'schedule', visible: () => canProgramWorkouts(this.role()) },
   ];
 
   protected readonly visibleTabs = computed(() => this.tabs.filter((t) => t.visible()));

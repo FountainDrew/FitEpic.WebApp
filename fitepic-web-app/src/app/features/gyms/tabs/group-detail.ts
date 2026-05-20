@@ -15,7 +15,11 @@ import { FormsModule } from '@angular/forms';
 import { GymsService } from '../../../core/gyms/gyms.service';
 import { GymRoleService } from '../../../core/gyms/gym-role.service';
 import { ProfileService } from '../../../core/profile/profile.service';
-import { canManageGym, canProgramWorkouts } from '../../../core/gyms/gym-role';
+import {
+  canManageGym,
+  canProgramWorkouts,
+  canViewRoster,
+} from '../../../core/gyms/gym-role';
 import { showGymError } from '../../../core/gyms/gym-error-messages';
 import { createPendingAction } from '../../../core/async/pending-action';
 import { TrainingGroupResponse } from '../../../core/api/generated/models/training-group-response';
@@ -64,6 +68,8 @@ export class GroupDetail implements OnInit {
 
   protected readonly role = computed(() => this.roleService.forGym(this.gymId()));
   protected readonly canManage = computed(() => canManageGym(this.role()));
+  /** Coach+ only — per v7, athletes don't see the group roster. */
+  protected readonly canViewRoster = computed(() => canViewRoster(this.role()));
   /**
    * Staff = Coach / Admin / Owner. v6 lets staff toggle a personal-feed
    * subscription for any group in their gym independently of role-based
@@ -216,7 +222,10 @@ export class GroupDetail implements OnInit {
     try {
       const [groups, members, gymMembers] = await Promise.all([
         this.gymsService.listGroups(gid),
-        this.gymsService.listGroupMembers(gid, grp),
+        // v7: roster fetch is Coach+ only. Athletes can navigate to a group
+        // they belong to but don't see the roster — skip the call rather than
+        // letting it 403.
+        this.canViewRoster() ? this.gymsService.listGroupMembers(gid, grp) : Promise.resolve([]),
         this.canManage() ? this.gymsService.listMembers(gid) : Promise.resolve([]),
       ]);
       this.group.set(groups.find((g) => g.id === grp) ?? null);

@@ -21,6 +21,11 @@ export interface GymResponse {
   /**
    * 6-character alphanumeric code shared out-of-band with prospective members for the join-request flow.
    * May be rotated via `POST /api/gyms/{id}/regenerate-code`.
+   * 
+   * **Visibility (2026-05-20):** populated for Coach/Admin/Owner callers only. **Null for
+   * athlete-tier callers** — the gym code is the invite credential and must not leak to
+   * athletes who have no legitimate use for it. Athlete-tier UI should not surface a "share
+   * gym code" affordance.
    */
   gymCode?: string | null;
 
@@ -42,6 +47,11 @@ export interface GymResponse {
 
   /**
    * Athlete ID of the gym's Owner. Maps to `AspNetUsers.Id` system-wide.
+   * 
+   * **Visibility (2026-05-20):** populated for Coach/Admin/Owner callers. **Null for
+   * athlete-tier callers** — athletes do not need to know the gym's owner identity, and
+   * withholding this field tightens the gym detail surface for athletes who legitimately
+   * shouldn't see other athletes' identifiers via the gym list.
    */
   ownerAthleteId?: string | null;
 

@@ -16,6 +16,15 @@ export interface MobileAthleteSelfProfileResponse {
   id?: string | null;
 
   /**
+   * Whether the athlete has opted in to gym ownership. Toggled via
+   * `PUT /api/gyms/me/owner-flag` (which carries its own `GymsStillOwned`
+   * validation when turning off). The mobile client reads this to drive gym-creation UI
+   * affordances and to proactively short-circuit the `NotGymOwner` case before any
+   * gym-creation attempt.
+   */
+  isGymOwner?: boolean;
+
+  /**
    * The date the athlete has chosen as the start of their streak / day-count tracking
    * history; null when not set (clients fall back to their existing default — typically
    * today minus 30 days).

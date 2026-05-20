@@ -18,31 +18,33 @@
             }
           </dd>
 
-          <dt>Gym code</dt>
-          <dd class="code-row" [class.just-rotated]="justRotated()">
-            <span class="code-value">{{ g.gymCode }}</span>
-            <button
-              mat-icon-button
-              type="button"
-              (click)="copyCode()"
-              matTooltip="Copy code"
-              aria-label="Copy code"
-            >
-              <mat-icon>content_copy</mat-icon>
-            </button>
-            @if (canEdit()) {
+          @if (g.gymCode) {
+            <dt>Gym code</dt>
+            <dd class="code-row" [class.just-rotated]="justRotated()">
+              <span class="code-value">{{ g.gymCode }}</span>
               <button
                 mat-icon-button
                 type="button"
-                (click)="rotateCode()"
-                [disabled]="rotating()"
-                matTooltip="Rotate code"
-                aria-label="Rotate code"
+                (click)="copyCode()"
+                matTooltip="Copy code"
+                aria-label="Copy code"
               >
-                <mat-icon>refresh</mat-icon>
+                <mat-icon>content_copy</mat-icon>
               </button>
-            }
-          </dd>
+              @if (canEdit()) {
+                <button
+                  mat-icon-button
+                  type="button"
+                  (click)="rotateCode()"
+                  [disabled]="rotating()"
+                  matTooltip="Rotate code"
+                  aria-label="Rotate code"
+                >
+                  <mat-icon>refresh</mat-icon>
+                </button>
+              }
+            </dd>
+          }
         </dl>
       </mat-card-content>
       @if (canEdit()) {

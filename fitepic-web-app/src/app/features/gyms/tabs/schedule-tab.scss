@@ -102,10 +102,65 @@
   min-width: 0;
 }
 
+.schedule-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .schedule-title {
   margin: 0;
   font-size: 16px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.schedule-body {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.85;
+  color: var(--fe-text);
+}
+
+// Raw text usually comes with newlines the coach typed. Preserve them.
+.schedule-body.body-rawtext {
+  white-space: pre-wrap;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+// Per-caller "you logged this" affordance. Scoped to the calling user — does
+// NOT mean every athlete in the group has completed the workout. We only show
+// it when the row's server-projected status (caller's per-athlete state) is
+// `Completed`; pending rows stay un-chipped to keep this view quiet.
+.logged-affordance {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #1b5e20;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #2e7d32;
+  }
+}
+
+:host-context(.fe-dark) .logged-affordance {
+  color: #5cd478;
+
+  mat-icon {
+    color: #5cd478;
+  }
 }
 
 .schedule-meta {
