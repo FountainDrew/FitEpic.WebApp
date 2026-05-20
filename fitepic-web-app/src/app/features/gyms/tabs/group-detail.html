@@ -74,12 +74,13 @@
     </mat-card>
   }
 
-  <mat-card class="roster-card">
-    <mat-card-content>
-      @if (activeMembers().length === 0) {
-        <p class="muted">No members in this group yet.</p>
-      } @else {
-        <table mat-table [dataSource]="activeMembers()" class="roster-table">
+  @if (canViewRoster()) {
+    <mat-card class="roster-card">
+      <mat-card-content>
+        @if (activeMembers().length === 0) {
+          <p class="muted">No members in this group yet.</p>
+        } @else {
+          <table mat-table [dataSource]="activeMembers()" class="roster-table">
           <ng-container matColumnDef="athlete">
             <th mat-header-cell *matHeaderCellDef>Athlete</th>
             <td mat-cell *matCellDef="let row">
@@ -118,7 +119,8 @@
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
         </table>
-      }
-    </mat-card-content>
-  </mat-card>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
 }

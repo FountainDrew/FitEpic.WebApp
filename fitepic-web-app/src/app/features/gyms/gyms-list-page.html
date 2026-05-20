@@ -52,10 +52,12 @@
         <mat-card class="gym-card">
           <mat-card-header>
             <mat-card-title>{{ gym.name }}</mat-card-title>
-            <mat-card-subtitle class="gym-code">
-              <span class="code-label">Code</span>
-              <span class="code-value">{{ gym.gymCode }}</span>
-            </mat-card-subtitle>
+            @if (gym.gymCode) {
+              <mat-card-subtitle class="gym-code">
+                <span class="code-label">Code</span>
+                <span class="code-value">{{ gym.gymCode }}</span>
+              </mat-card-subtitle>
+            }
           </mat-card-header>
           <mat-card-content>
             @if (gym.description) {

@@ -100,22 +100,52 @@
           <mat-card class="schedule-card">
             <mat-card-content class="schedule-card-content">
               <div class="schedule-text">
-                <p class="schedule-title">{{ row.workoutName }}</p>
-                <p class="schedule-meta">
-                  @if (row.scheduled.status; as status) {
-                    <span class="status-chip" [attr.data-status]="status">{{ status }}</span>
-                  }
-                  @if (row.scheduled.isLocked) {
+                <p class="schedule-title">
+                  {{ row.workoutName }}
+                  @if (row.scheduled.status === 'Completed') {
                     <span
-                      class="locked-tag"
-                      matTooltip="Programmed by staff — template fields are locked"
+                      class="logged-affordance"
+                      matTooltip="You logged this workout"
+                      aria-label="You logged this workout"
                     >
-                      <mat-icon>lock</mat-icon>
-                      locked
+                      <mat-icon>check_circle</mat-icon>
+                      logged
                     </span>
                   }
                 </p>
+                @if (row.body; as body) {
+                  <div
+                    class="schedule-body"
+                    [class.body-rawtext]="body.kind === 'rawText'"
+                  >
+                    {{ body.text }}
+                  </div>
+                }
               </div>
+              @if (canSchedule()) {
+                <div class="schedule-actions">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    [disabled]="scheduling()"
+                    (click)="reschedule(row)"
+                    matTooltip="Reschedule"
+                    aria-label="Reschedule this workout"
+                  >
+                    <mat-icon>event_repeat</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    type="button"
+                    [disabled]="scheduling()"
+                    (click)="unschedule(row)"
+                    matTooltip="Unschedule"
+                    aria-label="Unschedule this workout"
+                  >
+                    <mat-icon>event_busy</mat-icon>
+                  </button>
+                </div>
+              }
             </mat-card-content>
           </mat-card>
         }

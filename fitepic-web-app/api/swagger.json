@@ -1678,8 +1678,8 @@
         "tags": [
           "Gyms"
         ],
-        "summary": "List workouts owned by a gym. Any active gym member may view.",
-        "description": "Returns the workout templates available for scheduling within the gym. Coaches/Admins/\r\nOwner use this to pick existing workouts when programming for a group; athletes use it\r\nto preview the gym's library.\r\n            \r\nPass `since` for delta sync — returns every row (including tombstones and archived\r\nrows) with `UpdatedAt > since`. The include flags are ignored on delta pulls.\r\n            \r\nOmit `since` for a bootstrap pull — by default returns live, non-archived rows only.\r\nPass `includeArchived=true` and/or `includeDeleted=true` for a backdoor admin\r\nview that surfaces archived/soft-deleted history. The mobile sync layer should call this\r\nwith `includeArchived=true` so its local cache retains archived rows for resolving\r\nhistorical scheduled-workout references.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "summary": "List workouts owned by a gym. Coach, Admin, or Owner only.",
+        "description": "Returns the workout templates available for scheduling within the gym. Coaches/Admins/\r\nOwner use this to pick existing workouts when programming for a group.\r\n            \r\n**2026-05-20: athlete-tier callers receive 403.** Athletes have no use case for browsing\r\na gym's workout template library — they only consume workouts via scheduled instances\r\npushed to their training groups, surfaced through `GET /api/mobile/scheduledworkouts`.\r\n(Previously this endpoint accepted any gym member.)\r\n            \r\nPass `since` for delta sync — returns every row (including tombstones and archived\r\nrows) with `UpdatedAt > since`. The include flags are ignored on delta pulls.\r\n            \r\nOmit `since` for a bootstrap pull — by default returns live, non-archived rows only.\r\nPass `includeArchived=true` and/or `includeDeleted=true` for a backdoor admin\r\nview that surfaces archived/soft-deleted history. The mobile sync layer should call this\r\nwith `includeArchived=true` so its local cache retains archived rows for resolving\r\nhistorical scheduled-workout references.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "gymId",
@@ -1743,7 +1743,7 @@
             }
           },
           "403": {
-            "description": "Caller is not a member of the gym.",
+            "description": "Caller is not Coach, Admin, or Owner of the gym.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5417,8 +5417,8 @@
         "tags": [
           "Training Groups"
         ],
-        "summary": "List training groups in a gym. Visible to any active gym member.",
-        "description": "Pass `since` for delta sync (returns tombstones).\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "summary": "List training groups in a gym. Scoped by caller's role.",
+        "description": "**2026-05-20 — response scope depends on the caller's role:**\r\n<list type=\"bullet\"><item><description>**Coach/Admin/Owner:** returns every training group in the gym (full list — needed for managing rosters and scheduling).</description></item><item><description>**Athlete:** returns only training groups the caller has an active `TrainingGroupMembership` for. Other groups in the gym are not surfaced — athletes don't need to know about groups they aren't members of, and this prevents leakage of group names / descriptions to athlete-tier callers.</description></item></list>\r\n            \r\nPass `since` for delta sync (returns tombstones). The role-based scoping applies\r\nto both bootstrap and delta pulls.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "gymId",
@@ -5441,7 +5441,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Returns the list of groups.",
+            "description": "Returns the list of groups (scoped per caller's role).",
             "content": {
               "application/json": {
                 "schema": {
@@ -5974,7 +5974,7 @@
           "Training Groups"
         ],
         "summary": "Per-group oversight view of scheduled workouts. Coach/Admin/Owner only.",
-        "description": "Returns every scheduled workout targeted at the group, ignoring the caller's\r\n`TrainingGroupMembership` status. Authorization is by role (Coach/Admin/Owner of\r\nthe gym); no mid-flight rule applies.\r\n            \r\n**v6 (2026-05-19).** This is the staff oversight surface for \"show me what's scheduled\r\nfor Group X\" without polluting the caller's personal `GET /api/mobile/scheduled-workouts`\r\nfeed. Athletes use the personal endpoint, which now requires explicit\r\n`TrainingGroupMembership` for group visibility.\r\n            \r\nPass `since` for delta-style consumption (returns tombstones). Pass `from`/\r\n`to` for a date range. Both modes can be combined with paging.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Returns every scheduled workout targeted at the group, ignoring the caller's\r\n`TrainingGroupMembership` status. Authorization is by role (Coach/Admin/Owner of\r\nthe gym); no mid-flight rule applies.\r\n            \r\n**v6 (2026-05-19).** This is the staff oversight surface for \"show me what's scheduled\r\nfor Group X\" without polluting the caller's personal `GET /api/mobile/scheduled-workouts`\r\nfeed. Athletes use the personal endpoint, which now requires explicit\r\n`TrainingGroupMembership` for group visibility.\r\n            \r\n**Group-results model (2026-05-20).** The returned rows expose **template** fields only —\r\nper-athlete completion state (Status, ScoreResult, Notes, Duration, ExerciseLogs) is\r\nNOT merged into this projection. For every group row, those fields carry their template\r\ndefaults: `Status = Pending`, `ScoreResult = null`, `Notes = null`,\r\n`Duration = null`, `ExerciseLogs = []`. The caller sees what the coach scheduled,\r\nnot who has completed it. A \"see all athletes' results for this group workout\" surface\r\nis deferred — when needed it will be a separate endpoint that exposes the per-athlete\r\ncompletion table. Do not infer completion state from these rows; they are intentionally\r\nuniform across all completing/non-completing athletes.\r\n            \r\nPass `since` for delta-style consumption (returns tombstones). Pass `from`/\r\n`to` for a date range. Both modes can be combined with paging.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "gymId",
@@ -8324,7 +8324,7 @@
           },
           "ownerAthleteId": {
             "type": "string",
-            "description": "Athlete ID of the gym's Owner. Maps to `AspNetUsers.Id` system-wide.",
+            "description": "Athlete ID of the gym's Owner. Maps to `AspNetUsers.Id` system-wide.\r\n\r\n**Visibility (2026-05-20):** populated for Coach/Admin/Owner callers. **Null for\r\nathlete-tier callers** — athletes do not need to know the gym's owner identity, and\r\nwithholding this field tightens the gym detail surface for athletes who legitimately\r\nshouldn't see other athletes' identifiers via the gym list.",
             "nullable": true,
             "example": "f1d353f3-ce63-4f56-a57d-bcd04d6096b2"
           },
@@ -8342,7 +8342,7 @@
           },
           "gymCode": {
             "type": "string",
-            "description": "6-character alphanumeric code shared out-of-band with prospective members for the join-request flow.\r\nMay be rotated via `POST /api/gyms/{id}/regenerate-code`.",
+            "description": "6-character alphanumeric code shared out-of-band with prospective members for the join-request flow.\r\nMay be rotated via `POST /api/gyms/{id}/regenerate-code`.\r\n\r\n**Visibility (2026-05-20):** populated for Coach/Admin/Owner callers only. **Null for\r\nathlete-tier callers** — the gym code is the invite credential and must not leak to\r\nathletes who have no legitimate use for it. Athlete-tier UI should not surface a \"share\r\ngym code\" affordance.",
             "nullable": true,
             "example": "K7M3P9"
           },
@@ -8406,6 +8406,11 @@
             "format": "date",
             "nullable": true,
             "example": "2026-04-01"
+          },
+          "isGymOwner": {
+            "type": "boolean",
+            "description": "Whether the athlete has opted in to gym ownership. Toggled via\r\n`PUT /api/gyms/me/owner-flag` (which carries its own `GymsStillOwned`\r\nvalidation when turning off). The mobile client reads this to drive gym-creation UI\r\naffordances and to proactively short-circuit the `NotGymOwner` case before any\r\ngym-creation attempt.",
+            "example": false
           }
         },
         "additionalProperties": false,
