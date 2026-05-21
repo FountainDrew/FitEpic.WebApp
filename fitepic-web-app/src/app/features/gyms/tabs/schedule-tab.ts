@@ -270,9 +270,11 @@ export class ScheduleTab implements OnInit {
     if (!picked?.id) return;
 
     await this.scheduleAction.run(async () => {
+      const me = this.profileService.profile()?.id ?? null;
       let succeeded = 0;
       let forbidden = 0;
       let errored = 0;
+      const now = new Date().toISOString();
       for (const groupId of result.trainingGroupIds) {
         try {
           const sync = await this.workoutsService.syncScheduledWorkout({
@@ -281,9 +283,17 @@ export class ScheduleTab implements OnInit {
             trainingGroupId: groupId,
             athleteId: null,
             scheduledDate: result.scheduledDate,
+            // Carry the workout template's score type onto the scheduled row
+            // so the server renders the right score affordance to athletes.
+            scoreType: picked.scoreType,
+            // Coach scheduling for a group: stamp the programmer so the
+            // "Programmed by" chip resolves and v8 lock-rule caller-awareness
+            // sees the right author.
+            programmedByAthleteId: me,
             status: 'Pending',
             exerciseLogs: [],
-            updatedAt: new Date().toISOString(),
+            createdAt: now,
+            updatedAt: now,
           });
           if (sync?.resolution === 'Forbidden') forbidden += 1;
           else succeeded += 1;

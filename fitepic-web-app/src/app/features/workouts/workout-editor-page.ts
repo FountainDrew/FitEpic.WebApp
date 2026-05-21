@@ -22,6 +22,7 @@ import { canProgramWorkouts } from '../../core/gyms/gym-role';
 import { showGymError, SYNC_RESULT_MESSAGES } from '../../core/gyms/gym-error-messages';
 import { getApiErrorMessage } from '../../core/api/error-code';
 import { createPendingAction } from '../../core/async/pending-action';
+import { WorkoutRequest } from '../../core/api/generated/models/workout-request';
 import { WorkoutScoreType } from '../../core/api/generated/models/workout-score-type';
 import { WorkoutType } from '../../core/api/generated/models/workout-type';
 import {
@@ -501,7 +502,7 @@ export class WorkoutEditorPage implements OnInit {
         this.authoring.markClean();
         this.guardBypassed = true;
 
-        const scheduleMessage = await this.maybeAutoSchedule(payload.id ?? '');
+        const scheduleMessage = await this.maybeAutoSchedule(payload, me);
 
         this.snackBar.open(
           scheduleMessage ??
@@ -529,33 +530,43 @@ export class WorkoutEditorPage implements OnInit {
    *     for the caller.
    * Returns null if no auto-schedule is requested.
    */
-  private async maybeAutoSchedule(workoutId: string): Promise<string | null> {
+  private async maybeAutoSchedule(workout: WorkoutRequest, me: string): Promise<string | null> {
     const groupIds = this.autoScheduleGroupIds();
     const date = this.autoScheduleDate();
-    if (!date || !workoutId) return null;
-    if (groupIds.length > 0) return this.autoScheduleGroups(workoutId, date, groupIds);
-    return this.autoSchedulePersonal(workoutId, date);
+    if (!date || !workout.id) return null;
+    if (groupIds.length > 0) return this.autoScheduleGroups(workout, date, groupIds, me);
+    return this.autoSchedulePersonal(workout, date, me);
   }
 
   private async autoScheduleGroups(
-    workoutId: string,
+    workout: WorkoutRequest,
     date: string,
     groupIds: string[],
+    me: string,
   ): Promise<string> {
     let succeeded = 0;
     let forbidden = 0;
     let errored = 0;
+    const now = new Date().toISOString();
     for (const groupId of groupIds) {
       try {
         const sync = await this.workoutsService.syncScheduledWorkout({
           id: crypto.randomUUID(),
-          workoutId,
+          workoutId: workout.id!,
           trainingGroupId: groupId,
           athleteId: null,
           scheduledDate: date,
+          // Copy the prescription's score type onto the scheduled row so the
+          // server can render the correct score affordance when athletes log.
+          scoreType: workout.scoreType,
+          // Coach scheduling for a group: stamp the programmer so the row's
+          // "Programmed by" chip resolves and the lock-rule caller-awareness
+          // (v8) has the right author on file.
+          programmedByAthleteId: me,
           status: 'Pending',
           exerciseLogs: [],
-          updatedAt: new Date().toISOString(),
+          createdAt: now,
+          updatedAt: now,
         });
         if (sync?.resolution === 'Forbidden') forbidden += 1;
         else succeeded += 1;
@@ -578,21 +589,27 @@ export class WorkoutEditorPage implements OnInit {
     return parts.join(' ');
   }
 
-  private async autoSchedulePersonal(workoutId: string, date: string): Promise<string> {
-    const me = this.profileService.profile()?.id;
-    if (!me) {
-      return 'Workout saved, but scheduling failed (account not identified).';
-    }
+  private async autoSchedulePersonal(
+    workout: WorkoutRequest,
+    date: string,
+    me: string,
+  ): Promise<string> {
     try {
+      const now = new Date().toISOString();
       const sync = await this.workoutsService.syncScheduledWorkout({
         id: crypto.randomUUID(),
-        workoutId,
+        workoutId: workout.id!,
         trainingGroupId: null,
         athleteId: me,
         scheduledDate: date,
+        scoreType: workout.scoreType,
+        // Self-scheduled personal row: programmedByAthleteId stays null per
+        // the contract ("Null if self-programmed").
+        programmedByAthleteId: null,
         status: 'Pending',
         exerciseLogs: [],
-        updatedAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now,
       });
       if (sync?.resolution === 'Forbidden') {
         return 'Workout saved, but scheduling failed (permission).';
