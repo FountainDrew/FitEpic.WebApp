@@ -251,23 +251,18 @@ export class DashboardPage implements OnInit {
       return;
     }
     try {
-      const now = new Date().toISOString();
       const sync = await this.workoutsService.syncScheduledWorkout({
         id: crypto.randomUUID(),
         workoutId: picked.id,
         trainingGroupId: null,
         athleteId: me,
         scheduledDate: result.scheduledDate,
-        // Carry the workout template's score type onto the scheduled row so
-        // the server renders the right score affordance when the athlete logs.
+        // ScoreType is a prescription field; the server doesn't infer it
+        // from the workout template. Forgetting it would persist `None`.
         scoreType: picked.scoreType,
-        // Self-scheduled personal row: programmedByAthleteId stays null per
-        // the contract ("Null if self-programmed").
-        programmedByAthleteId: null,
         status: 'Pending',
         exerciseLogs: [],
-        createdAt: now,
-        updatedAt: now,
+        updatedAt: new Date().toISOString(),
       });
       if (sync?.resolution === 'Forbidden') {
         this.snackBar.open(

@@ -93,17 +93,14 @@ export class WorkoutDrawer {
           trainingGroupId: row.trainingGroupId ?? null,
           athleteId: row.athleteId ?? null,
           scheduledDate: row.scheduledDate ?? w.scheduledDate!,
-          // Preserve the template fields from the server row — sync is
-          // last-write-wins on the whole row, so omitting these would wipe
-          // the prescription's scoreType / programmer / createdAt.
+          // ScoreType is a prescription field; sync is last-write-wins on
+          // the row, so omitting it would wipe the value to None.
           scoreType: row.scoreType,
-          programmedByAthleteId: row.programmedByAthleteId ?? null,
           status: 'Pending',
           scoreResult: null,
           notes: null,
           duration: null,
           exerciseLogs: [],
-          createdAt: row.createdAt,
           updatedAt: new Date().toISOString(),
         });
         if (sync?.resolution === 'Forbidden') {
@@ -158,13 +155,12 @@ export class WorkoutDrawer {
           trainingGroupId: row.trainingGroupId ?? null,
           athleteId: row.athleteId ?? null,
           scheduledDate: row.scheduledDate ?? w.scheduledDate!,
-          // Preserve template fields from the server row (last-write-wins).
+          // ScoreType is a prescription field; sync is last-write-wins on
+          // the row, so omitting it would wipe the value to None.
           scoreType: row.scoreType,
-          programmedByAthleteId: row.programmedByAthleteId ?? null,
           status: row.status,
           exerciseLogs: [],
           isDeleted: true,
-          createdAt: row.createdAt,
           updatedAt: new Date().toISOString(),
         });
         if (sync?.resolution === 'Forbidden') {
@@ -220,12 +216,11 @@ export class WorkoutDrawer {
           trainingGroupId: row.trainingGroupId ?? null,
           athleteId: row.athleteId ?? null,
           scheduledDate: result.scheduledDate,
-          // Preserve template fields from the server row (last-write-wins).
+          // ScoreType is a prescription field; sync is last-write-wins on
+          // the row, so omitting it would wipe the value to None.
           scoreType: row.scoreType,
-          programmedByAthleteId: row.programmedByAthleteId ?? null,
           status: row.status,
           exerciseLogs: [],
-          createdAt: row.createdAt,
           updatedAt: new Date().toISOString(),
         });
         if (sync?.resolution === 'Forbidden') {

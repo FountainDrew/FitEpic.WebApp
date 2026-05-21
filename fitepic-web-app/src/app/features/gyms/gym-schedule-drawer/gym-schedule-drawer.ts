@@ -126,12 +126,11 @@ export class GymScheduleDrawer {
           trainingGroupId: r.trainingGroupId ?? null,
           athleteId: r.athleteId ?? null,
           scheduledDate: result.scheduledDate,
-          // Preserve template fields from the server row (last-write-wins).
+          // ScoreType is a prescription field; sync is last-write-wins on
+          // the row, so omitting it would wipe the value to None.
           scoreType: r.scoreType,
-          programmedByAthleteId: r.programmedByAthleteId ?? null,
           status: r.status,
           exerciseLogs: [],
-          createdAt: r.createdAt,
           updatedAt: new Date().toISOString(),
         });
         if (sync?.resolution === 'Forbidden') {
@@ -178,13 +177,12 @@ export class GymScheduleDrawer {
           trainingGroupId: r.trainingGroupId ?? null,
           athleteId: r.athleteId ?? null,
           scheduledDate: r.scheduledDate ?? '',
-          // Preserve template fields from the server row (last-write-wins).
+          // ScoreType is a prescription field; sync is last-write-wins on
+          // the row, so omitting it would wipe the value to None.
           scoreType: r.scoreType,
-          programmedByAthleteId: r.programmedByAthleteId ?? null,
           status: r.status,
           exerciseLogs: [],
           isDeleted: true,
-          createdAt: r.createdAt,
           updatedAt: new Date().toISOString(),
         });
         if (sync?.resolution === 'Forbidden') {

@@ -534,7 +534,7 @@ export class WorkoutEditorPage implements OnInit {
     const groupIds = this.autoScheduleGroupIds();
     const date = this.autoScheduleDate();
     if (!date || !workout.id) return null;
-    if (groupIds.length > 0) return this.autoScheduleGroups(workout, date, groupIds, me);
+    if (groupIds.length > 0) return this.autoScheduleGroups(workout, date, groupIds);
     return this.autoSchedulePersonal(workout, date, me);
   }
 
@@ -542,12 +542,10 @@ export class WorkoutEditorPage implements OnInit {
     workout: WorkoutRequest,
     date: string,
     groupIds: string[],
-    me: string,
   ): Promise<string> {
     let succeeded = 0;
     let forbidden = 0;
     let errored = 0;
-    const now = new Date().toISOString();
     for (const groupId of groupIds) {
       try {
         const sync = await this.workoutsService.syncScheduledWorkout({
@@ -556,17 +554,12 @@ export class WorkoutEditorPage implements OnInit {
           trainingGroupId: groupId,
           athleteId: null,
           scheduledDate: date,
-          // Copy the prescription's score type onto the scheduled row so the
-          // server can render the correct score affordance when athletes log.
+          // ScoreType is a prescription field; the server doesn't infer it
+          // from the workout template. Forgetting it would persist `None`.
           scoreType: workout.scoreType,
-          // Coach scheduling for a group: stamp the programmer so the row's
-          // "Programmed by" chip resolves and the lock-rule caller-awareness
-          // (v8) has the right author on file.
-          programmedByAthleteId: me,
           status: 'Pending',
           exerciseLogs: [],
-          createdAt: now,
-          updatedAt: now,
+          updatedAt: new Date().toISOString(),
         });
         if (sync?.resolution === 'Forbidden') forbidden += 1;
         else succeeded += 1;
@@ -595,7 +588,6 @@ export class WorkoutEditorPage implements OnInit {
     me: string,
   ): Promise<string> {
     try {
-      const now = new Date().toISOString();
       const sync = await this.workoutsService.syncScheduledWorkout({
         id: crypto.randomUUID(),
         workoutId: workout.id!,
@@ -603,13 +595,9 @@ export class WorkoutEditorPage implements OnInit {
         athleteId: me,
         scheduledDate: date,
         scoreType: workout.scoreType,
-        // Self-scheduled personal row: programmedByAthleteId stays null per
-        // the contract ("Null if self-programmed").
-        programmedByAthleteId: null,
         status: 'Pending',
         exerciseLogs: [],
-        createdAt: now,
-        updatedAt: now,
+        updatedAt: new Date().toISOString(),
       });
       if (sync?.resolution === 'Forbidden') {
         return 'Workout saved, but scheduling failed (permission).';
