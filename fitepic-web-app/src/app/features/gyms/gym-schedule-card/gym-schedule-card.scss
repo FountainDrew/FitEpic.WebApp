@@ -27,3 +27,51 @@
     height: 14px;
   }
 }
+
+// Completion footer: full-width row at the bottom of the card with a label,
+// count, and a thin progress bar. Visually separated from the body so a coach
+// scanning a stack of cards can read completion at a glance.
+.workout-card-footer {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--fe-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--fe-text);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+  }
+}
+
+.footer-label {
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+.footer-count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.footer-bar {
+  flex: 1 1 auto;
+  min-width: 40px;
+  height: 4px;
+  background: color-mix(in srgb, var(--fe-text) 12%, transparent);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.footer-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--fe-primary);
+  border-radius: inherit;
+  transition: width 240ms ease;
+}

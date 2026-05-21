@@ -23,10 +23,14 @@ import { ScheduledWorkoutResponse } from '../../../core/api/generated/models/sch
 import { TrainingGroupResponse } from '../../../core/api/generated/models/training-group-response';
 import { WorkoutResponse } from '../../../core/api/generated/models/workout-response';
 import {
-  ScheduleWorkoutDialog,
-  ScheduleWorkoutDialogData,
-  ScheduleWorkoutDialogResult,
-} from '../schedule-workout-dialog';
+  GymScheduleStartDialog,
+  GymScheduleStartDialogData,
+  GymScheduleStartDialogResult,
+} from '../gym-schedule-start-dialog/gym-schedule-start-dialog';
+import {
+  GymWorkoutLibraryDrawer,
+  GymWorkoutLibraryDrawerData,
+} from '../gym-workout-library-drawer/gym-workout-library-drawer';
 import {
   GymScheduleCard,
   GymScheduleCardRow,
@@ -75,9 +79,22 @@ export class ScheduleTab implements OnInit {
   protected readonly scheduling = this.scheduleAction.pending;
 
   protected readonly groups = signal<TrainingGroupResponse[]>([]);
-  protected readonly selectedGroupId = signal<string | null>(null);
+  /**
+   * Training group(s) the user has selected to view. The dropdown is
+   * multi-select so a coach can see several groups' schedules at once; the
+   * loader fans out one parallel request per selection and merges the results
+   * into {@link scheduled}.
+   */
+  protected readonly selectedGroupIds = signal<string[]>([]);
   protected readonly scheduled = signal<ScheduledWorkoutResponse[]>([]);
   protected readonly workoutsById = signal<Map<string, WorkoutResponse>>(new Map());
+  protected readonly groupNameById = computed<Map<string, string>>(() => {
+    const m = new Map<string, string>();
+    for (const g of this.groups()) {
+      if (g.id && g.name) m.set(g.id, g.name);
+    }
+    return m;
+  });
   /**
    * Athlete-id → display-name lookup, populated from the gym membership list
    * plus the gym owner. Used to surface "Programmed by" on each schedule card.
@@ -95,19 +112,30 @@ export class ScheduleTab implements OnInit {
   protected readonly visibleRows = computed<GymScheduleCardRow[]>(() => {
     const workouts = this.workoutsById();
     const names = this.displayNameByAthleteId();
+    const groupNames = this.groupNameById();
     return this.scheduled()
       .filter((s) => !s.isDeleted)
       .map((s) => {
         const workout = workouts.get(s.workoutId ?? '') ?? null;
         const programmedById = s.programmedByAthleteId;
+        // The per-group oversight endpoint projects `LoggedCount` + `GroupSize`
+        // on every row (see contract Q12 — round 4 response). The fields are
+        // nullable to stay forward-compatible with any future endpoint that
+        // doesn't project them; the card hides the chip when either side is
+        // null.
+        const completion =
+          s.loggedCount != null && s.groupSize != null
+            ? { logged: s.loggedCount, total: s.groupSize }
+            : null;
         return {
           scheduled: s,
           workout,
           workoutName: workout?.name ?? 'Untitled workout',
+          trainingGroupName: s.trainingGroupId
+            ? (groupNames.get(s.trainingGroupId) ?? null)
+            : null,
           programmedByName: programmedById ? (names.get(programmedById) ?? null) : null,
-          // Completion counts come from a per-group results endpoint the API
-          // hasn't exposed yet. Card hides the chip when null.
-          completion: null,
+          completion,
         };
       });
   });
@@ -126,14 +154,16 @@ export class ScheduleTab implements OnInit {
   });
 
   constructor() {
-    // Reload when the selected group or visible week changes.
+    // Reload when the selection or the visible week changes.
     effect(() => {
       const gymId = this.gymId();
-      const groupId = this.selectedGroupId();
+      const groupIds = this.selectedGroupIds();
       // Track week boundary as a dependency so changing the window reloads.
       this.windowStart();
-      if (gymId && groupId) {
-        void this.loadSchedule(gymId, groupId);
+      if (gymId && groupIds.length > 0) {
+        void this.loadSchedule(gymId, groupIds);
+      } else {
+        this.scheduled.set([]);
       }
     });
 
@@ -143,8 +173,8 @@ export class ScheduleTab implements OnInit {
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
         const gymId = this.gymId();
-        const groupId = this.selectedGroupId();
-        if (gymId && groupId) void this.loadSchedule(gymId, groupId);
+        const groupIds = this.selectedGroupIds();
+        if (gymId && groupIds.length > 0) void this.loadSchedule(gymId, groupIds);
       });
   }
 
@@ -153,8 +183,8 @@ export class ScheduleTab implements OnInit {
     await this.loadGroupsAndWorkouts();
   }
 
-  protected onGroupChange(groupId: string | null): void {
-    this.selectedGroupId.set(groupId);
+  protected onGroupChange(groupIds: string[]): void {
+    this.selectedGroupIds.set(groupIds);
   }
 
   protected async onPreviousWeek(): Promise<void> {
@@ -169,18 +199,36 @@ export class ScheduleTab implements OnInit {
     this.windowStart.set(startOfWeekIso(new Date()));
   }
 
+  /**
+   * Coach-facing schedule flow. Mirrors the athlete dashboard's two-step
+   * process (`DashboardScheduleDialog` → editor *or* library slideout):
+   *
+   *  1. Small start dialog (instant — no data fetch) collects the schedule
+   *     parameters (date + one or more training groups) and asks whether to
+   *     author a new workout or pick from the gym library.
+   *  2a. **Create** → navigate to the workout editor with `gymId` +
+   *      `scheduleGroupId` + `scheduleDate` on the query string. The editor
+   *      handles auto-schedule on save.
+   *  2b. **Pick** → open a right-side library slideout populated from the
+   *      already-loaded gym workouts. Selecting one syncs a scheduled-workout
+   *      row per selected group.
+   */
   protected async openSchedule(): Promise<void> {
     const id = this.gymId();
     if (!id) return;
     const result = await this.dialog
-      .open<ScheduleWorkoutDialog, ScheduleWorkoutDialogData, ScheduleWorkoutDialogResult | undefined>(
-        ScheduleWorkoutDialog,
-        {
-          data: { gymId: id, initialGroupId: this.selectedGroupId() ?? undefined },
-          width: '480px',
-          autoFocus: 'first-tabbable',
+      .open<
+        GymScheduleStartDialog,
+        GymScheduleStartDialogData,
+        GymScheduleStartDialogResult | undefined
+      >(GymScheduleStartDialog, {
+        data: {
+          groups: this.groups(),
+          initialGroupIds: this.selectedGroupIds(),
         },
-      )
+        width: '460px',
+        autoFocus: 'first-tabbable',
+      })
       .afterClosed()
       .toPromise();
     if (!result) return;
@@ -197,12 +245,31 @@ export class ScheduleTab implements OnInit {
       return;
     }
 
+    // Pick branch: open the gym library slideout. The drawer takes the
+    // pre-loaded gym workouts from this component so it opens instantly.
+    const liveWorkouts = [...this.workoutsById().values()].filter(
+      (w) => !w.isDeleted && !w.isArchived,
+    );
+    const picked = await this.dialog
+      .open<
+        GymWorkoutLibraryDrawer,
+        GymWorkoutLibraryDrawerData,
+        WorkoutResponse | undefined
+      >(GymWorkoutLibraryDrawer, {
+        data: {
+          workouts: liveWorkouts,
+          scheduledDate: result.scheduledDate,
+          groupCount: result.trainingGroupIds.length,
+        },
+        panelClass: ['fe-dialog', 'fe-slideout'],
+        position: { right: '0', top: '0' },
+        autoFocus: 'first-tabbable',
+      })
+      .afterClosed()
+      .toPromise();
+    if (!picked?.id) return;
+
     await this.scheduleAction.run(async () => {
-      const me = this.profileService.profile()?.id;
-      if (!me) {
-        this.snackBar.open('Could not identify your account.', 'Dismiss', { duration: 3000 });
-        return;
-      }
       let succeeded = 0;
       let forbidden = 0;
       let errored = 0;
@@ -210,7 +277,7 @@ export class ScheduleTab implements OnInit {
         try {
           const sync = await this.workoutsService.syncScheduledWorkout({
             id: crypto.randomUUID(),
-            workoutId: result.workoutId,
+            workoutId: picked.id!,
             trainingGroupId: groupId,
             athleteId: null,
             scheduledDate: result.scheduledDate,
@@ -224,10 +291,11 @@ export class ScheduleTab implements OnInit {
           errored += 1;
         }
       }
-      // Refresh the currently-viewed group; if the user scheduled for a
-      // different group the effect won't fire, so reload defensively.
-      const current = this.selectedGroupId();
-      if (current && id) await this.loadSchedule(id, current);
+      // Refresh the currently-viewed groups; if the coach scheduled for a
+      // group not in the current selection the effect won't fire, so reload
+      // defensively.
+      const current = this.selectedGroupIds();
+      if (current.length > 0 && id) await this.loadSchedule(id, current);
       this.snackBar.open(
         this.buildScheduleSummary(succeeded, forbidden, errored, result.trainingGroupIds.length),
         'Dismiss',
@@ -269,31 +337,37 @@ export class ScheduleTab implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [groups, workouts, members] = await Promise.all([
+      const [groups, workouts, members, gym] = await Promise.all([
         this.gymsService.listGroups(id),
         this.gymsService.listGymWorkouts(id, { includeArchived: true }),
         this.gymsService.listMembers(id),
+        this.gymsService.getGym(id),
       ]);
       const liveGroups = groups.filter((g) => !g.isDeleted);
       this.groups.set(liveGroups);
       this.workoutsById.set(
         new Map(workouts.filter((w) => w.id).map((w) => [w.id!, w])),
       );
-      // Build the athlete-id → display-name lookup from the gym membership
-      // roster. The gym owner doesn't have a membership row and the GymResponse
-      // doesn't currently carry an owner display name, so coach cards
-      // programmed by the owner will fall back to a hidden chip until the API
-      // exposes that field.
+      // Build the athlete-id → display-name lookup. Members carry their own
+      // display names. The owner doesn't have a `GymMembership` row but
+      // `GymResponse.OwnerDisplayName` was added in API round 4 (Q13) so we
+      // seed the lookup with the owner too. Athlete-tier callers get
+      // `OwnerAthleteId` / `OwnerDisplayName` redacted to null per the v7 rule
+      // — staff get the populated values, which is who can see this page
+      // anyway since the schedule tab is gated to Coach+.
       const names = new Map<string, string>();
       for (const m of members) {
         if (m.athleteId && m.athleteDisplayName) {
           names.set(m.athleteId, m.athleteDisplayName);
         }
       }
+      if (gym?.ownerAthleteId && gym.ownerDisplayName) {
+        names.set(gym.ownerAthleteId, gym.ownerDisplayName);
+      }
       this.displayNameByAthleteId.set(names);
       // Default to the first group if no selection yet.
-      if (!this.selectedGroupId() && liveGroups.length > 0 && liveGroups[0].id) {
-        this.selectedGroupId.set(liveGroups[0].id);
+      if (this.selectedGroupIds().length === 0 && liveGroups.length > 0 && liveGroups[0].id) {
+        this.selectedGroupIds.set([liveGroups[0].id]);
       }
     } catch {
       this.error.set('Could not load the schedule.');
@@ -303,21 +377,27 @@ export class ScheduleTab implements OnInit {
   }
 
   /**
-   * Fetch the scheduled workouts for a single group via the oversight endpoint.
-   * Per v6, no mid-flight rule and no `TrainingGroupMembership` requirement —
-   * staff see the full schedule for any group in their gym.
+   * Fetch the scheduled workouts for the selected group(s) via the oversight
+   * endpoint and merge them into a single list. Per v6, no mid-flight rule
+   * and no `TrainingGroupMembership` requirement — staff see the full
+   * schedule for any group in their gym.
+   *
+   * Fan-out is N parallel requests for N selected groups. The API doesn't
+   * expose a multi-group oversight endpoint, so this is the simplest correct
+   * path; in practice coaches view 1–3 groups at a time.
    */
-  private async loadSchedule(gymId: string, groupId: string): Promise<void> {
+  private async loadSchedule(gymId: string, groupIds: string[]): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const rows = await this.workoutsService.listGroupScheduledWorkouts(
-        gymId,
-        groupId,
-        this.windowStart(),
-        this.windowEnd(),
+      const from = this.windowStart();
+      const to = this.windowEnd();
+      const perGroup = await Promise.all(
+        groupIds.map((groupId) =>
+          this.workoutsService.listGroupScheduledWorkouts(gymId, groupId, from, to),
+        ),
       );
-      this.scheduled.set(rows);
+      this.scheduled.set(perGroup.flat());
     } catch (err) {
       // 403 means the caller isn't Coach+ — shouldn't normally happen since
       // the tab is already role-gated, but surface a useful message.

@@ -1,8 +1,9 @@
 <div class="tab-toolbar">
   <mat-form-field appearance="outline" class="group-select" subscriptSizing="dynamic">
-    <mat-label>Training group</mat-label>
+    <mat-label>Training groups</mat-label>
     <mat-select
-      [ngModel]="selectedGroupId()"
+      multiple
+      [ngModel]="selectedGroupIds()"
       (ngModelChange)="onGroupChange($event)"
       [disabled]="groups().length === 0"
     >
@@ -80,10 +81,16 @@
       No training groups yet. Create a group before scheduling workouts.
     </mat-card-content>
   </mat-card>
+} @else if (selectedGroupIds().length === 0) {
+  <mat-card class="info-card">
+    <mat-card-content>
+      Select one or more training groups to view their schedule.
+    </mat-card-content>
+  </mat-card>
 } @else if (dayGroups().length === 0) {
   <mat-card class="info-card">
     <mat-card-content>
-      Nothing scheduled for this group in this window.
+      Nothing scheduled for the selected group{{ selectedGroupIds().length > 1 ? 's' : '' }} in this window.
       @if (canSchedule()) {
         Tap "Schedule workout" to add one.
       }

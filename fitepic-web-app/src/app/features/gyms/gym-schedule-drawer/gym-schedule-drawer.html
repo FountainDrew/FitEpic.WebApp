@@ -9,16 +9,11 @@
     <header class="drawer-header">
       <div class="drawer-header-text">
         <h2 id="gym-drawer-title" class="drawer-title">{{ row.workoutName }}</h2>
-        <div class="drawer-subtitle">
-          @if (row.scheduled.status === 'Completed') {
-            <span class="status-badge status-completed">Completed</span>
-          } @else {
-            <span class="status-badge status-pending">Pending</span>
-          }
-          @if (metaLine()) {
+        @if (metaLine()) {
+          <div class="drawer-subtitle">
             <span class="drawer-meta">{{ metaLine() }}</span>
-          }
-        </div>
+          </div>
+        }
       </div>
       <button mat-icon-button (click)="close()" aria-label="Close">
         <mat-icon>close</mat-icon>

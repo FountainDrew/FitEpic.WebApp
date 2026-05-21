@@ -38,6 +38,16 @@ export interface ScheduledWorkoutResponse {
   exerciseLogs?: Array<WorkoutExerciseLogResponse> | null;
 
   /**
+   * Number of current athlete-tier members of the workout's training group at the time of
+   * the request. Same population rule as FitEpic.Api.Models.Response.ScheduledWorkoutResponse.LoggedCount: populated only on the
+   * per-group oversight endpoint; null everywhere else. Staff (Coach/Admin/Owner) of the
+   * gym are excluded — the denominator counts athletes only. The value is the same for
+   * every row in a single response (it's a group-level metric, but echoed per row to keep
+   * consumer-side logic simple).
+   */
+  groupSize?: number | null;
+
+  /**
    * The unique identifier for this scheduled workout (mobile-generated UUID).
    */
   id?: string | null;
@@ -54,6 +64,19 @@ export interface ScheduledWorkoutResponse {
    *             `exerciseLogs`) when this is `true`.
    */
   isLocked?: boolean;
+
+  /**
+   * Number of athlete-tier members of the workout's training group who have a non-deleted
+   * `ScheduledGroupWorkoutAthleteResult` at `Status = Completed` for this row.
+   * Populated **only** on responses from the per-group oversight endpoint
+   * (`GET /api/gyms/{gymId}/groups/{groupId}/scheduled-workouts`); null on every other
+   * endpoint (personal feed, mobile delta, etc.) because the metric only makes sense for
+   * the gym schedule view. Coach/Admin/Owner participants are excluded from the count —
+   * the metric is about athletes-being-coached, not staff who happen to train alongside.
+   * Athletes who have left the group (no current membership) are also excluded even if
+   * their completed result row still exists.
+   */
+  loggedCount?: number | null;
 
   /**
    * Optional notes from the athlete about their performance. Null if not provided.

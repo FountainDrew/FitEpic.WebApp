@@ -23,9 +23,15 @@ export interface GymScheduleCardRow {
   scheduled: ScheduledWorkoutResponse;
   workout: WorkoutResponse | null;
   workoutName: string;
+  /**
+   * Display name of the training group this row belongs to. Renders as a chip
+   * in the card header — important when the schedule view shows multiple
+   * groups at once.
+   */
+  trainingGroupName: string | null;
   /** Display name of the coach who programmed the workout. Null when not yet resolved. */
   programmedByName: string | null;
-  /** Per-group completion counts. Null until the endpoint lands. */
+  /** Per-group completion counts. Null when the projection isn't available. */
   completion: { logged: number; total: number } | null;
 }
 

@@ -75,6 +75,34 @@
 :host-context(.fe-dark) .status-completed { color: #5cd478; }
 :host-context(.fe-dark) .status-pending { color: #ffb04d; }
 
+// Training-group chip rendered inside the header next to the title. Used by
+// the gym schedule card (always) and the athlete dashboard card (when the
+// scheduled row targets a group). Visually quieter than a status badge —
+// contextual identity, not state.
+.group-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fe-primary) 12%, transparent);
+  color: var(--fe-primary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  white-space: nowrap;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
 .workout-card-meta {
   font-size: 13px;
   color: var(--fe-text);

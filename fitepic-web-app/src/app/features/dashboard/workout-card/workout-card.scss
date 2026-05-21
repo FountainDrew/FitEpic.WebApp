@@ -6,3 +6,14 @@
 :host {
   display: contents;
 }
+
+// Right-side cluster in the card header — holds the optional group chip and
+// status badge side-by-side so they wrap together if the row gets crowded.
+.workout-card-header-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}

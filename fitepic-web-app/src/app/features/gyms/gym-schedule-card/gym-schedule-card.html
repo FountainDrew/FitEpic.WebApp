@@ -9,10 +9,11 @@
   <mat-card-content>
     <header class="workout-card-header">
       <h3 class="workout-card-title">{{ row().workoutName }}</h3>
-      @if (row().scheduled.status === 'Completed') {
-        <span class="status-badge status-completed">Completed</span>
-      } @else {
-        <span class="status-badge status-pending">Pending</span>
+      @if (row().trainingGroupName; as group) {
+        <span class="group-chip" matTooltip="Training group">
+          <mat-icon>groups</mat-icon>
+          <span>{{ group }}</span>
+        </span>
       }
     </header>
 
@@ -20,20 +21,14 @@
       <div class="workout-card-meta">{{ metaLine() }}</div>
     }
 
-    <div class="gym-card-info">
-      @if (row().programmedByName; as name) {
+    @if (row().programmedByName; as name) {
+      <div class="gym-card-info">
         <span class="gym-card-info-item" matTooltip="Programmed by">
           <mat-icon>person</mat-icon>
           <span>{{ name }}</span>
         </span>
-      }
-      @if (row().completion; as c) {
-        <span class="gym-card-info-item" matTooltip="Athletes who have logged this workout">
-          <mat-icon>fact_check</mat-icon>
-          <span>{{ c.logged }} of {{ c.total }} logged</span>
-        </span>
-      }
-    </div>
+      </div>
+    }
 
     <div class="workout-card-body">
       @switch (bodyMode()) {
@@ -57,5 +52,24 @@
         }
       }
     </div>
+
+    @if (row().completion; as c) {
+      <footer
+        class="workout-card-footer"
+        matTooltip="Athletes who have logged this workout"
+      >
+        <mat-icon>fact_check</mat-icon>
+        <span class="footer-label">Logged</span>
+        <span class="footer-count">{{ c.logged }} of {{ c.total }}</span>
+        @if (c.total > 0) {
+          <span class="footer-bar" aria-hidden="true">
+            <span
+              class="footer-bar-fill"
+              [style.width.%]="(c.logged / c.total) * 100"
+            ></span>
+          </span>
+        }
+      </footer>
+    }
   </mat-card-content>
 </mat-card>

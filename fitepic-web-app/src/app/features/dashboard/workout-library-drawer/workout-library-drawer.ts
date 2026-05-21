@@ -10,7 +10,7 @@ import { DatePipe } from '@angular/common';
 
 import { WorkoutsService } from '../../../core/workouts/workouts.service';
 import { WorkoutResponse } from '../../../core/api/generated/models/workout-response';
-import { LibraryWorkoutCard } from '../library-workout-card/library-workout-card';
+import { LibraryWorkoutCard } from '../../shared/library-workout-card/library-workout-card';
 
 export interface WorkoutLibraryDrawerData {
   /** ISO `YYYY-MM-DD` date the chosen workout will be scheduled for. */

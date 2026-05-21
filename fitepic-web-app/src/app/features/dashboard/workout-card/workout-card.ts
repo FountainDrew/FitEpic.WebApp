@@ -1,5 +1,7 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { DashboardWorkoutCardResponse } from '../../../core/api/generated/models/dashboard-workout-card-response';
 import { WorkoutDrawerService } from '../workout-drawer/workout-drawer.service';
@@ -8,7 +10,7 @@ type BodyMode = 'raw' | 'exercises' | 'placeholder';
 
 @Component({
   selector: 'app-workout-card',
-  imports: [MatCardModule],
+  imports: [MatCardModule, MatIconModule, MatTooltipModule],
   templateUrl: './workout-card.html',
   styleUrl: './workout-card.scss',
 })
@@ -16,6 +18,15 @@ export class WorkoutCard {
   private readonly drawer = inject(WorkoutDrawerService);
 
   readonly card = input.required<DashboardWorkoutCardResponse>();
+
+  /**
+   * Name of the training group the row belongs to. Rendered as a chip in the
+   * card header so the athlete can tell which group each workout is for when
+   * they belong to more than one. Null for personal-scheduled rows (no group).
+   */
+  protected readonly trainingGroupName = computed<string | null>(
+    () => this.card().trainingGroupName ?? null,
+  );
 
   protected readonly metaLine = computed(() => {
     const c = this.card();
