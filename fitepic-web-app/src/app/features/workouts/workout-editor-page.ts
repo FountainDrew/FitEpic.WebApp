@@ -22,6 +22,7 @@ import { canProgramWorkouts } from '../../core/gyms/gym-role';
 import { showGymError, SYNC_RESULT_MESSAGES } from '../../core/gyms/gym-error-messages';
 import { getApiErrorMessage } from '../../core/api/error-code';
 import { createPendingAction } from '../../core/async/pending-action';
+import { WorkoutRequest } from '../../core/api/generated/models/workout-request';
 import { WorkoutScoreType } from '../../core/api/generated/models/workout-score-type';
 import { WorkoutType } from '../../core/api/generated/models/workout-type';
 import {
@@ -501,7 +502,7 @@ export class WorkoutEditorPage implements OnInit {
         this.authoring.markClean();
         this.guardBypassed = true;
 
-        const scheduleMessage = await this.maybeAutoSchedule(payload.id ?? '');
+        const scheduleMessage = await this.maybeAutoSchedule(payload, me);
 
         this.snackBar.open(
           scheduleMessage ??
@@ -529,16 +530,16 @@ export class WorkoutEditorPage implements OnInit {
    *     for the caller.
    * Returns null if no auto-schedule is requested.
    */
-  private async maybeAutoSchedule(workoutId: string): Promise<string | null> {
+  private async maybeAutoSchedule(workout: WorkoutRequest, me: string): Promise<string | null> {
     const groupIds = this.autoScheduleGroupIds();
     const date = this.autoScheduleDate();
-    if (!date || !workoutId) return null;
-    if (groupIds.length > 0) return this.autoScheduleGroups(workoutId, date, groupIds);
-    return this.autoSchedulePersonal(workoutId, date);
+    if (!date || !workout.id) return null;
+    if (groupIds.length > 0) return this.autoScheduleGroups(workout, date, groupIds);
+    return this.autoSchedulePersonal(workout, date, me);
   }
 
   private async autoScheduleGroups(
-    workoutId: string,
+    workout: WorkoutRequest,
     date: string,
     groupIds: string[],
   ): Promise<string> {
@@ -549,10 +550,13 @@ export class WorkoutEditorPage implements OnInit {
       try {
         const sync = await this.workoutsService.syncScheduledWorkout({
           id: crypto.randomUUID(),
-          workoutId,
+          workoutId: workout.id!,
           trainingGroupId: groupId,
           athleteId: null,
           scheduledDate: date,
+          // ScoreType is a prescription field; the server doesn't infer it
+          // from the workout template. Forgetting it would persist `None`.
+          scoreType: workout.scoreType,
           status: 'Pending',
           exerciseLogs: [],
           updatedAt: new Date().toISOString(),
@@ -578,18 +582,19 @@ export class WorkoutEditorPage implements OnInit {
     return parts.join(' ');
   }
 
-  private async autoSchedulePersonal(workoutId: string, date: string): Promise<string> {
-    const me = this.profileService.profile()?.id;
-    if (!me) {
-      return 'Workout saved, but scheduling failed (account not identified).';
-    }
+  private async autoSchedulePersonal(
+    workout: WorkoutRequest,
+    date: string,
+    me: string,
+  ): Promise<string> {
     try {
       const sync = await this.workoutsService.syncScheduledWorkout({
         id: crypto.randomUUID(),
-        workoutId,
+        workoutId: workout.id!,
         trainingGroupId: null,
         athleteId: me,
         scheduledDate: date,
+        scoreType: workout.scoreType,
         status: 'Pending',
         exerciseLogs: [],
         updatedAt: new Date().toISOString(),

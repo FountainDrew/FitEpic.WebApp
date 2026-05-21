@@ -281,6 +281,9 @@ export class ScheduleTab implements OnInit {
             trainingGroupId: groupId,
             athleteId: null,
             scheduledDate: result.scheduledDate,
+            // ScoreType is a prescription field; the server doesn't infer it
+            // from the workout template. Forgetting it would persist `None`.
+            scoreType: picked.scoreType,
             status: 'Pending',
             exerciseLogs: [],
             updatedAt: new Date().toISOString(),

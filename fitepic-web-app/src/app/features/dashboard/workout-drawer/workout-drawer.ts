@@ -93,6 +93,9 @@ export class WorkoutDrawer {
           trainingGroupId: row.trainingGroupId ?? null,
           athleteId: row.athleteId ?? null,
           scheduledDate: row.scheduledDate ?? w.scheduledDate!,
+          // ScoreType is a prescription field; sync is last-write-wins on
+          // the row, so omitting it would wipe the value to None.
+          scoreType: row.scoreType,
           status: 'Pending',
           scoreResult: null,
           notes: null,
@@ -152,6 +155,9 @@ export class WorkoutDrawer {
           trainingGroupId: row.trainingGroupId ?? null,
           athleteId: row.athleteId ?? null,
           scheduledDate: row.scheduledDate ?? w.scheduledDate!,
+          // ScoreType is a prescription field; sync is last-write-wins on
+          // the row, so omitting it would wipe the value to None.
+          scoreType: row.scoreType,
           status: row.status,
           exerciseLogs: [],
           isDeleted: true,
@@ -210,6 +216,9 @@ export class WorkoutDrawer {
           trainingGroupId: row.trainingGroupId ?? null,
           athleteId: row.athleteId ?? null,
           scheduledDate: result.scheduledDate,
+          // ScoreType is a prescription field; sync is last-write-wins on
+          // the row, so omitting it would wipe the value to None.
+          scoreType: row.scoreType,
           status: row.status,
           exerciseLogs: [],
           updatedAt: new Date().toISOString(),

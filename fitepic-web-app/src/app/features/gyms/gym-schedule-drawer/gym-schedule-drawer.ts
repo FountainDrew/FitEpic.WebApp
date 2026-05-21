@@ -126,6 +126,9 @@ export class GymScheduleDrawer {
           trainingGroupId: r.trainingGroupId ?? null,
           athleteId: r.athleteId ?? null,
           scheduledDate: result.scheduledDate,
+          // ScoreType is a prescription field; sync is last-write-wins on
+          // the row, so omitting it would wipe the value to None.
+          scoreType: r.scoreType,
           status: r.status,
           exerciseLogs: [],
           updatedAt: new Date().toISOString(),
@@ -174,6 +177,9 @@ export class GymScheduleDrawer {
           trainingGroupId: r.trainingGroupId ?? null,
           athleteId: r.athleteId ?? null,
           scheduledDate: r.scheduledDate ?? '',
+          // ScoreType is a prescription field; sync is last-write-wins on
+          // the row, so omitting it would wipe the value to None.
+          scoreType: r.scoreType,
           status: r.status,
           exerciseLogs: [],
           isDeleted: true,
