@@ -50,12 +50,7 @@ export class GymsListPage implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      // Profile needs to be loaded so the `isGymOwner` flag is available for FAB
-      // visibility. The bootstrap loads gyms + memberships in parallel.
-      await Promise.all([
-        this.profileService.profile() ? Promise.resolve() : this.profileService.load(),
-        this.gymsService.bootstrap(),
-      ]);
+      await this.gymsService.bootstrap();
     } catch {
       this.error.set('Could not load your gyms. Try again.');
     } finally {

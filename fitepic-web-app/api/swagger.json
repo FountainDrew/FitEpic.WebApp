@@ -6523,7 +6523,7 @@
           "WebApp - Dashboards"
         ],
         "summary": "Dashboard streak / activity / days-worked-out payload for the authenticated athlete.\r\nDrives the day-streak pill, the activity dot-line, and the days-worked-out pill on the\r\nweb dashboard. All date math is resolved in the athlete's profile timezone.",
-        "description": "The response carries a per-day timeline (`recentDays`, newest-first, up to 90 entries\r\nwith leading empty days trimmed) plus pre-computed `currentStreak`, `isActiveStreak`,\r\n`daysActive`, and `daysInWindow`. The web client owns layout (snake rows, dot styling)\r\nand visibility rules (pills hide when their counts hit the documented thresholds).\r\n            \r\nThe streak walk uses a one-day grace (a completion yesterday with no completion today still\r\ncounts) and stops at `StreakAndDayCountStartDate` inclusively when that floor is set on\r\nthe athlete's profile. The days-worked-out window is `[StreakAndDayCountStartDate, today]`\r\nwhen set, otherwise a 30-day rolling window ending today.\r\n            \r\nResponse is sent with `Cache-Control: no-cache` — this payload changes the moment a\r\nworkout is marked complete, so even a 30-second stale window would be confusing.\r\n            \r\nPossible `error.code` values on non-2xx responses (see `WebAppErrorCode` for the full enumeration):\r\n<list type=\"bullet\"><item><description>`PROFILE_TIMEZONE_REQUIRED` (400) — athlete has not set a profile timezone.</description></item><item><description>`INVALID_TIMEZONE` (400) — stored timezone is not recognized on the server.</description></item><item><description>`PROFILE_NOT_FOUND` (404) — athlete profile record is missing.</description></item><item><description>`UNAUTHENTICATED` (401) — token missing or invalid.</description></item></list>",
+        "description": "The response carries a per-day timeline (`recentDays`, newest-first, up to 90 entries\r\nwith leading empty days trimmed) plus pre-computed `currentStreak`, `isActiveStreak`,\r\n`daysActive`, and `daysInWindow`. The web client owns layout (snake rows, dot styling)\r\nand visibility rules (pills hide when their counts hit the documented thresholds).\r\n            \r\nThe streak walk uses a one-day grace (a completion yesterday with no completion today still\r\ncounts) and stops at `StreakAndDayCountStartDate` inclusively when that floor is set on\r\nthe athlete's profile. The days-worked-out window is `[StreakAndDayCountStartDate, today]`\r\nwhen set, otherwise a 30-day rolling window ending today.\r\n            \r\nResponse is sent with `Cache-Control: no-store` — the API has a global no-store\r\npolicy on every response so clients never serve stale state (athletes and coaches both\r\nexpect immediate reflection of completions, reschedules, etc.).\r\n            \r\nPossible `error.code` values on non-2xx responses (see `WebAppErrorCode` for the full enumeration):\r\n<list type=\"bullet\"><item><description>`PROFILE_TIMEZONE_REQUIRED` (400) — athlete has not set a profile timezone.</description></item><item><description>`INVALID_TIMEZONE` (400) — stored timezone is not recognized on the server.</description></item><item><description>`PROFILE_NOT_FOUND` (404) — athlete profile record is missing.</description></item><item><description>`UNAUTHENTICATED` (401) — token missing or invalid.</description></item></list>",
         "responses": {
           "200": {
             "description": "Returns the streak / activity / days-active payload.",
@@ -7886,6 +7886,11 @@
             "description": "Freestyle / unparsed workout description. Used as a body fallback when FitEpic.Api.Models.WebApp.Response.DashboardWorkoutCardResponse.Exercises is empty.",
             "nullable": true
           },
+          "trainingGroupName": {
+            "type": "string",
+            "description": "Name of the training group this row belongs to. Null when the row is personal-scheduled\r\n(no training group). Not subject to v7 athlete-tier redaction — the caller already\r\nbelongs to the group, so this is their own membership context, not a gym-internal\r\nidentifier like `GymCode` or `OwnerAthleteId`. May be mildly stale if a coach\r\nrenames the group between dashboard fetches.",
+            "nullable": true
+          },
           "exercises": {
             "type": "array",
             "items": {
@@ -8327,6 +8332,12 @@
             "description": "Athlete ID of the gym's Owner. Maps to `AspNetUsers.Id` system-wide.\r\n\r\n**Visibility (2026-05-20):** populated for Coach/Admin/Owner callers. **Null for\r\nathlete-tier callers** — athletes do not need to know the gym's owner identity, and\r\nwithholding this field tightens the gym detail surface for athletes who legitimately\r\nshouldn't see other athletes' identifiers via the gym list.",
             "nullable": true,
             "example": "f1d353f3-ce63-4f56-a57d-bcd04d6096b2"
+          },
+          "ownerDisplayName": {
+            "type": "string",
+            "description": "Display name of the gym's Owner, projected from `AspNetUsers.Name` at query time.\r\nNull when the Owner has not set a display name, OR — under the per-caller redaction\r\napplied to FitEpic.Api.Models.Response.GymResponse.OwnerAthleteId — when the caller is an athlete-tier member of\r\nthe gym (staff get the full payload). The schedule-tab \"Programmed by\" chip uses this\r\nto resolve owner-programmed rows without an extra lookup, since the Owner does not\r\ncarry a `GymMembership` row to look up against.\r\nSame mild-staleness caveat as `GymMembership.AthleteDisplayName` — not bumped when\r\nthe underlying name changes, so cached projections briefly trail the truth.",
+            "nullable": true,
+            "example": "Drew Engelmeyer"
           },
           "name": {
             "type": "string",
@@ -9176,6 +9187,20 @@
           "isDeleted": {
             "type": "boolean",
             "description": "`true` if this scheduled workout has been soft-deleted. The mobile client must remove\r\n            this record from its local store when this field is `true`."
+          },
+          "loggedCount": {
+            "type": "integer",
+            "description": "Number of athlete-tier members of the workout's training group who have a non-deleted\r\n`ScheduledGroupWorkoutAthleteResult` at `Status = Completed` for this row.\r\nPopulated **only** on responses from the per-group oversight endpoint\r\n(`GET /api/gyms/{gymId}/groups/{groupId}/scheduled-workouts`); null on every other\r\nendpoint (personal feed, mobile delta, etc.) because the metric only makes sense for\r\nthe gym schedule view. Coach/Admin/Owner participants are excluded from the count —\r\nthe metric is about athletes-being-coached, not staff who happen to train alongside.\r\nAthletes who have left the group (no current membership) are also excluded even if\r\ntheir completed result row still exists.",
+            "format": "int32",
+            "nullable": true,
+            "example": 3
+          },
+          "groupSize": {
+            "type": "integer",
+            "description": "Number of current athlete-tier members of the workout's training group at the time of\r\nthe request. Same population rule as FitEpic.Api.Models.Response.ScheduledWorkoutResponse.LoggedCount: populated only on the\r\nper-group oversight endpoint; null everywhere else. Staff (Coach/Admin/Owner) of the\r\ngym are excluded — the denominator counts athletes only. The value is the same for\r\nevery row in a single response (it's a group-level metric, but echoed per row to keep\r\nconsumer-side logic simple).",
+            "format": "int32",
+            "nullable": true,
+            "example": 5
           }
         },
         "additionalProperties": false,

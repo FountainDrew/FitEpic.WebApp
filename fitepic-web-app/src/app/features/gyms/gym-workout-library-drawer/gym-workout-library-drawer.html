@@ -1,0 +1,48 @@
+<header class="drawer-header">
+  <div class="header-text">
+    <h2 class="drawer-title">Pick a workout</h2>
+    <p class="drawer-subtitle">
+      Scheduling for <strong>{{ data.scheduledDate | date:'fullDate' }}</strong>
+      @if (data.groupCount > 1) {
+        across <strong>{{ data.groupCount }} groups</strong>
+      }
+    </p>
+  </div>
+  <button mat-icon-button aria-label="Close" (click)="onClose()">
+    <mat-icon>close</mat-icon>
+  </button>
+</header>
+
+<div class="search-row">
+  <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+    <mat-icon matPrefix>search</mat-icon>
+    <mat-label>Search the gym library</mat-label>
+    <input
+      matInput
+      type="text"
+      [ngModel]="query()"
+      (ngModelChange)="query.set($event)"
+      autocomplete="off"
+    />
+  </mat-form-field>
+</div>
+
+<div class="drawer-body">
+  @if (empty()) {
+    <p class="message">
+      The gym library is empty. Create a workout from the Workouts tab, then
+      come back here to schedule it.
+    </p>
+  } @else if (filtered().length === 0) {
+    <p class="message">No workouts match your search.</p>
+  } @else {
+    <div class="library-list">
+      @for (workout of filtered(); track workout.id) {
+        <app-library-workout-card
+          [workout]="workout"
+          (select)="onSelect($event)"
+        />
+      }
+    </div>
+  }
+</div>

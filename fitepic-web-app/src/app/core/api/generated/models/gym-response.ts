@@ -56,6 +56,18 @@ export interface GymResponse {
   ownerAthleteId?: string | null;
 
   /**
+   * Display name of the gym's Owner, projected from `AspNetUsers.Name` at query time.
+   * Null when the Owner has not set a display name, OR — under the per-caller redaction
+   * applied to FitEpic.Api.Models.Response.GymResponse.OwnerAthleteId — when the caller is an athlete-tier member of
+   * the gym (staff get the full payload). The schedule-tab "Programmed by" chip uses this
+   * to resolve owner-programmed rows without an extra lookup, since the Owner does not
+   * carry a `GymMembership` row to look up against.
+   * Same mild-staleness caveat as `GymMembership.AthleteDisplayName` — not bumped when
+   * the underlying name changes, so cached projections briefly trail the truth.
+   */
+  ownerDisplayName?: string | null;
+
+  /**
    * UTC timestamp of last modification. Drives delta-sync comparisons.
    */
   updatedAt?: string;

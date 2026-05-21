@@ -9,11 +9,19 @@
   <mat-card-content>
     <header class="workout-card-header">
       <h3 class="workout-card-title">{{ card().name }}</h3>
-      @if (card().status === 'Completed') {
-        <span class="status-badge status-completed">Completed</span>
-      } @else if (card().status === 'Pending') {
-        <span class="status-badge status-pending">Pending</span>
-      }
+      <div class="workout-card-header-tags">
+        @if (trainingGroupName(); as group) {
+          <span class="group-chip" matTooltip="Training group">
+            <mat-icon>groups</mat-icon>
+            <span>{{ group }}</span>
+          </span>
+        }
+        @if (card().status === 'Completed') {
+          <span class="status-badge status-completed">Completed</span>
+        } @else if (card().status === 'Pending') {
+          <span class="status-badge status-pending">Pending</span>
+        }
+      </div>
     </header>
 
     @if (metaLine()) {

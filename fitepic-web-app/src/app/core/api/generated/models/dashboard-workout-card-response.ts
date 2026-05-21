@@ -53,6 +53,15 @@ export interface DashboardWorkoutCardResponse {
   status?: ScheduledWorkoutStatus;
 
   /**
+   * Name of the training group this row belongs to. Null when the row is personal-scheduled
+   * (no training group). Not subject to v7 athlete-tier redaction — the caller already
+   * belongs to the group, so this is their own membership context, not a gym-internal
+   * identifier like `GymCode` or `OwnerAthleteId`. May be mildly stale if a coach
+   * renames the group between dashboard fetches.
+   */
+  trainingGroupName?: string | null;
+
+  /**
    * Display label for the workout type, e.g. "Straight Sets", "AMRAP", "For Time".
    */
   workoutType?: string | null;

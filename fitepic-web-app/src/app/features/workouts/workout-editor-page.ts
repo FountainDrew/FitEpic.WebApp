@@ -144,8 +144,17 @@ export class WorkoutEditorPage implements OnInit {
    */
   protected readonly autoScheduleGroupIds = signal<string[]>([]);
   protected readonly autoScheduleDate = signal<string | null>(null);
-  protected readonly hasAutoSchedule = computed(
-    () => this.autoScheduleGroupIds().length > 0 && !!this.autoScheduleDate(),
+  protected readonly hasAutoSchedule = computed(() => !!this.autoScheduleDate());
+  /**
+   * "Personal auto-schedule" — the editor was launched from the dashboard's
+   * schedule flow: a date is wired but no gym + no groups. Save persists a
+   * personal workout AND syncs a personal scheduled-workout row for the caller.
+   */
+  protected readonly personalLocked = computed(
+    () =>
+      this.hasAutoSchedule() &&
+      !this.gymLocked() &&
+      this.autoScheduleGroupIds().length === 0,
   );
 
   /**
@@ -227,15 +236,21 @@ export class WorkoutEditorPage implements OnInit {
       });
     }
 
-    // Auto-schedule wiring. Both params must be present; we only schedule
-    // after a successful save AND only when the saved workout is gym-scoped
-    // (the schedule endpoint requires the caller to be Coach/Admin/Owner of
-    // the target group's gym).
+    // Auto-schedule wiring. `scheduleDate` alone triggers personal scheduling
+    // for the caller (dashboard flow). Adding `scheduleGroupId` (one or more
+    // values) switches to group scheduling for those groups (gym Schedule tab
+    // flow); in that case the editor is also locked to the gym via `gymId`.
     const scheduleGroupIds = query.getAll('scheduleGroupId');
     const scheduleDate = query.get('scheduleDate');
-    if (scheduleGroupIds.length > 0 && scheduleDate) {
-      this.autoScheduleGroupIds.set(scheduleGroupIds);
+    if (scheduleDate) {
       this.autoScheduleDate.set(scheduleDate);
+      if (scheduleGroupIds.length > 0) {
+        this.autoScheduleGroupIds.set(scheduleGroupIds);
+      } else if (!gymIdParam) {
+        // Personal auto-schedule. Lock the workout to personal scope (no
+        // gymId) so the post-save sync targets a personal row.
+        this.authoring.patchWorkout({ gymId: null, origin: 'Personal' });
+      }
       // Pre-fill a sensible default name. The parser can still override this
       // on Analyze (handled via `nameEditedByUser` inside the authoring
       // service), and the user typing in the field also wins.
@@ -253,14 +268,6 @@ export class WorkoutEditorPage implements OnInit {
         // Picker will fall back to personal-only.
       }
     }
-    if (!this.profileService.profile()) {
-      try {
-        await this.profileService.load();
-      } catch {
-        // Author id will be guarded at save time.
-      }
-    }
-
     // Resolve group names for the context message when auto-scheduling.
     if (gymIdParam && this.hasAutoSchedule()) {
       try {
@@ -514,17 +521,27 @@ export class WorkoutEditorPage implements OnInit {
   }
 
   /**
-   * If `scheduleGroupId` + `scheduleDate` query params are present (i.e. the
-   * editor was launched from the gym Schedule tab's "Create a new workout"
-   * branch), schedule the just-saved workout against every requested group on
-   * `date`. Aggregates per-row outcomes into a single snackbar message. Returns
-   * null if no auto-schedule is requested.
+   * If `scheduleDate` was passed in the URL, schedule the just-saved workout.
+   * Two paths:
+   *   - **Group mode** — `scheduleGroupId` was also passed (one or more).
+   *     Syncs one group-targeted row per id and aggregates outcomes.
+   *   - **Personal mode** — no `scheduleGroupId`. Syncs a single personal row
+   *     for the caller.
+   * Returns null if no auto-schedule is requested.
    */
   private async maybeAutoSchedule(workoutId: string): Promise<string | null> {
     const groupIds = this.autoScheduleGroupIds();
     const date = this.autoScheduleDate();
-    if (groupIds.length === 0 || !date || !workoutId) return null;
+    if (!date || !workoutId) return null;
+    if (groupIds.length > 0) return this.autoScheduleGroups(workoutId, date, groupIds);
+    return this.autoSchedulePersonal(workoutId, date);
+  }
 
+  private async autoScheduleGroups(
+    workoutId: string,
+    date: string,
+    groupIds: string[],
+  ): Promise<string> {
     let succeeded = 0;
     let forbidden = 0;
     let errored = 0;
@@ -546,7 +563,6 @@ export class WorkoutEditorPage implements OnInit {
         errored += 1;
       }
     }
-
     const total = groupIds.length;
     if (succeeded === total && total === 1) return 'Workout saved and scheduled.';
     if (succeeded === total) return `Workout saved and scheduled for ${total} groups.`;
@@ -560,6 +576,31 @@ export class WorkoutEditorPage implements OnInit {
     if (forbidden > 0) parts.push(`${forbidden} rejected.`);
     if (errored > 0) parts.push(`${errored} failed.`);
     return parts.join(' ');
+  }
+
+  private async autoSchedulePersonal(workoutId: string, date: string): Promise<string> {
+    const me = this.profileService.profile()?.id;
+    if (!me) {
+      return 'Workout saved, but scheduling failed (account not identified).';
+    }
+    try {
+      const sync = await this.workoutsService.syncScheduledWorkout({
+        id: crypto.randomUUID(),
+        workoutId,
+        trainingGroupId: null,
+        athleteId: me,
+        scheduledDate: date,
+        status: 'Pending',
+        exerciseLogs: [],
+        updatedAt: new Date().toISOString(),
+      });
+      if (sync?.resolution === 'Forbidden') {
+        return 'Workout saved, but scheduling failed (permission).';
+      }
+      return 'Workout saved and scheduled.';
+    } catch {
+      return 'Workout saved, but scheduling failed. Try again from the dashboard.';
+    }
   }
 }
 

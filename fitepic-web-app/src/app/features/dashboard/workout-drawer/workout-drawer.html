@@ -26,6 +26,52 @@
     </header>
 
     <div class="drawer-body">
+      <div class="drawer-actions">
+        @if (isCompleted()) {
+          <button
+            mat-stroked-button
+            type="button"
+            class="drawer-action drawer-action-warn"
+            [disabled]="actionPending()"
+            (click)="deleteLogs()"
+          >
+            <mat-icon>delete_sweep</mat-icon>
+            <span>Delete logs</span>
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            class="drawer-action drawer-action-warn"
+            [disabled]="actionPending()"
+            (click)="unschedule()"
+          >
+            <mat-icon>event_busy</mat-icon>
+            <span>Unschedule</span>
+          </button>
+        } @else {
+          <button
+            mat-stroked-button
+            type="button"
+            class="drawer-action"
+            [disabled]="actionPending()"
+            (click)="reschedule()"
+          >
+            <mat-icon>event_repeat</mat-icon>
+            <span>Reschedule</span>
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            class="drawer-action drawer-action-warn"
+            [disabled]="actionPending()"
+            (click)="unschedule()"
+          >
+            <mat-icon>event_busy</mat-icon>
+            <span>Unschedule</span>
+          </button>
+        }
+      </div>
+
       @if (durationDisplay()) {
         <div class="duration-pill">
           <mat-icon>schedule</mat-icon>
