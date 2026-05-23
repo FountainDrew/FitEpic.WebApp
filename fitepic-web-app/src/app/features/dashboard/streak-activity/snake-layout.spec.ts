@@ -1,5 +1,10 @@
 import { DayActivityRecordResponse } from '../../../core/api/generated/models/day-activity-record-response';
-import { MAX_DOTS, buildStreakRows, overflowCount } from './snake-layout';
+import {
+  DEFAULT_MAX_DOTS,
+  EXPANDED_MAX_DOTS,
+  buildStreakRows,
+  overflowCount,
+} from './snake-layout';
 
 function makeDays(count: number): DayActivityRecordResponse[] {
   // newest-first: index 0 is "today", index 1 is yesterday, etc.
@@ -60,8 +65,8 @@ describe('buildStreakRows', () => {
     expect(rows[1].verticalConnectorSide).toBe('none');
   });
 
-  it('handles exactly 44 days (cap exactly hit, no overflow)', () => {
-    const days = makeDays(44);
+  it('handles exactly 45 days (default cap exactly hit, 3 full rows, no overflow)', () => {
+    const days = makeDays(45);
     const rows = buildStreakRows(days);
     expect(rows.length).toBe(3);
 
@@ -77,35 +82,56 @@ describe('buildStreakRows', () => {
     expect(rows[1].dots[14].date).toBe('day-15');
     expect(rows[1].verticalConnectorSide).toBe('left');
 
-    // row 2: even (kept), 14 dots, day-30 on left, day-43 on right, no connector (last)
-    expect(rows[2].dots.length).toBe(14);
+    // row 2: even (kept), 15 dots, day-30 on left, day-44 on right, no connector (last)
+    expect(rows[2].dots.length).toBe(15);
     expect(rows[2].dots[0].date).toBe('day-30');
-    expect(rows[2].dots[13].date).toBe('day-43');
+    expect(rows[2].dots[14].date).toBe('day-44');
     expect(rows[2].verticalConnectorSide).toBe('none');
 
     expect(overflowCount(days.length)).toBe(0);
   });
 
-  it('caps to 44 dots and reports the overflow (45 days → overflow 1)', () => {
-    const days = makeDays(45);
+  it('caps to default 45 dots and reports the overflow (46 days → overflow 1)', () => {
+    const days = makeDays(46);
     const rows = buildStreakRows(days);
     expect(rows.length).toBe(3);
-    expect(rows[0].dots.length + rows[1].dots.length + rows[2].dots.length).toBe(MAX_DOTS);
+    expect(rows[0].dots.length + rows[1].dots.length + rows[2].dots.length).toBe(DEFAULT_MAX_DOTS);
     expect(overflowCount(days.length)).toBe(1);
   });
 
-  it('caps to 44 dots and reports the overflow (90 days → overflow 46)', () => {
+  it('caps to default 45 dots and reports the overflow (90 days → overflow 45)', () => {
     const days = makeDays(90);
     const rows = buildStreakRows(days);
     expect(rows.length).toBe(3);
-    expect(rows[0].dots.length + rows[1].dots.length + rows[2].dots.length).toBe(MAX_DOTS);
-    // 90 - 44 = 46
-    expect(overflowCount(days.length)).toBe(46);
+    expect(rows[0].dots.length + rows[1].dots.length + rows[2].dots.length).toBe(DEFAULT_MAX_DOTS);
+    expect(overflowCount(days.length)).toBe(45);
   });
 
   it('overflowCount never goes negative', () => {
     expect(overflowCount(0)).toBe(0);
     expect(overflowCount(10)).toBe(0);
-    expect(overflowCount(44)).toBe(0);
+    expect(overflowCount(DEFAULT_MAX_DOTS)).toBe(0);
+  });
+
+  it('honours the expanded cap (200 dots → 13 full rows + 1 partial 5-dot row)', () => {
+    const days = makeDays(EXPANDED_MAX_DOTS);
+    const rows = buildStreakRows(days, EXPANDED_MAX_DOTS);
+    // 200 / 15 = 13 remainder 5
+    expect(rows.length).toBe(14);
+    for (let r = 0; r < 13; r++) {
+      expect(rows[r].dots.length).toBe(15);
+    }
+    expect(rows[13].dots.length).toBe(5);
+
+    // First and last connectors are sane: row 0 winds right, row 13 (last) has no connector.
+    expect(rows[0].verticalConnectorSide).toBe('right');
+    expect(rows[13].verticalConnectorSide).toBe('none');
+
+    expect(overflowCount(days.length, EXPANDED_MAX_DOTS)).toBe(0);
+  });
+
+  it('reports overflow against the expanded cap when total > 200', () => {
+    expect(overflowCount(250, EXPANDED_MAX_DOTS)).toBe(50);
+    expect(overflowCount(EXPANDED_MAX_DOTS, EXPANDED_MAX_DOTS)).toBe(0);
   });
 });

@@ -160,15 +160,20 @@ export class WorkoutEditorPage implements OnInit {
 
   /**
    * `Date` view of the auto-schedule date for the `mat-datepicker` binding.
-   * Two-way wrapper around {@link autoScheduleDate}, which stores ISO
-   * `YYYY-MM-DD`. Local-time parsing/formatting avoids the UTC drift you get
-   * from `Date#toISOString()` near midnight.
+   * Memoized via a computed so the same `Date` reference is returned across
+   * change-detection cycles as long as the underlying ISO string is
+   * unchanged. Returning a fresh `Date` object on every read (the previous
+   * inline-getter form) caused `mat-datepicker`'s ControlValueAccessor to
+   * see a "new" value every CD pass and the input/picker cycle could spin
+   * the main thread.
    */
+  private readonly autoScheduleDateAsDate = computed<Date | null>(() => {
+    const iso = this.autoScheduleDate();
+    return iso ? parseIsoToLocalDate(iso) : null;
+  });
+
   protected readonly autoScheduleDatePicker = {
-    get: () => {
-      const iso = this.autoScheduleDate();
-      return iso ? parseIsoToLocalDate(iso) : null;
-    },
+    get: () => this.autoScheduleDateAsDate(),
     set: (d: Date | null) => {
       const iso = d ? formatLocalDateToIso(d) : null;
       this.autoScheduleDate.set(iso);

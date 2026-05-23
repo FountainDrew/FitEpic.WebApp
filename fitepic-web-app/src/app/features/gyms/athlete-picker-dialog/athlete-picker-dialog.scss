@@ -1,0 +1,74 @@
+.picker-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 240px;
+}
+
+.picker-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fe-text);
+  opacity: 0.75;
+}
+
+.picker-empty {
+  margin: 24px 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--fe-text);
+  opacity: 0.6;
+}
+
+.search-field {
+  width: 100%;
+}
+
+.athlete-picker-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.athlete-picker-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  height: auto;
+  text-align: left;
+}
+
+.athlete-picker-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.athlete-picker-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.athlete-picker-meta {
+  font-size: 12px;
+  opacity: 0.8;
+
+  &.muted {
+    opacity: 0.55;
+    font-style: italic;
+  }
+}
+
+.athlete-picker-action-icon {
+  opacity: 0.7;
+  flex-shrink: 0;
+}

@@ -11,7 +11,12 @@ import { apiWebappDashboardsStreakActivityV1Get } from '../../../core/api/genera
 import { StreakActivityResponse } from '../../../core/api/generated/models/streak-activity-response';
 import { getWebAppErrorCode } from '../../../core/api/error-code';
 import { ProfileService } from '../../../core/profile/profile.service';
-import { buildStreakRows, overflowCount } from './snake-layout';
+import {
+  DEFAULT_MAX_DOTS,
+  EXPANDED_MAX_DOTS,
+  buildStreakRows,
+  overflowCount,
+} from './snake-layout';
 
 @Component({
   selector: 'app-streak-activity',
@@ -50,10 +55,35 @@ export class StreakActivity implements OnInit {
   protected readonly daysInWindow = computed(() => this.data()?.daysInWindow ?? 0);
   protected readonly daysWord = computed(() => (this.daysInWindow() === 1 ? 'day' : 'days'));
 
-  protected readonly streakRows = computed(() => buildStreakRows(this.data()?.recentDays));
+  /**
+   * When true, the snake renders up to {@link EXPANDED_MAX_DOTS} dots instead
+   * of the default {@link DEFAULT_MAX_DOTS}. Toggled by the View more / Show
+   * less buttons under the snake. Reset to false whenever the dataset is
+   * reloaded so a fresh dashboard load doesn't preserve an unwanted expansion.
+   */
+  protected readonly expanded = signal(false);
+
+  protected readonly maxDots = computed(() =>
+    this.expanded() ? EXPANDED_MAX_DOTS : DEFAULT_MAX_DOTS,
+  );
+
+  protected readonly streakRows = computed(() =>
+    buildStreakRows(this.data()?.recentDays, this.maxDots()),
+  );
   protected readonly showDotLine = computed(() => this.streakRows().length > 0);
-  protected readonly overflowDays = computed(() => overflowCount(this.data()?.recentDays?.length ?? 0));
+  protected readonly overflowDays = computed(() =>
+    overflowCount(this.data()?.recentDays?.length ?? 0, this.maxDots()),
+  );
   protected readonly overflowWord = computed(() => (this.overflowDays() === 1 ? 'day' : 'days'));
+
+  /** Whether the View more affordance should appear (more days are available beyond the current cap). */
+  protected readonly canExpand = computed(
+    () => !this.expanded() && (this.data()?.recentDays?.length ?? 0) > DEFAULT_MAX_DOTS,
+  );
+
+  protected toggleExpanded(): void {
+    this.expanded.update((v) => !v);
+  }
 
   async ngOnInit(): Promise<void> {
     await this.load();
@@ -70,6 +100,7 @@ export class StreakActivity implements OnInit {
   private async load(): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
+    this.expanded.set(false);
     try {
       const res = await firstValueFrom(
         apiWebappDashboardsStreakActivityV1Get(this.http, this.config.rootUrl),

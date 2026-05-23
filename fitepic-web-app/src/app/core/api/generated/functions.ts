@@ -53,6 +53,8 @@ export type { ApiGymsGymIdWorkoutsGet$Params as ApiGymsGymIdWorkoutsGet$Params }
 export { apiGymsGymIdWorkoutsGet as apiGymsGymIdWorkoutsGet } from './fn/gyms/api-gyms-gym-id-workouts-get';
 export type { ApiGymsMeOwnerFlagPut$Params as ApiGymsMeOwnerFlagPut$Params } from './fn/gyms/api-gyms-me-owner-flag-put';
 export { apiGymsMeOwnerFlagPut as apiGymsMeOwnerFlagPut } from './fn/gyms/api-gyms-me-owner-flag-put';
+export type { ApiGymsGymIdAthletesAthleteIdScheduledWorkoutsGet$Params as ApiGymsGymIdAthletesAthleteIdScheduledWorkoutsGet$Params } from './fn/gyms/api-gyms-gym-id-athletes-athlete-id-scheduled-workouts-get';
+export { apiGymsGymIdAthletesAthleteIdScheduledWorkoutsGet as apiGymsGymIdAthletesAthleteIdScheduledWorkoutsGet } from './fn/gyms/api-gyms-gym-id-athletes-athlete-id-scheduled-workouts-get';
 export type { AthleteProfilesGet$Params as AthleteProfilesGet$Params } from './fn/mobile-athlete-profiles/athlete-profiles-get';
 export { athleteProfilesGet as athleteProfilesGet } from './fn/mobile-athlete-profiles/athlete-profiles-get';
 export type { ApiMobileAthleteProfilesGet$Params as ApiMobileAthleteProfilesGet$Params } from './fn/mobile-athlete-profiles/api-mobile-athlete-profiles-get';
@@ -181,6 +183,12 @@ export type { ApiAthletesMeTrainingGroupMembershipsGet$Params as ApiAthletesMeTr
 export { apiAthletesMeTrainingGroupMembershipsGet as apiAthletesMeTrainingGroupMembershipsGet } from './fn/training-groups/api-athletes-me-training-group-memberships-get';
 export type { ApiGymsGymIdGroupsGroupIdScheduledWorkoutsGet$Params as ApiGymsGymIdGroupsGroupIdScheduledWorkoutsGet$Params } from './fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-get';
 export { apiGymsGymIdGroupsGroupIdScheduledWorkoutsGet as apiGymsGymIdGroupsGroupIdScheduledWorkoutsGet } from './fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-get';
+export type { ApiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsGet$Params as ApiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsGet$Params } from './fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-scheduled-workout-id-results-get';
+export { apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsGet as apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsGet } from './fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-scheduled-workout-id-results-get';
+export type { ApiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsPost$Params as ApiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsPost$Params } from './fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-scheduled-workout-id-results-post';
+export { apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsPost as apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsPost } from './fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-scheduled-workout-id-results-post';
+export type { ApiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsTargetAthleteIdDelete$Params as ApiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsTargetAthleteIdDelete$Params } from './fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-scheduled-workout-id-results-target-athlete-id-delete';
+export { apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsTargetAthleteIdDelete as apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsTargetAthleteIdDelete } from './fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-scheduled-workout-id-results-target-athlete-id-delete';
 export type { UserRegisterPost$Params as UserRegisterPost$Params } from './fn/user/user-register-post';
 export { userRegisterPost as userRegisterPost } from './fn/user/user-register-post';
 export type { UserSignInPost$Params as UserSignInPost$Params } from './fn/user/user-sign-in-post';

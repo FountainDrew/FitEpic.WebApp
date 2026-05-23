@@ -1,10 +1,16 @@
 import { Component, HostListener, computed, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { DashboardWorkoutLogResponse } from '../../../core/api/generated/models/dashboard-workout-log-response';
+import { formatDurationFromIso } from '../../../core/workouts/format-duration';
+import {
+  formatScoreTitleAndValue,
+  isTimeBasedScoreType,
+} from '../../../core/workouts/score-display';
 import { WorkoutsService } from '../../../core/workouts/workouts.service';
 import { showGymError, SYNC_RESULT_MESSAGES } from '../../../core/gyms/gym-error-messages';
 import { createPendingAction } from '../../../core/async/pending-action';
@@ -30,6 +36,7 @@ export class WorkoutDrawer {
   private readonly workoutsService = inject(WorkoutsService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
 
   private readonly action = createPendingAction<void>();
   protected readonly actionPending = this.action.pending;
@@ -45,12 +52,50 @@ export class WorkoutDrawer {
   });
 
   protected readonly durationDisplay = computed(() =>
-    this.formatDuration(this.service.workout()?.durationMinutes),
+    formatDurationFromIso(this.service.workout()?.duration),
   );
 
   protected readonly hasExercises = computed(() => (this.service.workout()?.exercises?.length ?? 0) > 0);
   protected readonly hasRawText = computed(() => Boolean(this.service.workout()?.rawText?.trim()));
   protected readonly isCompleted = computed(() => this.service.workout()?.status === 'Completed');
+
+  /**
+   * Group-scheduled row indicator. The dashboard projects `trainingGroupName`
+   * only for rows targeted at a training group; personal rows leave it null.
+   * Used to gate schedule-affecting actions (reschedule / unschedule) since
+   * those belong to the gym Schedule surface for the coach, not the athlete's
+   * personal dashboard.
+   */
+  protected readonly isGroupWorkout = computed(() =>
+    Boolean(this.service.workout()?.trainingGroupName),
+  );
+
+  /**
+   * Split score render for the drawer's Score section — separate title and
+   * value. The title names the score type ("Score: Time to Complete"); the
+   * value is the raw result ("9:33"). Two pieces avoid the "Score:"
+   * prefix appearing twice on the same card. Derived from raw `scoreType` +
+   * `scoreResult`; `displayValue` is intentionally ignored (contract round
+   * 8 deprecation).
+   */
+  protected readonly scoreParts = computed(() => {
+    const w = this.service.workout();
+    return formatScoreTitleAndValue({
+      status: w?.status,
+      scoreType: w?.score?.scoreType,
+      scoreResult: w?.score?.scoreResult,
+    });
+  });
+
+  /**
+   * Whether to render the Duration section. Hidden when the score is a
+   * time type (the score block already conveys the time precisely).
+   */
+  protected readonly showDurationPill = computed(() => {
+    if (this.durationDisplay().length === 0) return false;
+    if (isTimeBasedScoreType(this.service.workout()?.score?.scoreType)) return false;
+    return true;
+  });
 
   @HostListener('document:keydown.escape')
   protected onEscape(): void {
@@ -59,6 +104,23 @@ export class WorkoutDrawer {
 
   protected close(): void {
     this.service.close();
+  }
+
+  /**
+   * Navigate to the dedicated log page for this scheduled workout. The page
+   * passes `?returnUrl=/?openDrawer=<id>` so the dashboard re-opens this
+   * drawer on the freshly-logged workout after save. Same flow whether the
+   * row is Pending (first log) or Completed (editing existing logs) — the
+   * page detects the existing logs and pre-fills the form.
+   */
+  protected async logWorkout(): Promise<void> {
+    const w = this.service.workout();
+    if (!w?.id) return;
+    const returnUrl = `/?openDrawer=${encodeURIComponent(w.id)}`;
+    this.service.close();
+    await this.router.navigate(['/workouts/log', w.id], {
+      queryParams: { returnUrl },
+    });
   }
 
   /**
@@ -257,13 +319,4 @@ export class WorkoutDrawer {
     return (await ref.afterClosed().toPromise()) ?? false;
   }
 
-  private formatDuration(minutes: number | null | undefined): string {
-    const total = Math.max(0, Math.round(minutes ?? 0));
-    if (total === 0) return '';
-    const hours = Math.floor(total / 60);
-    const mins = total % 60;
-    if (hours === 0) return `${mins} min`;
-    if (mins === 0) return `${hours}h`;
-    return `${hours}h ${mins}m`;
-  }
 }

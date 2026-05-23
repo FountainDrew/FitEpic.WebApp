@@ -1,0 +1,275 @@
+<header class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">{{ pageTitle() }}</h1>
+    @if (workoutName(); as name) {
+      <p class="page-subtitle">
+        <strong>{{ name }}</strong>
+        @if (scheduledDate(); as date) {
+          · {{ date | date:'fullDate' }}
+        }
+      </p>
+    }
+  </div>
+</header>
+
+@if (loading()) {
+  <div class="loading-block">
+    <span class="skeleton skeleton-line"></span>
+    <span class="skeleton skeleton-line"></span>
+    <span class="skeleton skeleton-line"></span>
+  </div>
+} @else if (error()) {
+  <mat-card class="info-card">
+    <mat-card-content>
+      <p>{{ error() }}</p>
+      <button mat-button color="primary" type="button" (click)="onCancel()">Go back</button>
+    </mat-card-content>
+  </mat-card>
+} @else if (scheduledWorkout(); as sw) {
+  <form class="log-form" (ngSubmit)="onSave()">
+    @if (showScoreSection()) {
+      <section class="log-section">
+        <h2 class="section-title">Score</h2>
+        <div class="score-row">
+          @if (showTimeInput()) {
+            <mat-form-field appearance="outline" class="time-field">
+              <mat-label>Minutes</mat-label>
+              <input
+                matInput
+                type="number"
+                min="0"
+                [ngModel]="scoreMinutes()"
+                (ngModelChange)="scoreMinutes.set($event)"
+                name="scoreMinutes"
+                inputmode="numeric"
+              />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="time-field">
+              <mat-label>Seconds</mat-label>
+              <input
+                matInput
+                type="number"
+                min="0"
+                max="59"
+                [ngModel]="scoreSeconds()"
+                (ngModelChange)="scoreSeconds.set($event)"
+                name="scoreSeconds"
+                inputmode="numeric"
+              />
+            </mat-form-field>
+          }
+          @if (showNumericInput()) {
+            <mat-form-field appearance="outline" class="numeric-field">
+              <mat-label>{{ numericScoreLabel() }}</mat-label>
+              <input
+                matInput
+                type="text"
+                [ngModel]="scoreNumericValue()"
+                (ngModelChange)="scoreNumericValue.set($event)"
+                name="scoreNumericValue"
+                inputmode="decimal"
+                autocomplete="off"
+              />
+            </mat-form-field>
+          }
+        </div>
+        @if (showTimeInput()) {
+          <p class="section-hint">
+            Your time is recorded as both your score and your workout duration.
+          </p>
+        }
+      </section>
+    }
+
+    @if (showDurationInput()) {
+      <section class="log-section">
+        <h2 class="section-title">Workout duration</h2>
+        <div class="score-row">
+          <mat-form-field appearance="outline" class="time-field">
+            <mat-label>Minutes</mat-label>
+            <input
+              matInput
+              type="number"
+              min="0"
+              [ngModel]="durationMinutes()"
+              (ngModelChange)="durationMinutes.set($event)"
+              name="durationMinutes"
+              inputmode="numeric"
+            />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="time-field">
+            <mat-label>Seconds</mat-label>
+            <input
+              matInput
+              type="number"
+              min="0"
+              max="59"
+              [ngModel]="durationSeconds()"
+              (ngModelChange)="durationSeconds.set($event)"
+              name="durationSeconds"
+              inputmode="numeric"
+            />
+          </mat-form-field>
+        </div>
+      </section>
+    }
+
+    @if (exerciseGroups().length > 0) {
+      <section class="log-section">
+        <h2 class="section-title">Exercises</h2>
+        <div class="exercise-groups">
+          @for (group of exerciseGroups(); track group.workoutExerciseId; let gi = $index) {
+            <mat-card class="exercise-group-card">
+              <mat-card-content>
+                <header class="exercise-group-header">
+                  <h3 class="exercise-group-name">{{ group.exerciseName }}</h3>
+                  @if (group.exerciseSummary) {
+                    <span class="exercise-group-summary">{{ group.exerciseSummary }}</span>
+                  }
+                </header>
+                <ul class="exercise-log-rows">
+                  @for (row of group.rows; track $index; let ri = $index) {
+                    <li class="exercise-log-row">
+                      <span class="row-label">{{ row.label }}</span>
+                      <div class="row-inputs">
+                        @if (row.showRepsInput) {
+                          <mat-form-field appearance="outline" class="row-field">
+                            <mat-label>{{ row.repInputLabel }}</mat-label>
+                            <input
+                              matInput
+                              type="text"
+                              [ngModel]="row.actualReps"
+                              (ngModelChange)="setRowField(gi, ri, 'actualReps', $event)"
+                              [name]="'reps-' + gi + '-' + ri"
+                              autocomplete="off"
+                            />
+                          </mat-form-field>
+                        }
+                        @if (row.showWeightInput) {
+                          <mat-form-field appearance="outline" class="row-field">
+                            <mat-label>Weight (lbs)</mat-label>
+                            <input
+                              matInput
+                              type="number"
+                              min="0"
+                              step="0.5"
+                              [ngModel]="row.actualWeightLbs"
+                              (ngModelChange)="setRowField(gi, ri, 'actualWeightLbs', $event)"
+                              [name]="'weight-' + gi + '-' + ri"
+                              inputmode="decimal"
+                            />
+                          </mat-form-field>
+                        }
+                        @if (row.showDurationInput) {
+                          <mat-form-field appearance="outline" class="row-field-small">
+                            <mat-label>Min</mat-label>
+                            <input
+                              matInput
+                              type="number"
+                              min="0"
+                              [ngModel]="row.actualDurationMinutes"
+                              (ngModelChange)="setRowField(gi, ri, 'actualDurationMinutes', $event)"
+                              [name]="'durmin-' + gi + '-' + ri"
+                              inputmode="numeric"
+                            />
+                          </mat-form-field>
+                          <mat-form-field appearance="outline" class="row-field-small">
+                            <mat-label>Sec</mat-label>
+                            <input
+                              matInput
+                              type="number"
+                              min="0"
+                              max="59"
+                              [ngModel]="row.actualDurationSeconds"
+                              (ngModelChange)="setRowField(gi, ri, 'actualDurationSeconds', $event)"
+                              [name]="'dursec-' + gi + '-' + ri"
+                              inputmode="numeric"
+                            />
+                          </mat-form-field>
+                        }
+                        @if (row.showDistanceInput) {
+                          <mat-form-field appearance="outline" class="row-field">
+                            <mat-label>Distance</mat-label>
+                            <input
+                              matInput
+                              type="number"
+                              min="0"
+                              step="0.1"
+                              [ngModel]="row.actualDistance"
+                              (ngModelChange)="setRowField(gi, ri, 'actualDistance', $event)"
+                              [name]="'dist-' + gi + '-' + ri"
+                              inputmode="decimal"
+                            />
+                          </mat-form-field>
+                          <mat-form-field appearance="outline" class="row-field-small">
+                            <mat-label>Unit</mat-label>
+                            <mat-select
+                              [ngModel]="row.actualDistanceUnit"
+                              (ngModelChange)="setRowField(gi, ri, 'actualDistanceUnit', $event)"
+                              [name]="'distunit-' + gi + '-' + ri"
+                            >
+                              @for (unit of distanceUnits; track unit) {
+                                <mat-option [value]="unit">{{ unit }}</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+                        }
+                        @if (row.showCaloriesInput) {
+                          <mat-form-field appearance="outline" class="row-field">
+                            <mat-label>Calories</mat-label>
+                            <input
+                              matInput
+                              type="number"
+                              min="0"
+                              [ngModel]="row.actualCalories"
+                              (ngModelChange)="setRowField(gi, ri, 'actualCalories', $event)"
+                              [name]="'cal-' + gi + '-' + ri"
+                              inputmode="numeric"
+                            />
+                          </mat-form-field>
+                        }
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      </section>
+    }
+
+    <section class="log-section">
+      <h2 class="section-title">Notes</h2>
+      <mat-form-field appearance="outline" class="notes-field">
+        <mat-label>How did it go?</mat-label>
+        <textarea
+          matInput
+          rows="4"
+          [ngModel]="notes()"
+          (ngModelChange)="notes.set($event)"
+          name="notes"
+        ></textarea>
+      </mat-form-field>
+    </section>
+
+    <div class="form-footer">
+      <button
+        mat-stroked-button
+        type="button"
+        [disabled]="saving()"
+        (click)="onCancel()"
+      >
+        Cancel
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        [disabled]="saving()"
+      >
+        {{ submitLabel() }}
+      </button>
+    </div>
+  </form>
+}

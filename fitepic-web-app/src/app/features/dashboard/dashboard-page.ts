@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
@@ -68,6 +68,7 @@ export class DashboardPage implements OnInit {
   private readonly config = inject(ApiConfiguration);
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly dialog = inject(MatDialog);
   private readonly workoutsService = inject(WorkoutsService);
   private readonly snackBar = inject(MatSnackBar);
@@ -105,6 +106,34 @@ export class DashboardPage implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await Promise.allSettled([this.loadStats(), this.loadWorkouts()]);
+    // If the URL carries `?openDrawer=<scheduledWorkoutId>` — set by the
+    // workout log page on save so the user lands back on the freshly-logged
+    // workout — find the matching card and reopen the drawer. Strip the
+    // query param afterwards so a browser refresh doesn't reopen the drawer
+    // again later.
+    const drawerId = this.route.snapshot.queryParamMap.get('openDrawer');
+    if (drawerId) {
+      const card = this.findCardById(drawerId);
+      if (card) this.workoutDrawerService.open(card);
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { openDrawer: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
+  }
+
+  private findCardById(id: string): DashboardWorkoutCardResponse | null {
+    const w = this.workouts();
+    if (!w) return null;
+    const all = [
+      ...(w.today ?? []),
+      ...(w.tomorrow ?? []),
+      ...(w.yesterday ?? []),
+      ...(w.future ?? []),
+    ];
+    return all.find((c) => c.id === id) ?? null;
   }
 
   protected async retryStats(): Promise<void> {

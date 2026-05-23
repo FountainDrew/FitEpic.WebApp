@@ -9,9 +9,16 @@ import { apiMobileWorkoutsGet } from '../api/generated/fn/mobile-workouts/api-mo
 import { apiMobileScheduledworkoutsGet } from '../api/generated/fn/mobile-scheduled-workouts/api-mobile-scheduledworkouts-get';
 import { apiMobileScheduledworkoutsSyncPost } from '../api/generated/fn/mobile-scheduled-workouts/api-mobile-scheduledworkouts-sync-post';
 import { apiGymsGymIdGroupsGroupIdScheduledWorkoutsGet } from '../api/generated/fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-get';
+import { apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsGet } from '../api/generated/fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-scheduled-workout-id-results-get';
+import { apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsPost } from '../api/generated/fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-scheduled-workout-id-results-post';
+import { apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsTargetAthleteIdDelete } from '../api/generated/fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-scheduled-workout-id-results-target-athlete-id-delete';
+import { apiGymsGymIdAthletesAthleteIdScheduledWorkoutsGet } from '../api/generated/fn/gyms/api-gyms-gym-id-athletes-athlete-id-scheduled-workouts-get';
+import { GroupResultOnBehalfRequest } from '../api/generated/models/group-result-on-behalf-request';
+import { GroupResultOnBehalfResponse } from '../api/generated/models/group-result-on-behalf-response';
 import { ParseWorkoutResponse } from '../api/generated/models/parse-workout-response';
 import { ScheduledWorkoutRequest } from '../api/generated/models/scheduled-workout-request';
 import { ScheduledWorkoutResponse } from '../api/generated/models/scheduled-workout-response';
+import { ScheduledWorkoutResultsResponse } from '../api/generated/models/scheduled-workout-results-response';
 import { SyncItemResult } from '../api/generated/models/sync-item-result';
 import { WorkoutRequest } from '../api/generated/models/workout-request';
 import { WorkoutResponse } from '../api/generated/models/workout-response';
@@ -218,5 +225,108 @@ export class WorkoutsService {
       }),
     );
     return res.body?.results?.[0] ?? null;
+  }
+
+  // ─── Coach-on-behalf surface ───────────────────────────────────────────
+  //
+  // Three endpoints (round 10 + 12 + 14) addressing the four-tuple
+  // `(gym, group, scheduledWorkout, athlete)`:
+  //
+  //   - GET    /api/gyms/{gymId}/groups/{groupId}/scheduled-workouts/{id}/results
+  //   - POST   /api/gyms/{gymId}/groups/{groupId}/scheduled-workouts/{id}/results
+  //   - DELETE /api/gyms/{gymId}/groups/{groupId}/scheduled-workouts/{id}/results/{targetAthleteId}
+  //
+  // All three share the same Coach+ authorization rule on `gymId`. Used by
+  // the gym schedule drawer (per-athlete results list) and the
+  // workout-log page in coach mode (`?onBehalfOfGymId=&groupId=&athleteId=`).
+
+  /**
+   * Coach-side read: every athlete's slot for a single group-scheduled
+   * workout. Returns one entry per athlete in scope — current athlete-tier
+   * members of the group (with `result` populated when they've logged) plus
+   * any historical completers who left the group (`isCurrentMember: false`).
+   * Single round trip; no client-side join.
+   */
+  async getGroupResults(
+    gymId: string,
+    groupId: string,
+    scheduledWorkoutId: string,
+  ): Promise<ScheduledWorkoutResultsResponse> {
+    const res = await firstValueFrom(
+      apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsGet(
+        this.http,
+        this.config.rootUrl,
+        { gymId, groupId, scheduledWorkoutId },
+      ),
+    );
+    return res.body;
+  }
+
+  /**
+   * Coach-side write: log (or edit) the result row for a target athlete on
+   * a group-scheduled workout. Writes log fields only; template fields stay
+   * pinned to the parent row. See contract §12 round 10 for the field
+   * matrix and §12 round 14 for the membership-churn rules.
+   */
+  async logResultOnBehalf(
+    gymId: string,
+    groupId: string,
+    scheduledWorkoutId: string,
+    body: GroupResultOnBehalfRequest,
+  ): Promise<GroupResultOnBehalfResponse> {
+    const res = await firstValueFrom(
+      apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsPost(
+        this.http,
+        this.config.rootUrl,
+        { gymId, groupId, scheduledWorkoutId, body },
+      ),
+    );
+    return res.body;
+  }
+
+  /**
+   * Coach-side unlog: soft-deletes the target athlete's result row + its
+   * child exercise logs. Idempotent — repeated calls return 204. The
+   * athlete's dashboard reverts to template default on the next read.
+   */
+  async deleteResultOnBehalf(
+    gymId: string,
+    groupId: string,
+    scheduledWorkoutId: string,
+    targetAthleteId: string,
+  ): Promise<void> {
+    await firstValueFrom(
+      apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsTargetAthleteIdDelete(
+        this.http,
+        this.config.rootUrl,
+        { gymId, groupId, scheduledWorkoutId, targetAthleteId },
+      ),
+    );
+  }
+
+  /**
+   * Coach-side read: an individual athlete's gym-context schedule (Q56).
+   * Returns the same shape as the per-group oversight endpoint — only the
+   * pivot changes. Used to load an athlete's current rows when navigating
+   * to the coach log mode for a specific row.
+   *
+   * `from` / `to` accept ISO `YYYY-MM-DD`; both required together when
+   * narrowing the window.
+   */
+  async getAthleteGymSchedule(
+    gymId: string,
+    athleteId: string,
+    options?: { from?: string; to?: string },
+  ): Promise<ScheduledWorkoutResponse[]> {
+    const res = await firstValueFrom(
+      apiGymsGymIdAthletesAthleteIdScheduledWorkoutsGet(this.http, this.config.rootUrl, {
+        gymId,
+        athleteId,
+        from: options?.from,
+        to: options?.to,
+        pageSize: 500,
+      }),
+    );
+    return res.body?.items ?? [];
   }
 }

@@ -35,3 +35,180 @@
   font-weight: 500;
   color: var(--fe-text);
 }
+
+// ─── Per-athlete results section ─────────────────────────────────────────
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.log-athlete-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.results-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-line {
+  display: block;
+  height: 48px;
+  border-radius: 8px;
+}
+
+.athlete-result-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.athlete-result-card {
+  background: var(--fe-surface-alt);
+  border: 1px solid var(--fe-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.athlete-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+
+  &.is-expandable {
+    cursor: pointer;
+
+    &:hover {
+      background: color-mix(in srgb, var(--fe-primary) 6%, transparent);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--fe-primary);
+      outline-offset: -2px;
+    }
+  }
+}
+
+.athlete-result-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.athlete-result-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fe-text);
+}
+
+.athlete-result-score {
+  font-size: 12px;
+  color: var(--fe-text);
+  opacity: 0.8;
+
+  &.muted {
+    opacity: 0.55;
+    font-style: italic;
+  }
+}
+
+.athlete-result-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.expand-chevron {
+  transition: transform 160ms ease;
+  opacity: 0.6;
+  margin-right: 4px;
+
+  &.expanded {
+    transform: rotate(180deg);
+  }
+}
+
+.result-delete-button mat-icon {
+  color: #c0392b;
+}
+
+:host-context(.fe-dark) .result-delete-button mat-icon {
+  color: #ff7a6d;
+}
+
+.athlete-exercise-logs {
+  list-style: none;
+  margin: 0;
+  padding: 8px 12px 12px;
+  border-top: 1px solid var(--fe-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--fe-bg);
+}
+
+.athlete-exercise-log {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.log-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--fe-text);
+}
+
+.log-exercise-name {
+  font-weight: 500;
+}
+
+.log-label {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.log-summary {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.log-notes {
+  font-size: 12px;
+  color: var(--fe-text);
+  opacity: 0.6;
+  font-style: italic;
+  padding-left: 12px;
+}
+
+.results-footer-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--fe-text);
+  opacity: 0.65;
+  font-style: italic;
+}

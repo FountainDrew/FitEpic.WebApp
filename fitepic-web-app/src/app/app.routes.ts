@@ -130,6 +130,12 @@ export const routes: Routes = [
         canDeactivate: [workoutEditorCanDeactivate],
       },
       {
+        path: 'workouts/log/:scheduledWorkoutId',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/workouts/workout-log-page').then((m) => m.WorkoutLogPage),
+      },
+      {
         path: 'settings',
         pathMatch: 'full',
         loadComponent: () =>

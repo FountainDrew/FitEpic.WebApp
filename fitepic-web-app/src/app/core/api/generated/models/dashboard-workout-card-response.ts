@@ -7,9 +7,13 @@ import { ScheduledWorkoutStatus } from '../models/scheduled-workout-status';
 export interface DashboardWorkoutCardResponse {
 
   /**
-   * Duration in whole minutes. Athlete-logged when present, else prescribed. Null if neither is set.
+   * Duration of the scheduled workout as the athlete logged it (when present) or the parent
+   * workout's prescribed duration (when no athlete value yet). Precise `TimeSpan` — no
+   * rounding — so time-scored workouts (e.g. a 9:33 For Time) keep their sub-minute precision.
+   * Null when neither value is set. Serialized as `hh:mm:ss`, symmetric with the sync
+   * endpoint's `ScheduledWorkoutRequest.Duration`.
    */
-  durationMinutes?: number | null;
+  duration?: string | null;
 
   /**
    * Number of (non-soft-deleted) exercises on the workout.

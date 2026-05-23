@@ -14,6 +14,8 @@ export type { AthleteConnectionInviteStatus } from './models/athlete-connection-
 export type { AthleteConnectionResponse } from './models/athlete-connection-response';
 export type { AthleteConnectionStatus } from './models/athlete-connection-status';
 export type { AthleteProfileResponse } from './models/athlete-profile-response';
+export type { AthleteResultEntryResponse } from './models/athlete-result-entry-response';
+export type { AthleteResultPayloadResponse } from './models/athlete-result-payload-response';
 export type { AuthResponse } from './models/auth-response';
 export type { BatchReactionsRequest } from './models/batch-reactions-request';
 export type { ChangeGymMemberRoleRequest } from './models/change-gym-member-role-request';
@@ -31,6 +33,8 @@ export type { DateOnlyNullableJsonOptional } from './models/date-only-nullable-j
 export type { DayActivityRecordResponse } from './models/day-activity-record-response';
 export type { DayActivityState } from './models/day-activity-state';
 export type { DistanceUnit } from './models/distance-unit';
+export type { GroupResultOnBehalfRequest } from './models/group-result-on-behalf-request';
+export type { GroupResultOnBehalfResponse } from './models/group-result-on-behalf-response';
 export type { GymErrorResponse } from './models/gym-error-response';
 export type { GymJoinRequestResponse } from './models/gym-join-request-response';
 export type { GymJoinRequestStatus } from './models/gym-join-request-status';
@@ -58,6 +62,7 @@ export type { ReactionResponse } from './models/reaction-response';
 export type { RegisterRequest } from './models/register-request';
 export type { ScheduledWorkoutRequest } from './models/scheduled-workout-request';
 export type { ScheduledWorkoutResponse } from './models/scheduled-workout-response';
+export type { ScheduledWorkoutResultsResponse } from './models/scheduled-workout-results-response';
 export type { ScheduledWorkoutStatus } from './models/scheduled-workout-status';
 export type { ScheduledWorkoutSyncResponse } from './models/scheduled-workout-sync-response';
 export type { SendGymInviteRequest } from './models/send-gym-invite-request';

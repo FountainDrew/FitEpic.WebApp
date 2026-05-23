@@ -27,7 +27,12 @@
     @if (showDotLine()) {
       <div class="dot-line" aria-hidden="true">
         @for (row of streakRows(); track $index) {
-          <div class="dot-row" [class.has-connector-right]="row.verticalConnectorSide === 'right'" [class.has-connector-left]="row.verticalConnectorSide === 'left'">
+          <div
+            class="dot-row"
+            [class.has-connector-right]="row.verticalConnectorSide === 'right'"
+            [class.has-connector-left]="row.verticalConnectorSide === 'left'"
+            [class.odd-row]="$index % 2 === 1"
+          >
             @for (dot of row.dots; track $index) {
               @if (!$first) {
                 <span class="h-connector"></span>
@@ -39,8 +44,31 @@
             }
           </div>
         }
-        @if (overflowDays() > 0) {
-          <p class="overflow-label">+ {{ overflowDays() }} more {{ overflowWord() }}</p>
+        @if (overflowDays() > 0 || expanded()) {
+          <div class="overflow-row">
+            @if (overflowDays() > 0) {
+              <span class="overflow-label">+ {{ overflowDays() }} more {{ overflowWord() }}</span>
+            }
+            @if (canExpand()) {
+              <button
+                mat-button
+                type="button"
+                class="expand-toggle"
+                (click)="toggleExpanded()"
+              >
+                View more
+              </button>
+            } @else if (expanded()) {
+              <button
+                mat-button
+                type="button"
+                class="expand-toggle"
+                (click)="toggleExpanded()"
+              >
+                Show less
+              </button>
+            }
+          </div>
         }
       </div>
     }

@@ -16,7 +16,8 @@
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\drewe\\\\source\\\\repos\\\\FitEpic.Api\" -Recurse -Directory)",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Head -30)",
-      "Bash(xargs wc -l)"
+      "Bash(xargs wc -l)",
+      "PowerShell(Get-ChildItem *)"
     ]
   }
 }
