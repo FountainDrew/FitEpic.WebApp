@@ -89,22 +89,21 @@
 .athlete-result-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 4px;
+  padding: 6px 12px 6px 4px;
+}
 
-  &.is-expandable {
-    cursor: pointer;
+// Chevron-as-button on the left edge of the card. Spacer below reserves the
+// same width when the card has no logs to expand, so identity columns line
+// up across cards regardless of expandability.
+.expand-button {
+  flex-shrink: 0;
+}
 
-    &:hover {
-      background: color-mix(in srgb, var(--fe-primary) 6%, transparent);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--fe-primary);
-      outline-offset: -2px;
-    }
-  }
+.expand-button-spacer {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
 }
 
 .athlete-result-identity {
@@ -141,8 +140,7 @@
 
 .expand-chevron {
   transition: transform 160ms ease;
-  opacity: 0.6;
-  margin-right: 4px;
+  opacity: 0.8;
 
   &.expanded {
     transform: rotate(180deg);
@@ -157,52 +155,66 @@
   color: #ff7a6d;
 }
 
+// Per-exercise grouped logs. Each exercise gets a section with its name as a
+// header row and its sets listed beneath in a two-column grid (set label +
+// actuals) so columns align down the page.
 .athlete-exercise-logs {
-  list-style: none;
   margin: 0;
   padding: 8px 12px 12px;
   border-top: 1px solid var(--fe-border);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
   background: var(--fe-bg);
 }
 
-.athlete-exercise-log {
+.exercise-log-group {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
-.log-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 12px;
+.exercise-log-group-name {
+  font-size: 13px;
+  font-weight: 600;
   color: var(--fe-text);
 }
 
-.log-exercise-name {
-  font-weight: 500;
+.exercise-log-sets {
+  display: grid;
+  grid-template-columns: minmax(64px, max-content) 1fr;
+  column-gap: 16px;
+  row-gap: 2px;
+  padding-left: 8px;
 }
 
-.log-label {
-  font-variant-numeric: tabular-nums;
-  opacity: 0.75;
-}
+.exercise-log-set {
+  display: contents;
 
-.log-summary {
-  font-variant-numeric: tabular-nums;
-  opacity: 0.85;
-}
+  // Each child cell occupies its grid column.
+  .log-label {
+    grid-column: 1;
+    font-size: 12px;
+    color: var(--fe-text);
+    opacity: 0.7;
+    font-variant-numeric: tabular-nums;
+  }
 
-.log-notes {
-  font-size: 12px;
-  color: var(--fe-text);
-  opacity: 0.6;
-  font-style: italic;
-  padding-left: 12px;
+  .log-summary {
+    grid-column: 2;
+    font-size: 12px;
+    color: var(--fe-text);
+    opacity: 0.9;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .log-notes {
+    grid-column: 2;
+    font-size: 12px;
+    color: var(--fe-text);
+    opacity: 0.6;
+    font-style: italic;
+  }
 }
 
 .results-footer-note {

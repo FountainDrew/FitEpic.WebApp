@@ -139,15 +139,31 @@
             <ul class="athlete-result-list">
               @for (entry of loggedAthletes(); track entry.athleteId) {
                 <li class="athlete-result-card">
-                  <header
-                    class="athlete-result-header"
-                    role="button"
-                    tabindex="0"
-                    [class.is-expandable]="hasExpandableLogs(entry)"
-                    (click)="hasExpandableLogs(entry) && toggleExpand(entry.athleteId)"
-                    (keydown.enter)="hasExpandableLogs(entry) && toggleExpand(entry.athleteId)"
-                    (keydown.space)="hasExpandableLogs(entry) && toggleExpand(entry.athleteId); $event.preventDefault()"
-                  >
+                  <header class="athlete-result-header">
+                    <!--
+                      Chevron on the LEFT as its own button so the click
+                      target is unambiguous. Reserved slot (spacer) when the
+                      card has no logs to expand, so the identity column
+                      lines up across cards.
+                    -->
+                    @if (hasExpandableLogs(entry)) {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="expand-button"
+                        (click)="toggleExpand(entry.athleteId)"
+                        [attr.aria-label]="isExpanded(entry.athleteId) ? 'Collapse logs' : 'Expand logs'"
+                        [attr.aria-expanded]="isExpanded(entry.athleteId)"
+                      >
+                        <mat-icon
+                          class="expand-chevron"
+                          [class.expanded]="isExpanded(entry.athleteId)"
+                        >expand_more</mat-icon>
+                      </button>
+                    } @else {
+                      <span class="expand-button-spacer" aria-hidden="true"></span>
+                    }
+
                     <div class="athlete-result-identity">
                       <span class="athlete-result-name">{{ entry.displayName ?? 'Athlete' }}</span>
                       @if (scoreLineFor(entry); as score) {
@@ -158,14 +174,8 @@
                         <span class="athlete-result-score muted">Completed</span>
                       }
                     </div>
-                    <div class="athlete-result-actions" (click)="$event.stopPropagation()">
-                      @if (hasExpandableLogs(entry)) {
-                        <mat-icon
-                          class="expand-chevron"
-                          [class.expanded]="isExpanded(entry.athleteId)"
-                          aria-hidden="true"
-                        >expand_more</mat-icon>
-                      }
+
+                    <div class="athlete-result-actions">
                       <button
                         mat-icon-button
                         type="button"
@@ -191,26 +201,24 @@
                   </header>
 
                   @if (isExpanded(entry.athleteId) && hasExpandableLogs(entry)) {
-                    <ul class="athlete-exercise-logs">
-                      @for (log of entry.result!.exerciseLogs ?? []; track log.id) {
-                        @if (!log.isDeleted) {
-                          <li class="athlete-exercise-log">
-                            <div class="log-row">
-                              <span class="log-exercise-name">{{ log.exerciseName }}</span>
-                              @if (logLabel(log); as label) {
-                                <span class="log-label">{{ label }}</span>
-                              }
-                              @if (logSummary(log); as summary) {
-                                <span class="log-summary">{{ summary }}</span>
-                              }
-                            </div>
-                            @if (log.notes) {
-                              <div class="log-notes">"{{ log.notes }}"</div>
+                    <div class="athlete-exercise-logs">
+                      @for (group of groupedLogsFor(entry); track group.exerciseName) {
+                        <div class="exercise-log-group">
+                          <div class="exercise-log-group-name">{{ group.exerciseName }}</div>
+                          <div class="exercise-log-sets">
+                            @for (log of group.sets; track log.id) {
+                              <div class="exercise-log-set">
+                                <span class="log-label">{{ logLabel(log) }}</span>
+                                <span class="log-summary">{{ logSummary(log) }}</span>
+                                @if (log.notes) {
+                                  <span class="log-notes">"{{ log.notes }}"</span>
+                                }
+                              </div>
                             }
-                          </li>
-                        }
+                          </div>
+                        </div>
                       }
-                    </ul>
+                    </div>
                   }
                 </li>
               }

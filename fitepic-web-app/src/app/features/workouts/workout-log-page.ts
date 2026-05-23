@@ -340,7 +340,8 @@ export class WorkoutLogPage implements OnInit {
           // Coach-on-behalf path (rounds 10 + 12 + 14). Writes log fields to
           // the per-athlete result row; template fields (workoutId, date,
           // scoreType) stay pinned to the parent. Errors come back as HTTP
-          // status codes, not per-row resolutions.
+          // status codes with `code` discriminators on 404s (round 18) —
+          // routing through `showGymError` picks the right copy per code.
           try {
             await this.workoutsService.logResultOnBehalf(
               coach.gymId,
@@ -356,32 +357,8 @@ export class WorkoutLogPage implements OnInit {
               },
             );
           } catch (err) {
-            const status = httpStatusFrom(err);
-            if (status === 403) {
-              this.snackBar.open(
-                'You no longer have permission to log this workout.',
-                'Dismiss',
-                { duration: 4000 },
-              );
-              return;
-            }
-            if (status === 404) {
-              this.snackBar.open(
-                'This athlete is no longer a member of the gym.',
-                'Dismiss',
-                { duration: 4000 },
-              );
-              return;
-            }
-            if (status === 400) {
-              this.snackBar.open(
-                'Some inputs are invalid. Please double-check and try again.',
-                'Dismiss',
-                { duration: 4000 },
-              );
-              return;
-            }
-            throw err;
+            showGymError(this.snackBar, err, 'Could not save the workout log.');
+            return;
           }
         } else {
           // Personal path — caller logs their own scheduled workout via the
@@ -825,15 +802,4 @@ function toIsoDate(d: Date): string {
 
 function numToString(n: number | null | undefined): string {
   return n == null ? '' : String(n);
-}
-
-/**
- * Extract the HTTP status from an unknown error thrown by the typed client.
- * `HttpErrorResponse`s expose `.status`; anything else returns 0 so callers
- * can decide whether to surface a generic "could not save" message.
- */
-function httpStatusFrom(err: unknown): number {
-  return typeof err === 'object' && err && 'status' in err
-    ? (err as { status: number }).status
-    : 0;
 }

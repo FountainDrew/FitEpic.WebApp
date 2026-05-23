@@ -21,6 +21,7 @@ import { createPendingAction } from '../../../core/async/pending-action';
 import { formatScoreTitleAndValue } from '../../../core/workouts/score-display';
 import { formatDurationFromIso } from '../../../core/workouts/format-duration';
 import { AthleteResultEntryResponse } from '../../../core/api/generated/models/athlete-result-entry-response';
+import { WorkoutExerciseLogResponse } from '../../../core/api/generated/models/workout-exercise-log-response';
 import { ScheduledWorkoutResultsResponse } from '../../../core/api/generated/models/scheduled-workout-results-response';
 import { WorkoutExerciseResponse } from '../../../core/api/generated/models/workout-exercise-response';
 import {
@@ -116,6 +117,7 @@ export class GymScheduleDrawer {
       const row = this.service.row();
       if (!row) {
         this.resultsResponse.set(null);
+        this.resultsError.set(null);
         this.expandedAthleteIds.set(new Set());
         return;
       }
@@ -244,6 +246,53 @@ export class GymScheduleDrawer {
     }
     if (log.actualCalories != null) parts.push(`${log.actualCalories} cal`);
     return parts.join(' · ');
+  }
+
+  /**
+   * Bucket an athlete's exercise logs into per-exercise groups for tabular
+   * rendering. Each group has one header row (the exercise name) and the
+   * sets/rounds listed beneath it.
+   *
+   * Grouping key prefers `workoutExerciseId` (stable across renames) and
+   * falls back to `exerciseName` when the id isn't set on a log. Groups are
+   * ordered by the first log's `orderIndex` so they match the workout's
+   * authored order. Sets within a group are sorted by `setNumber` then
+   * `roundNumber` so the table reads top-to-bottom in lifting order.
+   */
+  protected groupedLogsFor(
+    entry: AthleteResultEntryResponse,
+  ): { exerciseName: string; sets: WorkoutExerciseLogResponse[] }[] {
+    const logs = (entry.result?.exerciseLogs ?? []).filter((l) => !l.isDeleted);
+    const groups = new Map<
+      string,
+      { exerciseName: string; orderIndex: number; sets: WorkoutExerciseLogResponse[] }
+    >();
+    for (const log of logs) {
+      const key = log.workoutExerciseId ?? log.exerciseName ?? '';
+      const existing = groups.get(key);
+      if (existing) {
+        existing.sets.push(log);
+        // Earliest orderIndex wins, so partial-fill groups still sort early.
+        if ((log.orderIndex ?? 0) < existing.orderIndex) {
+          existing.orderIndex = log.orderIndex ?? 0;
+        }
+      } else {
+        groups.set(key, {
+          exerciseName: log.exerciseName ?? 'Exercise',
+          orderIndex: log.orderIndex ?? 0,
+          sets: [log],
+        });
+      }
+    }
+    const ordered = [...groups.values()].sort((a, b) => a.orderIndex - b.orderIndex);
+    for (const g of ordered) {
+      g.sets.sort((a, b) => {
+        const aOrd = (a.setNumber ?? 0) || (a.roundNumber ?? 0);
+        const bOrd = (b.setNumber ?? 0) || (b.roundNumber ?? 0);
+        return aOrd - bOrd;
+      });
+    }
+    return ordered.map((g) => ({ exerciseName: g.exerciseName, sets: g.sets }));
   }
 
   // ─── Coach-on-behalf actions ───────────────────────────────────────────
@@ -448,7 +497,19 @@ export class GymScheduleDrawer {
     const gymId = row.workout?.gymId;
     const groupId = row.scheduled.trainingGroupId;
     const scheduledWorkoutId = row.scheduled.id;
-    if (!gymId || !groupId || !scheduledWorkoutId) return null;
+    if (!gymId || !groupId || !scheduledWorkoutId) {
+      // Diagnostic — should never be null in practice. If it is, the row's
+      // workout template didn't load (workoutsById miss) or the row was
+      // opened from a personal-row surface by mistake.
+      console.warn('[GymScheduleDrawer] contextFromRow missing field', {
+        hasWorkout: !!row.workout,
+        gymId,
+        groupId,
+        scheduledWorkoutId,
+        workoutId: row.scheduled.workoutId,
+      });
+      return null;
+    }
     return { gymId, groupId, scheduledWorkoutId };
   }
 
@@ -464,7 +525,16 @@ export class GymScheduleDrawer {
         ctx.scheduledWorkoutId,
       );
       this.resultsResponse.set(res);
-    } catch {
+    } catch (err) {
+      // Log the raw error so DevTools shows status + response body. The
+      // snackbar copy stays minimal; the real diagnosis happens in the
+      // console.
+      console.error('[GymScheduleDrawer] getGroupResults failed', {
+        gymId: ctx.gymId,
+        groupId: ctx.groupId,
+        scheduledWorkoutId: ctx.scheduledWorkoutId,
+        err,
+      });
       this.resultsError.set('Could not load athlete results.');
       this.resultsResponse.set(null);
     } finally {
