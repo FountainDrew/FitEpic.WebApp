@@ -29,6 +29,18 @@ export const GYM_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   OwnerCannotLeave: 'Delete the gym to step away from ownership.',
   AdminNotRequestable:
     'Admin can only be granted by the Owner — request Coach instead.',
+  // Coach-on-behalf endpoints (round 18) — differentiated 404 codes that
+  // surface *why* a membership check failed on POST/DELETE. All return
+  // HTTP 404; the code distinguishes the cause so the UX can be specific
+  // about whether the athlete is recoverable (re-join a group, or fully
+  // gone from the gym).
+  AthleteLeftGroup:
+    'Athlete is no longer in this group. Pick another group, or schedule a new workout for them.',
+  AthleteJoinedAfterScheduled:
+    'Athlete joined this group after the workout was scheduled — they aren’t in scope for it.',
+  AthleteLeftGym: 'Athlete left your gym. You can no longer edit their records.',
+  ResultTargetNotFound: 'This workout is no longer reachable — refresh and try again.',
+  ScheduledWorkoutNotFound: 'This workout no longer exists. Refresh and try again.',
 };
 
 /**

@@ -4,6 +4,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { DashboardWorkoutCardResponse } from '../../../core/api/generated/models/dashboard-workout-card-response';
+import { formatDurationFromIso } from '../../../core/workouts/format-duration';
+import { formatScoreDisplay } from '../../../core/workouts/score-display';
 import { WorkoutDrawerService } from '../workout-drawer/workout-drawer.service';
 
 type BodyMode = 'raw' | 'exercises' | 'placeholder';
@@ -32,11 +34,25 @@ export class WorkoutCard {
     const c = this.card();
     const segments: string[] = [];
     if (c.workoutType) segments.push(c.workoutType);
-    const dur = this.formatDuration(c.durationMinutes);
+    const dur = formatDurationFromIso(c.duration);
     if (dur) segments.push(dur);
     const count = c.exerciseCount ?? 0;
     if (count > 0) segments.push(count === 1 ? '1 exercise' : `${count} exercises`);
     return segments.join(' · ');
+  });
+
+  /**
+   * Formatted score string for the card footer. Derived from raw `scoreType`
+   * + `scoreResult` via the shared formatter so card + drawer + mobile read
+   * identically. The endpoint's `score.displayValue` is intentionally ignored.
+   */
+  protected readonly scoreDisplay = computed<string | null>(() => {
+    const c = this.card();
+    return formatScoreDisplay({
+      status: c.status,
+      scoreType: c.score?.scoreType,
+      scoreResult: c.score?.scoreResult,
+    });
   });
 
   protected readonly bodyMode = computed<BodyMode>(() => {
@@ -55,15 +71,5 @@ export class WorkoutCard {
       event.preventDefault();
       this.open();
     }
-  }
-
-  private formatDuration(minutes: number | null | undefined): string {
-    const total = Math.max(0, Math.round(minutes ?? 0));
-    if (total === 0) return '';
-    const hours = Math.floor(total / 60);
-    const mins = total % 60;
-    if (hours === 0) return `${mins} min`;
-    if (mins === 0) return `${hours}h`;
-    return `${hours}h ${mins}m`;
   }
 }

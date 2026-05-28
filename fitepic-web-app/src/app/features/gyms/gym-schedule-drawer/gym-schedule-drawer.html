@@ -103,6 +103,139 @@
           <div class="placeholder">No additional workout info available.</div>
         </section>
       }
+
+      <!--
+        Per-athlete results section. Lists every athlete who has logged this
+        workout (current group members + any historical completers who have
+        since left), with score/duration per athlete and an expandable
+        per-exercise log breakdown. "Log Athlete Result" opens the picker
+        for athletes who haven't yet logged.
+      -->
+      <section class="drawer-section">
+        <header class="results-header">
+          <h3 class="section-title">Athlete results</h3>
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            class="log-athlete-button"
+            [disabled]="actionPending() || loadingResults()"
+            (click)="logAthleteResult()"
+          >
+            <mat-icon>add</mat-icon>
+            Log athlete result
+          </button>
+        </header>
+
+        @if (loadingResults() && !hasAnyResultsData()) {
+          <div class="results-loading" aria-hidden="true">
+            <span class="skeleton skeleton-line"></span>
+            <span class="skeleton skeleton-line"></span>
+          </div>
+        } @else if (resultsError(); as err) {
+          <p class="placeholder">{{ err }}</p>
+        } @else {
+          @if (loggedAthletes().length > 0) {
+            <ul class="athlete-result-list">
+              @for (entry of loggedAthletes(); track entry.athleteId) {
+                <li class="athlete-result-card">
+                  <header class="athlete-result-header">
+                    <!--
+                      Chevron on the LEFT as its own button so the click
+                      target is unambiguous. Reserved slot (spacer) when the
+                      card has no logs to expand, so the identity column
+                      lines up across cards.
+                    -->
+                    @if (hasExpandableLogs(entry)) {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="expand-button"
+                        (click)="toggleExpand(entry.athleteId)"
+                        [attr.aria-label]="isExpanded(entry.athleteId) ? 'Collapse logs' : 'Expand logs'"
+                        [attr.aria-expanded]="isExpanded(entry.athleteId)"
+                      >
+                        <mat-icon
+                          class="expand-chevron"
+                          [class.expanded]="isExpanded(entry.athleteId)"
+                        >expand_more</mat-icon>
+                      </button>
+                    } @else {
+                      <span class="expand-button-spacer" aria-hidden="true"></span>
+                    }
+
+                    <div class="athlete-result-identity">
+                      <span class="athlete-result-name">{{ entry.displayName ?? 'Athlete' }}</span>
+                      @if (scoreLineFor(entry); as score) {
+                        <span class="athlete-result-score">{{ score }}</span>
+                      } @else if (durationLineFor(entry); as dur) {
+                        <span class="athlete-result-score">{{ dur }}</span>
+                      } @else {
+                        <span class="athlete-result-score muted">Completed</span>
+                      }
+                    </div>
+
+                    <div class="athlete-result-actions">
+                      <button
+                        mat-icon-button
+                        type="button"
+                        [disabled]="actionPending()"
+                        (click)="editAthleteResult(entry)"
+                        matTooltip="Edit logs"
+                        aria-label="Edit logs for this athlete"
+                      >
+                        <mat-icon>edit_note</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="result-delete-button"
+                        [disabled]="actionPending()"
+                        (click)="deleteAthleteResult(entry)"
+                        matTooltip="Remove log"
+                        aria-label="Remove this athlete's log"
+                      >
+                        <mat-icon>delete_sweep</mat-icon>
+                      </button>
+                    </div>
+                  </header>
+
+                  @if (isExpanded(entry.athleteId) && hasExpandableLogs(entry)) {
+                    <div class="athlete-exercise-logs">
+                      @for (group of groupedLogsFor(entry); track group.exerciseName) {
+                        <div class="exercise-log-group">
+                          <div class="exercise-log-group-name">{{ group.exerciseName }}</div>
+                          <div class="exercise-log-sets">
+                            @for (log of group.sets; track log.id) {
+                              <div class="exercise-log-set">
+                                <span class="log-label">{{ logLabel(log) }}</span>
+                                <span class="log-summary">{{ logSummary(log) }}</span>
+                                @if (log.notes) {
+                                  <span class="log-notes">"{{ log.notes }}"</span>
+                                }
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+                </li>
+              }
+            </ul>
+          } @else if (hasAnyResultsData()) {
+            <p class="placeholder">No athletes have logged this workout yet.</p>
+          }
+
+          @if (unloggedCurrentMembers().length > 0) {
+            <p class="results-footer-note">
+              {{ unloggedCurrentMembers().length }}
+              {{ unloggedCurrentMembers().length === 1 ? 'athlete hasn\'t' : 'athletes haven\'t' }}
+              logged this workout yet.
+            </p>
+          }
+        }
+      </section>
     </div>
   </aside>
 }

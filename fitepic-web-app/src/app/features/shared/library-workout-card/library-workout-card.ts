@@ -2,6 +2,7 @@ import { Component, computed, input, output } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 
 import { WorkoutResponse } from '../../../core/api/generated/models/workout-response';
+import { formatDurationFromIso } from '../../../core/workouts/format-duration';
 
 /**
  * Card view for a workout in the personal library. Visually mirrors the
@@ -26,7 +27,7 @@ export class LibraryWorkoutCard {
     const w = this.workout();
     const segments: string[] = [];
     if (w.workoutType) segments.push(w.workoutType);
-    const dur = this.formatDuration(w.duration);
+    const dur = formatDurationFromIso(w.duration);
     if (dur) segments.push(dur);
     const count = (w.exercises ?? []).filter((e) => !e.isDeleted).length;
     if (count > 0) segments.push(count === 1 ? '1 exercise' : `${count} exercises`);
@@ -73,20 +74,4 @@ export class LibraryWorkoutCard {
     }
   }
 
-  /**
-   * Format an ISO-8601 duration value (`hh:mm:ss`) as a human-readable string.
-   * Mirrors the dashboard workout-card's behaviour so the library card reads
-   * the same way.
-   */
-  private formatDuration(value: string | null | undefined): string {
-    if (!value) return '';
-    const [h, m, s] = value.split(':').map(Number);
-    const totalMinutes = (h || 0) * 60 + (m || 0) + Math.round((s || 0) / 60);
-    if (totalMinutes === 0) return '';
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    if (hours === 0) return `${mins} min`;
-    if (mins === 0) return `${hours}h`;
-    return `${hours}h ${mins}m`;
-  }
 }

@@ -36,11 +36,27 @@
   gap: 6px;
 }
 
+// All rows are the width of a full 15-dot row so partial last rows can
+// justify their dots into alignment with the V-connector landing from the
+// row above. Width = 15 dots × 12px + 14 h-connectors × 8px = 292px. Keep in
+// sync with `DOTS_PER_ROW` in snake-layout.ts and the .dot / .h-connector
+// dimensions below.
 .dot-row {
   position: relative;
   display: flex;
   align-items: center;
   height: 12px;
+  width: 292px;
+}
+
+// Odd-indexed rows have their dots reversed in code so the snake reads
+// right-to-left. When the last row is odd and partial, the V-connector from
+// the row above lands on the right; right-justifying the row puts the
+// chronologically-first dot at that landing point and the snake stays
+// continuous. Full odd rows already fill the row width, so the justification
+// is a no-op.
+.dot-row.odd-row {
+  justify-content: flex-end;
 }
 
 .dot {
@@ -91,10 +107,26 @@
   left: 5px;
 }
 
+// Row that pairs the "+ N more days" hint with the View more / Show less
+// toggle so the two affordances read as a single piece of information.
+.overflow-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .overflow-label {
-  margin: 8px 0 0;
   font-size: 12px;
   color: var(--fe-text-muted);
+}
+
+.expand-toggle {
+  padding: 0 8px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
 }
 
 .pill {

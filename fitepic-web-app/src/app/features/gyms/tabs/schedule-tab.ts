@@ -176,10 +176,46 @@ export class ScheduleTab implements OnInit {
         const groupIds = this.selectedGroupIds();
         if (gymId && groupIds.length > 0) void this.loadSchedule(gymId, groupIds);
       });
+
+    // Auto-reopen the drawer when returning from the coach-on-behalf log
+    // page (which sets `?openDrawer=<scheduledWorkoutId>`). Waits for the
+    // schedule load to populate visibleRows before searching; clears the
+    // pending state once the row is found OR proves absent after the load.
+    effect(() => {
+      const pending = this.pendingDrawerId();
+      if (!pending) return;
+      // Don't search while still loading — wait for visibleRows to settle.
+      if (this.loading()) return;
+      const row = this.visibleRows().find((r) => r.scheduled.id === pending);
+      if (row) {
+        this.drawerService.open(row);
+      }
+      // Whether we found it or not, clear the pending state so the search
+      // doesn't keep firing on every reload. Also scrub the URL param so a
+      // refresh doesn't reopen the drawer.
+      this.pendingDrawerId.set(null);
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { openDrawer: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    });
   }
+
+  /**
+   * Pending drawer id from `?openDrawer=<scheduledWorkoutId>` — set by the
+   * coach-on-behalf log page on save so the user lands back on the
+   * freshly-logged workout with the drawer already open. Mirrors the
+   * dashboard's `?openDrawer=` pattern. Cleared once the matching row is
+   * found in {@link visibleRows} (see effect in the constructor) so a
+   * browser refresh doesn't reopen the drawer again later.
+   */
+  private readonly pendingDrawerId = signal<string | null>(null);
 
   async ngOnInit(): Promise<void> {
     this.gymId.set(this.route.parent?.snapshot.paramMap.get('gymId') ?? null);
+    this.pendingDrawerId.set(this.route.snapshot.queryParamMap.get('openDrawer'));
     await this.loadGroupsAndWorkouts();
   }
 

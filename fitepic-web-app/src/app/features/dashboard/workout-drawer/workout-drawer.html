@@ -29,6 +29,17 @@
       <div class="drawer-actions">
         @if (isCompleted()) {
           <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            class="drawer-action"
+            [disabled]="actionPending()"
+            (click)="logWorkout()"
+          >
+            <mat-icon>edit_note</mat-icon>
+            <span>Edit logs</span>
+          </button>
+          <button
             mat-stroked-button
             type="button"
             class="drawer-action drawer-action-warn"
@@ -38,45 +49,104 @@
             <mat-icon>delete_sweep</mat-icon>
             <span>Delete logs</span>
           </button>
-          <button
-            mat-stroked-button
-            type="button"
-            class="drawer-action drawer-action-warn"
-            [disabled]="actionPending()"
-            (click)="unschedule()"
-          >
-            <mat-icon>event_busy</mat-icon>
-            <span>Unschedule</span>
-          </button>
+          <!--
+            Workout-template + schedule-changing actions are only offered for
+            personal rows. Group-scheduled rows belong to the gym Schedule
+            surface (coach owns both the workout library and the schedule);
+            athletes can still log/delete their own results but cannot edit
+            the gym's workout template or reschedule/unschedule the row.
+          -->
+          @if (!isGroupWorkout()) {
+            <button
+              mat-stroked-button
+              type="button"
+              class="drawer-action"
+              [disabled]="actionPending()"
+              (click)="editWorkout()"
+            >
+              <mat-icon>edit</mat-icon>
+              <span>Edit workout</span>
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              class="drawer-action drawer-action-warn"
+              [disabled]="actionPending()"
+              (click)="unschedule()"
+            >
+              <mat-icon>event_busy</mat-icon>
+              <span>Unschedule</span>
+            </button>
+          }
         } @else {
           <button
-            mat-stroked-button
+            mat-flat-button
+            color="primary"
             type="button"
             class="drawer-action"
             [disabled]="actionPending()"
-            (click)="reschedule()"
+            (click)="logWorkout()"
           >
-            <mat-icon>event_repeat</mat-icon>
-            <span>Reschedule</span>
+            <mat-icon>check_circle</mat-icon>
+            <span>Log workout</span>
           </button>
-          <button
-            mat-stroked-button
-            type="button"
-            class="drawer-action drawer-action-warn"
-            [disabled]="actionPending()"
-            (click)="unschedule()"
-          >
-            <mat-icon>event_busy</mat-icon>
-            <span>Unschedule</span>
-          </button>
+          @if (!isGroupWorkout()) {
+            <button
+              mat-stroked-button
+              type="button"
+              class="drawer-action"
+              [disabled]="actionPending()"
+              (click)="editWorkout()"
+            >
+              <mat-icon>edit</mat-icon>
+              <span>Edit workout</span>
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              class="drawer-action"
+              [disabled]="actionPending()"
+              (click)="reschedule()"
+            >
+              <mat-icon>event_repeat</mat-icon>
+              <span>Reschedule</span>
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              class="drawer-action drawer-action-warn"
+              [disabled]="actionPending()"
+              (click)="unschedule()"
+            >
+              <mat-icon>event_busy</mat-icon>
+              <span>Unschedule</span>
+            </button>
+          }
         }
       </div>
 
-      @if (durationDisplay()) {
-        <div class="duration-pill">
-          <mat-icon>schedule</mat-icon>
-          <span>{{ durationDisplay() }}</span>
-        </div>
+      <!--
+        Score block lifted above the description / exercise logs so a
+        completed row's headline result is the first thing the user sees
+        after the actions. The section header carries the score type
+        ("Score: Time to Complete"); the body is just the raw value
+        ("9:33"). Hidden when the row isn't a scored completion.
+      -->
+      @if (scoreParts(); as score) {
+        <section class="drawer-section">
+          <h3 class="section-title">{{ score.title }}</h3>
+          <div class="drawer-score">{{ score.value }}</div>
+        </section>
+      }
+
+      @if (showDurationPill()) {
+        <section class="drawer-section">
+          <h3 class="section-title">Duration</h3>
+          <div class="duration-pill">
+            <mat-icon>schedule</mat-icon>
+            <span>{{ durationDisplay() }}</span>
+          </div>
+        </section>
       }
 
       @if (hasRawText()) {
@@ -126,13 +196,6 @@
       @if (!hasRawText() && !hasExercises()) {
         <section class="drawer-section">
           <div class="placeholder">No additional workout info available.</div>
-        </section>
-      }
-
-      @if (w.score?.displayValue) {
-        <section class="drawer-section">
-          <h3 class="section-title">Score</h3>
-          <div class="drawer-score">{{ w.score!.displayValue }}</div>
         </section>
       }
     </div>

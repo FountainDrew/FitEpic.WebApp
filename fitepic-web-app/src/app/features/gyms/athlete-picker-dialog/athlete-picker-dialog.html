@@ -1,0 +1,61 @@
+<h2 mat-dialog-title>Log athlete result</h2>
+<mat-dialog-content class="picker-content">
+  <p class="picker-subtitle">
+    <strong>{{ data.workoutName }}</strong>
+    @if (data.scheduledDate; as date) {
+      · {{ date | date:'fullDate' }}
+    }
+  </p>
+
+  @if (!hasAthletes()) {
+    <p class="picker-empty">
+      This training group has no current athlete members.
+    </p>
+  } @else {
+    <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+      <mat-icon matPrefix>search</mat-icon>
+      <mat-label>Search athletes</mat-label>
+      <input
+        matInput
+        type="text"
+        [ngModel]="query()"
+        (ngModelChange)="query.set($event)"
+        autocomplete="off"
+      />
+    </mat-form-field>
+
+    @if (visibleAthletes().length === 0) {
+      <p class="picker-empty">No athletes match your search.</p>
+    } @else {
+      <ul class="athlete-picker-list">
+        @for (athlete of visibleAthletes(); track athlete.athleteId) {
+          <li>
+            <button
+              mat-stroked-button
+              type="button"
+              class="athlete-picker-row"
+              (click)="pick(athlete.athleteId)"
+            >
+              <div class="athlete-picker-identity">
+                <span class="athlete-picker-name">{{ athlete.displayName ?? 'Athlete' }}</span>
+                @if (athlete.result?.scoreResult; as score) {
+                  <span class="athlete-picker-meta">Logged · {{ score }}</span>
+                } @else if (athlete.result) {
+                  <span class="athlete-picker-meta">Logged</span>
+                } @else {
+                  <span class="athlete-picker-meta muted">Not logged yet</span>
+                }
+              </div>
+              <mat-icon class="athlete-picker-action-icon">
+                {{ athlete.result ? 'edit_note' : 'add' }}
+              </mat-icon>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+</mat-dialog-actions>

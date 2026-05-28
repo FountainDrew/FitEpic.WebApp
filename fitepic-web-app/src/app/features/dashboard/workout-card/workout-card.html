@@ -51,8 +51,8 @@
       }
     </div>
 
-    @if (card().score?.displayValue) {
-      <div class="workout-card-score">{{ card().score!.displayValue }}</div>
+    @if (scoreDisplay(); as score) {
+      <div class="workout-card-score">{{ score }}</div>
     }
   </mat-card-content>
 </mat-card>

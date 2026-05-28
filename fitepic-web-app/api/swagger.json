@@ -1831,6 +1831,134 @@
         }
       }
     },
+    "/api/gyms/{gymId}/athletes/{athleteId}/scheduled-workouts": {
+      "get": {
+        "tags": [
+          "Gyms"
+        ],
+        "summary": "List the scheduled workouts an athlete has on the gym's schedule.",
+        "description": "**v14 (2026-05-22).** Gym-scoped athlete-pivoted oversight surface. Returns the rows the\r\ntarget athlete is scheduled for **within this gym** — group-targeted rows where the athlete\r\nis a current member of the row's training group (mid-flight rule applied). Each row's\r\nper-athlete state (Status / ScoreResult / Notes / Duration / ExerciseLogs) is merged from\r\nthe athlete's own `ScheduledGroupWorkoutAthleteResult` when present; rows the athlete\r\nhasn't engaged with yet carry their template defaults (`Status = Pending`, etc.).\r\n            \r\n**Personal-scheduled rows are deliberately excluded** — they are athlete-private under the\r\nv14 scoping model. Gym staff have no read access to workouts that never entered a gym\r\ncontext. The coach surface is the gym's view of athlete X's coaching, not X's whole life.\r\n            \r\nAuthorization: caller must be Coach, Admin, or Owner of the gym. The target athlete must\r\nhold a non-deleted Athlete-tier `GymMembership` in the gym (collapsed to 404 to avoid\r\ndisclosing gym/membership existence to callers who shouldn't know about it).\r\n            \r\nPass `since` for delta-style consumption (returns tombstones). Pass `from`/\r\n`to` for a date range. Both can combine with paging.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID scoping the read.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "athleteId",
+            "in": "path",
+            "description": "The athlete whose schedule is being viewed.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Optional delta watermark.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Optional inclusive `ScheduledDate` lower bound.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Optional inclusive `ScheduledDate` upper bound.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "1-based page number. Defaults to 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Page size. Defaults to 100, capped at 500.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the page of scheduled workouts plus a server timestamp + pagination metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledWorkoutSyncResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid date range (`to < from`) or only one of `from`/`to` supplied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not Coach, Admin, or Owner of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Gym not found, or target athlete is not a non-deleted athlete-tier member of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/athlete-profiles": {
       "get": {
         "tags": [
@@ -6096,6 +6224,291 @@
         }
       }
     },
+    "/api/gyms/{gymId}/groups/{groupId}/scheduled-workouts/{scheduledWorkoutId}/results": {
+      "get": {
+        "tags": [
+          "Training Groups"
+        ],
+        "summary": "List every athlete's result on a single group-scheduled workout (coach drawer view).",
+        "description": "**v14 round 13 (2026-05-22).** Returns the unified per-athlete results list the coach\r\ndrawer needs: one entry per athlete in scope (current athlete-tier group members plus\r\nany athletes who logged the workout but have since left the group), with the athlete's\r\nresult row inline when one exists or `null` for \"not logged.\" Single round trip\r\nfor the drawer — no client-side join required.\r\n            \r\nThe \"X of Y logged\" denominator on the drawer matches the Q12 `GroupSize` chip on\r\nthe schedule card: count entries where `IsCurrentMember == true`. Numerator: those\r\nwhere additionally `Result?.Status == Completed`.\r\n            \r\nCompletes the verb triad on this route prefix:\r\n<list type=\"bullet\"><item><description>`GET`    /scheduled-workouts/{id}/results — this endpoint (Q66)</description></item><item><description>`POST`   /scheduled-workouts/{id}/results — log on behalf (round 10)</description></item><item><description>`DELETE` /scheduled-workouts/{id}/results/{targetAthleteId} — unlog on behalf (round 12)</description></item></list>\r\n            \r\nAuthorization: caller must be Coach, Admin, or Owner of the gym. Same gate as the POST\r\nand DELETE counterparts.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "description": "Training group ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scheduledWorkoutId",
+            "in": "path",
+            "description": "Group-scheduled workout whose per-athlete results are being listed.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the unified per-athlete list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledWorkoutResultsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not Coach/Admin/Owner of the gym.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Gym, group, or scheduled workout not found / not in scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Training Groups"
+        ],
+        "summary": "Coach-on-behalf write into a group-scheduled workout's per-athlete result row.",
+        "description": "**v14 (2026-05-22).** The Coach/Admin/Owner of the gym records log fields (status,\r\nscoreResult, notes, duration, exerciseLogs) for the target athlete on the supplied\r\ngroup-scheduled row. Writes into `ScheduledGroupWorkoutAthleteResult` keyed by\r\n`(scheduledWorkoutId, targetAthleteId)` — distinct from the athlete's own self-write\r\npath on the sync endpoint, which keys to the JWT caller. The target's existing result row\r\n(if any) is updated in place; otherwise a new row is created. Child `ExerciseLogs`\r\nare reconciled — incoming logs are upserted by Id; logs present on the existing row but\r\nabsent from this payload are soft-deleted.\r\n            \r\nAuthorization: caller must be Coach/Admin/Owner of the gym; cannot target themselves\r\n(use the regular sync endpoint for self-writes); target must be a current\r\n`TrainingGroupMembership` member of the group with the mid-flight rule satisfied\r\n(`row.ScheduledDate >= membership.AssignedAt`).\r\n            \r\nPersonal-scheduled rows are not addressable here — the route requires a `groupId`\r\nsegment and the service validates the row belongs to that group.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "description": "Training group ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scheduledWorkoutId",
+            "in": "path",
+            "description": "Group-scheduled workout receiving the result.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Target athlete + log fields.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/GroupResultOnBehalfRequest"
+                  }
+                ],
+                "description": "Body for the coach-on-behalf write into a group-scheduled workout's per-athlete result table.\r\nPosted to `POST /api/gyms/{gymId}/groups/{groupId}/scheduled-workouts/{scheduledWorkoutId}/results`.\r\nCarries the target athlete plus the log-shaped fields the caller (Coach/Admin/Owner of the\r\ngym) is recording on behalf of that athlete. The route segments identify the row; the body\r\nidentifies the recipient and the values being recorded. See\r\n`readmes/gym-ownership-requirements.md` §13.14 for the v14 scoping rationale."
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/GroupResultOnBehalfRequest"
+                  }
+                ],
+                "description": "Body for the coach-on-behalf write into a group-scheduled workout's per-athlete result table.\r\nPosted to `POST /api/gyms/{gymId}/groups/{groupId}/scheduled-workouts/{scheduledWorkoutId}/results`.\r\nCarries the target athlete plus the log-shaped fields the caller (Coach/Admin/Owner of the\r\ngym) is recording on behalf of that athlete. The route segments identify the row; the body\r\nidentifies the recipient and the values being recorded. See\r\n`readmes/gym-ownership-requirements.md` §13.14 for the v14 scoping rationale."
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/GroupResultOnBehalfRequest"
+                  }
+                ],
+                "description": "Body for the coach-on-behalf write into a group-scheduled workout's per-athlete result table.\r\nPosted to `POST /api/gyms/{gymId}/groups/{groupId}/scheduled-workouts/{scheduledWorkoutId}/results`.\r\nCarries the target athlete plus the log-shaped fields the caller (Coach/Admin/Owner of the\r\ngym) is recording on behalf of that athlete. The route segments identify the row; the body\r\nidentifies the recipient and the values being recorded. See\r\n`readmes/gym-ownership-requirements.md` §13.14 for the v14 scoping rationale."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result row persisted; the persisted state is returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupResultOnBehalfResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Score/Status invariant violated (ScoreResult present but Status != Completed) or Dismissed status sent for a group row.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not Coach/Admin/Owner of the gym, or targeted themselves.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Gym, group, scheduled workout, or target-athlete-membership not found / not in scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gyms/{gymId}/groups/{groupId}/scheduled-workouts/{scheduledWorkoutId}/results/{targetAthleteId}": {
+      "delete": {
+        "tags": [
+          "Training Groups"
+        ],
+        "summary": "Coach reverses an on-behalf log — soft-deletes the target athlete's per-athlete result row.",
+        "description": "**v14 (2026-05-22).** Removes the target athlete's per-athlete result row at\r\n`(scheduledWorkoutId, targetAthleteId)` by soft-delete (`IsDeleted = true` on the\r\nresult row and every non-deleted child `WorkoutExerciseLog`). The athlete's personal\r\nfeed / dashboard reverts to the template default (Status = Pending, no score, no logs) on\r\nthe next read because the merge layer no longer finds a live result row at that pair.\r\nThe row stays in the database as a tombstone so delta consumers can pick up the change.\r\n            \r\n**Idempotent.** Returns 204 whether or not a live row existed at the supplied pair. Coach\r\nUIs can fire-and-forget without checking existence first.\r\n            \r\n**No mid-flight check on delete.** Unlike the POST endpoint, this verb intentionally\r\nskips the target-athlete-membership check — a coach must be able to reverse a stale\r\nresult row even after the athlete has left the training group (otherwise the athlete is\r\npermanently stuck with a wrong record). See `readmes/gym-ownership-requirements.md`\r\n§13.15 (Q64) for the product rationale.\r\n            \r\nAuthorization: caller is Coach/Admin/Owner of the gym; cannot target themselves (use the\r\nregular sync endpoint to clear your own row, not this one). Targeting self → 403.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "parameters": [
+          {
+            "name": "gymId",
+            "in": "path",
+            "description": "Gym ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "in": "path",
+            "description": "Training group ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scheduledWorkoutId",
+            "in": "path",
+            "description": "Group-scheduled workout whose result is being cleared.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetAthleteId",
+            "in": "path",
+            "description": "The athlete whose result row is being soft-deleted.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Result row soft-deleted, or no live row existed (idempotent — both treated as success)."
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not Coach/Admin/Owner of the gym, or targeted themselves.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Gym, group, or scheduled workout not found / not in scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/User/Register": {
       "post": {
         "tags": [
@@ -7658,6 +8071,93 @@
         "additionalProperties": false,
         "description": "Represents an athlete's profile information, derived from the user account and scoped\r\nvia accepted athlete connections. This is not a stored entity — it is constructed at query time."
       },
+      "AthleteResultEntryResponse": {
+        "type": "object",
+        "properties": {
+          "athleteId": {
+            "type": "string",
+            "description": "Athlete identifier.",
+            "nullable": true,
+            "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Display name (projected from `AspNetUsers.Name`). Null when the athlete has no\r\nrecorded display name on their profile. Mild-staleness caveat — projected at query time;\r\nrenames flow through on the next read.",
+            "nullable": true
+          },
+          "isCurrentMember": {
+            "type": "boolean",
+            "description": "True when the athlete is currently an athlete-tier member of the training group\r\n(non-deleted `TrainingGroupMembership` + non-deleted `GymMembership` at\r\n`Role = Athlete`). False when the athlete left the group but their result row is\r\npreserved for history.\r\n            \r\nClient filtering:\r\n<list type=\"bullet\"><item><description>Logged (current): `IsCurrentMember = true` AND `Result != null`</description></item><item><description>Not logged: `IsCurrentMember = true` AND `Result == null`</description></item><item><description>Historical completer: `IsCurrentMember = false` AND `Result != null`</description></item></list>\r\nThe \"X of Y logged\" denominator on the drawer matches Q12's `GroupSize`: count\r\nentries where `IsCurrentMember == true`. Numerator: those where additionally\r\n`Result?.Status == Completed`."
+          },
+          "result": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AthleteResultPayloadResponse"
+              }
+            ],
+            "description": "The athlete's per-row result, or null when no result has been logged yet. When non-null,\r\ncarries the full per-athlete state including status, score, duration, notes, and exercise\r\nlogs. Coach-written and athlete-written results are indistinguishable on this field —\r\nboth go through the same per-athlete result table.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One athlete's slot in the coach drawer's per-row results list."
+      },
+      "AthleteResultPayloadResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the per-athlete result row.",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScheduledWorkoutStatus"
+              }
+            ],
+            "description": "Result status (Pending / InProgress / Completed). Dismissed is not valid for group rows."
+          },
+          "scoreResult": {
+            "type": "string",
+            "description": "Score string when present, format dictated by the parent workout's `ScoreType`.\r\nNull when no score was recorded.",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "description": "Athlete-entered (or coach-entered on-behalf) notes. Null when no note was set.",
+            "nullable": true
+          },
+          "duration": {
+            "type": "string",
+            "description": "Actual time spent on the workout. Precise `TimeSpan` (Q16) — no rounding.\r\nNull when no duration was recorded.",
+            "format": "date-span",
+            "nullable": true,
+            "example": "00:09:33"
+          },
+          "completedAt": {
+            "type": "string",
+            "description": "Timestamp when the result transitioned to `Completed`. Null when status is not\r\nCompleted. Preserved across subsequent edits while still Completed.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When this result row was last updated (server-stamped on every write).",
+            "format": "date-time"
+          },
+          "exerciseLogs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutExerciseLogResponse"
+            },
+            "description": "Per-exercise log entries belonging to this result row.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Per-athlete result payload — what an athlete actually recorded (or what a coach recorded\r\non their behalf) for a single group-scheduled workout."
+      },
       "AuthResponse": {
         "type": "object",
         "properties": {
@@ -7848,11 +8348,12 @@
             "description": "Display label for the workout type, e.g. \"Straight Sets\", \"AMRAP\", \"For Time\".",
             "nullable": true
           },
-          "durationMinutes": {
-            "type": "integer",
-            "description": "Duration in whole minutes. Athlete-logged when present, else prescribed. Null if neither is set.",
-            "format": "int32",
-            "nullable": true
+          "duration": {
+            "type": "string",
+            "description": "Duration of the scheduled workout as the athlete logged it (when present) or the parent\r\nworkout's prescribed duration (when no athlete value yet). Precise `TimeSpan` — no\r\nrounding — so time-scored workouts (e.g. a 9:33 For Time) keep their sub-minute precision.\r\nNull when neither value is set. Serialized as `hh:mm:ss`, symmetric with the sync\r\nendpoint's `ScheduledWorkoutRequest.Duration`.",
+            "format": "date-span",
+            "nullable": true,
+            "example": "00:09:33"
           },
           "exerciseCount": {
             "type": "integer",
@@ -8086,6 +8587,128 @@
           "Feet"
         ],
         "type": "string"
+      },
+      "GroupResultOnBehalfRequest": {
+        "required": [
+          "status",
+          "targetAthleteId"
+        ],
+        "type": "object",
+        "properties": {
+          "targetAthleteId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The athlete whose per-athlete result row is being written. Must be a current\r\n(non-deleted) `TrainingGroupMembership` member of the group, and the group's\r\n`ScheduledDate` must be on or after that membership's `AssignedAt`\r\n(mid-flight rule). The caller cannot be the target — coaches who want to log\r\ntheir own row go through the regular sync endpoint, not this one.",
+            "example": "c4ca4238-a0b9-3382-8dcc-509a6f75849b"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScheduledWorkoutStatus"
+              }
+            ],
+            "description": "Result status for the target athlete (typically `Completed`, but `InProgress`\r\n/ `Pending` are accepted for partial logs). `Dismissed` is not valid for\r\ngroup rows and is rejected with 400."
+          },
+          "scoreResult": {
+            "type": "string",
+            "description": "Free-form score string, format determined by the parent workout's `ScoreType`.\r\nNull when the athlete has no score recorded. When non-null, FitEpic.Api.Models.Request.GroupResultOnBehalfRequest.Status must be\r\n`Completed` (the same invariant enforced by the regular sync endpoint).",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional coach notes captured on the athlete's behalf. Null when absent.",
+            "nullable": true
+          },
+          "duration": {
+            "type": "string",
+            "description": "Actual time the athlete spent on the workout. Null when no duration is recorded.",
+            "format": "date-span",
+            "nullable": true,
+            "example": "00:42:15"
+          },
+          "exerciseLogs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutExerciseLogRequest"
+            },
+            "description": "Per-exercise log rows. Sent in full on every write — incoming logs are upserted by Id;\r\nlogs present on the existing result row but absent from this payload are soft-deleted.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body for the coach-on-behalf write into a group-scheduled workout's per-athlete result table.\r\nPosted to `POST /api/gyms/{gymId}/groups/{groupId}/scheduled-workouts/{scheduledWorkoutId}/results`.\r\nCarries the target athlete plus the log-shaped fields the caller (Coach/Admin/Owner of the\r\ngym) is recording on behalf of that athlete. The route segments identify the row; the body\r\nidentifies the recipient and the values being recorded. See\r\n`readmes/gym-ownership-requirements.md` §13.14 for the v14 scoping rationale."
+      },
+      "GroupResultOnBehalfResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the per-athlete result row.",
+            "nullable": true,
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "scheduledWorkoutId": {
+            "type": "string",
+            "description": "The parent group-scheduled workout's id.",
+            "nullable": true
+          },
+          "athleteId": {
+            "type": "string",
+            "description": "The athlete this result belongs to (the target of the on-behalf write).",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScheduledWorkoutStatus"
+              }
+            ],
+            "description": "Result status (Pending / InProgress / Completed)."
+          },
+          "scoreResult": {
+            "type": "string",
+            "description": "Score string when present, format dictated by the parent workout's `ScoreType`.\r\nNull when no score was recorded.",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "description": "Coach-entered notes on the athlete's behalf. Null when no note was set.",
+            "nullable": true
+          },
+          "duration": {
+            "type": "string",
+            "description": "Actual time the athlete spent on the workout. Null when no duration was recorded.",
+            "format": "date-span",
+            "nullable": true,
+            "example": "00:42:15"
+          },
+          "completedAt": {
+            "type": "string",
+            "description": "Timestamp when the result transitioned to `Completed`. Null when status is not\r\nCompleted. Once stamped, preserved across subsequent edits while still Completed.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When this result row was first inserted.",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When this result row was last updated (server-stamped on every write).",
+            "format": "date-time"
+          },
+          "exerciseLogs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutExerciseLogResponse"
+            },
+            "description": "Per-exercise log entries belonging to this result row.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Returned from the coach-on-behalf write into a group-scheduled workout's per-athlete result\r\ntable (`POST /api/gyms/{gymId}/groups/{groupId}/scheduled-workouts/{scheduledWorkoutId}/results`).\r\nCarries the persisted state of the target athlete's result row so the caller can update the\r\nUI without a follow-up read. See `readmes/gym-ownership-requirements.md` §13.14."
       },
       "GymErrorResponse": {
         "type": "object",
@@ -9205,6 +9828,27 @@
         },
         "additionalProperties": false,
         "description": "Represents a scheduled workout record returned by the delta pull endpoint. Includes soft-deleted\r\nrecords and records programmed by a trainer so the mobile client can maintain a complete local view."
+      },
+      "ScheduledWorkoutResultsResponse": {
+        "type": "object",
+        "properties": {
+          "scheduledWorkoutId": {
+            "type": "string",
+            "description": "The group-scheduled workout this list belongs to. Mirrors the route segment so consumers can disambiguate batched fetches.",
+            "nullable": true,
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "athletes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AthleteResultEntryResponse"
+            },
+            "description": "One entry per athlete in scope: current athlete-tier members of the training group (with\r\ntheir result if logged, or null for \"not logged\") plus any athletes who logged the workout\r\nbut have since left the group (history-preserved, `IsCurrentMember = false`). The\r\nunified list lets the coach UI render the \"✓ / ○ / left group\" affordances in a single\r\npass without a client-side join.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Coach-drawer payload — every athlete's slot for a single group-scheduled workout. Returned\r\nfrom `GET /api/gyms/{gymId}/groups/{groupId}/scheduled-workouts/{scheduledWorkoutId}/results`.\r\nOne entry per athlete in scope, with the athlete's result row (or null for \"not logged\").\r\nSee `readmes/gym-ownership-webapp-contract.md` §12 round 14 for the wire spec."
       },
       "ScheduledWorkoutStatus": {
         "enum": [

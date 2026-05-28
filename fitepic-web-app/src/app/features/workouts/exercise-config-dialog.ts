@@ -128,7 +128,17 @@ function toInputString(value: number | null | undefined): string {
   return String(value);
 }
 
-function parseNumber(value: string): number | null {
+/**
+ * Coerce a signal value to a numeric `DraftExercise` field. The number-typed
+ * inputs (`type="number"`) emit numbers from `(ngModelChange)` even though
+ * the signal is typed `signal<string>`, so this needs to tolerate both. A
+ * previous version assumed string-only and threw `TypeError: value.trim is
+ * not a function` on the number path — silent JS error swallowed by the
+ * dialog click handler, which made the Add button look like a no-op.
+ */
+function parseNumber(value: string | number | null | undefined): number | null {
+  if (value == null) return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
   const trimmed = value.trim();
   if (!trimmed) return null;
   const n = Number(trimmed);

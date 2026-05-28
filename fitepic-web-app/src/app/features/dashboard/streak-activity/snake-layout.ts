@@ -1,7 +1,20 @@
 import { DayActivityRecordResponse } from '../../../core/api/generated/models/day-activity-record-response';
 
 export const DOTS_PER_ROW = 15;
-export const MAX_DOTS = 44;
+
+/**
+ * Default snake cap shown on dashboard load. Three full rows of 15 dots so the
+ * snake reads as a clean rectangle: today at the left of row 0, the line
+ * winds rightward, drops down, reads right-to-left, drops down, finishes.
+ */
+export const DEFAULT_MAX_DOTS = 45;
+
+/**
+ * Cap when the user clicks "View more". 13 full rows of 15 (195) plus a
+ * partial 5-dot row keeps the partial row inside the snake's natural wind so
+ * the visual stays coherent at the maximum size.
+ */
+export const EXPANDED_MAX_DOTS = 200;
 
 export type VerticalConnectorSide = 'right' | 'left' | 'none';
 
@@ -15,7 +28,7 @@ export interface StreakRow {
  *
  * Web layout (intentionally differs from mobile): today sits at the LEFT edge of row 0,
  * the snake winds rightward, drops down, reads right-to-left, drops down, etc.
- * - cap to 44 dots
+ * - cap to {@link maxDots} dots
  * - chunk into rows of 15
  * - even-indexed rows keep newest-first order (today on left of row 0)
  * - odd-indexed rows are reversed
@@ -23,10 +36,11 @@ export interface StreakRow {
  */
 export function buildStreakRows(
   days: DayActivityRecordResponse[] | null | undefined,
+  maxDots: number = DEFAULT_MAX_DOTS,
 ): StreakRow[] {
   if (!days || days.length === 0) return [];
 
-  const capped = days.slice(0, MAX_DOTS);
+  const capped = days.slice(0, maxDots);
   const rows: StreakRow[] = [];
 
   for (let start = 0; start < capped.length; start += DOTS_PER_ROW) {
@@ -48,6 +62,6 @@ export function buildStreakRows(
   return rows;
 }
 
-export function overflowCount(totalDays: number): number {
-  return Math.max(0, totalDays - MAX_DOTS);
+export function overflowCount(totalDays: number, maxDots: number = DEFAULT_MAX_DOTS): number {
+  return Math.max(0, totalDays - maxDots);
 }
