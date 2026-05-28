@@ -114,6 +114,16 @@ export class WorkoutAuthoringService {
   }
 
   softDeleteExercise(id: string): void {
+    // Rows that never existed server-side (manually added this session, or new
+    // rows from an initial parse) have no "removed" state worth surfacing —
+    // drop them outright so the user doesn't see a strikethrough/REMOVED badge
+    // for something the workout never had in the first place.
+    const existing = this.exercisesSignal().find((e) => e.id === id);
+    if (existing && !existing.existsOnServer) {
+      this.exercisesSignal.update((list) => list.filter((e) => e.id !== id));
+      this.dirtySignal.set(true);
+      return;
+    }
     this.updateExercise(id, { isRemoved: true });
   }
 

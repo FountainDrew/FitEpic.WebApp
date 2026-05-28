@@ -124,6 +124,34 @@ export class WorkoutDrawer {
   }
 
   /**
+   * Navigate to the workout editor for the underlying personal workout
+   * template. Only offered for personal-scheduled rows — gym-scheduled rows
+   * belong to the gym's workout library and are not editable from the
+   * athlete's own surface. The dashboard card response doesn't expose the
+   * `workoutId` directly, so we look up the underlying scheduled row first.
+   * `returnUrl` is set so the dashboard re-opens this drawer on the
+   * just-edited workout after save.
+   */
+  protected async editWorkout(): Promise<void> {
+    const w = this.service.workout();
+    if (!w?.id || !w.scheduledDate) return;
+    await this.action.run(async () => {
+      const row = await this.workoutsService.findScheduledWorkout(w.id!, w.scheduledDate!);
+      if (!row?.workoutId) {
+        this.snackBar.open('Could not find this workout. Refresh and try again.', 'Dismiss', {
+          duration: 4000,
+        });
+        return;
+      }
+      const returnUrl = `/?openDrawer=${encodeURIComponent(w.id!)}`;
+      this.service.close();
+      await this.router.navigate(['/workouts', row.workoutId, 'edit'], {
+        queryParams: { returnUrl },
+      });
+    });
+  }
+
+  /**
    * Clear the caller's completion state for the scheduled workout while
    * keeping the row on the schedule. Server semantics: post `Status = Pending`
    * with cleared score/notes/duration/exercise-logs. For group workouts the

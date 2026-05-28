@@ -50,12 +50,23 @@
             <span>Delete logs</span>
           </button>
           <!--
-            Schedule-changing actions are only offered for personal rows.
-            Group-scheduled rows belong to the gym Schedule surface (coach
-            owns the schedule); athletes can still log/delete their own
-            results but cannot reschedule or unschedule the group row.
+            Workout-template + schedule-changing actions are only offered for
+            personal rows. Group-scheduled rows belong to the gym Schedule
+            surface (coach owns both the workout library and the schedule);
+            athletes can still log/delete their own results but cannot edit
+            the gym's workout template or reschedule/unschedule the row.
           -->
           @if (!isGroupWorkout()) {
+            <button
+              mat-stroked-button
+              type="button"
+              class="drawer-action"
+              [disabled]="actionPending()"
+              (click)="editWorkout()"
+            >
+              <mat-icon>edit</mat-icon>
+              <span>Edit workout</span>
+            </button>
             <button
               mat-stroked-button
               type="button"
@@ -80,6 +91,16 @@
             <span>Log workout</span>
           </button>
           @if (!isGroupWorkout()) {
+            <button
+              mat-stroked-button
+              type="button"
+              class="drawer-action"
+              [disabled]="actionPending()"
+              (click)="editWorkout()"
+            >
+              <mat-icon>edit</mat-icon>
+              <span>Edit workout</span>
+            </button>
             <button
               mat-stroked-button
               type="button"
