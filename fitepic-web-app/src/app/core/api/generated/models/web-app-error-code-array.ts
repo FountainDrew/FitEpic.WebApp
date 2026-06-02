@@ -14,5 +14,6 @@ export const WEB_APP_ERROR_CODE: WebAppErrorCode[] = [
   'INVALID_TIMEZONE',
   'NOT_FOUND',
   'PINNED',
-  'MONTH_OUT_OF_RANGE'
+  'MONTH_OUT_OF_RANGE',
+  'INVALID_CURSOR'
 ];

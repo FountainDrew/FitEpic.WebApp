@@ -1,0 +1,414 @@
+// Indicator-dot token locked to mobile parity per [contract Appendix A.3 Q4].
+// Completed days are rendered as a full blue day fill (mobile parity) — they
+// do not use a dot indicator, so no completed-dot token is needed.
+// Lift to _tokens.scss if design wants web-specific values.
+$schedule-pending-dot: #ff9500;
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.page-header-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--fe-text);
+}
+
+// ── View toggle ──────────────────────────────────────────────────────────────
+
+.view-toggle {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--fe-border);
+  border-radius: 20px;
+  background-color: var(--fe-surface);
+}
+
+.view-toggle-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--fe-text-muted);
+  border-radius: 17px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fe-accent);
+    outline-offset: 2px;
+  }
+
+  &.active {
+    background-color: var(--fe-accent);
+    color: var(--fe-accent-contrast);
+  }
+}
+
+// ── Calendar ─────────────────────────────────────────────────────────────────
+
+.calendar-section {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.calendar-header {
+  display: grid;
+  grid-template-columns: 48px 1fr 48px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.calendar-month-label {
+  margin: 0;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--fe-text);
+}
+
+.calendar-nav {
+  color: var(--fe-accent);
+}
+
+.calendar-dow-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 8px 4px 4px;
+}
+
+.calendar-dow-cell {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--fe-text-muted);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 48px;
+  gap: 0;
+}
+
+.calendar-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 6px auto;
+  border: 0;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--fe-text);
+  font-size: 0.875rem;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+
+  &:hover:not(.today) {
+    background-color: var(--fe-surface-alt);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fe-accent);
+    outline-offset: 2px;
+  }
+
+  &.adjacent-month {
+    color: var(--fe-text-muted);
+    opacity: 0.55;
+  }
+
+  // Completed day: full blue fill + white day number, mobile-parity treatment.
+  // Replaces the green dot indicator. Selected overrides this; Today collapses
+  // to the same visual since both use the accent color.
+  &.completed:not(.selected) {
+    background-color: var(--fe-accent);
+    color: var(--fe-accent-contrast);
+  }
+
+  // Selected (non-today) day: secondary fill that distinguishes from today.
+  &.selected:not(.today) {
+    background-color: var(--fe-secondary);
+    color: var(--fe-secondary-dark-text);
+  }
+
+  // Today wins over selected per [requirements §4.2].
+  &.today {
+    background-color: var(--fe-accent);
+    color: var(--fe-accent-contrast);
+  }
+}
+
+.calendar-day-number {
+  line-height: 1;
+}
+
+.calendar-dots {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  gap: 2px;
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.dot-pending {
+  background-color: $schedule-pending-dot;
+}
+
+.calendar-day-skeleton {
+  width: 36px;
+  height: 36px;
+  margin: 6px auto;
+  border-radius: 50%;
+}
+
+.calendar-error {
+  padding: 16px;
+  text-align: center;
+  color: var(--fe-text-muted);
+
+  p {
+    margin: 0 0 8px;
+  }
+}
+
+.selected-date-pane {
+  margin-top: 20px;
+}
+
+.selected-date-label {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fe-text);
+}
+
+.empty-line {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  color: var(--fe-text-muted);
+  font-size: 0.875rem;
+}
+
+// ── List ─────────────────────────────────────────────────────────────────────
+
+.list-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.bucket-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bucket-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--fe-border);
+
+  h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--fe-accent);
+  }
+}
+
+.bucket-date {
+  color: var(--fe-text-muted);
+  font-size: 0.875rem;
+}
+
+.future-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.future-group-date {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--fe-text-muted);
+}
+
+.workout-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.list-empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--fe-text-muted);
+
+  h2 {
+    margin: 0 0 4px;
+    font-size: 1.125rem;
+    color: var(--fe-text);
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.875rem;
+  }
+}
+
+.list-error {
+  padding: 24px 16px;
+  text-align: center;
+
+  p {
+    margin: 0 0 8px;
+    color: var(--fe-text-muted);
+  }
+}
+
+.list-skeleton {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.workout-card-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--fe-border);
+  border-radius: 12px;
+  background-color: var(--fe-surface);
+}
+
+.workout-card-skeleton-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.skeleton-card-title {
+  width: 60%;
+  height: 18px;
+}
+
+.skeleton-card-badge {
+  width: 60px;
+  height: 18px;
+  border-radius: 9px;
+}
+
+.skeleton-card-meta {
+  width: 40%;
+  height: 12px;
+}
+
+.skeleton-card-line {
+  width: 100%;
+  height: 12px;
+
+  &.short {
+    width: 50%;
+  }
+}
+
+.scroll-sentinel {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .skeleton {
+    width: 80%;
+    max-width: 220px;
+    height: 16px;
+  }
+}
+
+// ── FAB ──────────────────────────────────────────────────────────────────────
+
+.fab-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.32);
+  z-index: 998;
+}
+
+.fab-stack {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  z-index: 999;
+}
+
+.fab-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fab-action-label {
+  display: inline-block;
+  padding: 8px 14px;
+  background-color: var(--fe-surface);
+  color: var(--fe-text);
+  border-radius: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.fab-main {
+  // Material handles its own elevation; keep block here in case design wants
+  // to override later.
+}

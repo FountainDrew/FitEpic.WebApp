@@ -1,0 +1,302 @@
+<header class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-title">Schedule</h1>
+  </div>
+
+  <!--
+    Pill-style view toggle. Calendar is the default view on every page entry —
+    toggle state intentionally does not persist across navigations.
+  -->
+  <div class="view-toggle" role="tablist" aria-label="Schedule view">
+    <button
+      type="button"
+      role="tab"
+      class="view-toggle-segment"
+      [class.active]="isCalendar()"
+      [attr.aria-selected]="isCalendar()"
+      (click)="setView('calendar')"
+    >
+      <mat-icon>calendar_month</mat-icon>
+      <span>Calendar</span>
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="view-toggle-segment"
+      [class.active]="isList()"
+      [attr.aria-selected]="isList()"
+      (click)="setView('list')"
+    >
+      <mat-icon>format_list_bulleted</mat-icon>
+      <span>List</span>
+    </button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- CALENDAR VIEW                                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+@if (isCalendar()) {
+  <section class="calendar-section" aria-label="Monthly calendar">
+    <header class="calendar-header">
+      <button
+        mat-icon-button
+        type="button"
+        class="calendar-nav"
+        [disabled]="calendarLoading()"
+        (click)="previousMonth()"
+        aria-label="Previous month"
+      >
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <h2 class="calendar-month-label" aria-live="polite">{{ displayedMonthLabel() }}</h2>
+      <button
+        mat-icon-button
+        type="button"
+        class="calendar-nav"
+        [disabled]="calendarLoading()"
+        (click)="nextMonth()"
+        aria-label="Next month"
+      >
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+    </header>
+
+    <div class="calendar-dow-row" role="row" aria-hidden="true">
+      @for (label of dowHeaders; track label) {
+        <span class="calendar-dow-cell">{{ label }}</span>
+      }
+    </div>
+
+    @if (calendarLoading() && !calendar()) {
+      <!-- First-load skeleton: 6×7 circle skeletons matching the grid shape. -->
+      <div class="calendar-grid skeleton-grid" aria-hidden="true">
+        @for (
+          _ of [
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+            24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
+          ];
+          track $index
+        ) {
+          <span class="calendar-day-skeleton skeleton"></span>
+        }
+      </div>
+    } @else if (calendarError()) {
+      <div class="calendar-error">
+        <p>{{ calendarError() }}</p>
+        <button mat-button color="primary" type="button" (click)="retryCalendar()">Retry</button>
+      </div>
+    } @else {
+      <div class="calendar-grid" role="grid" aria-label="Calendar days">
+        @for (day of calendarDays(); track day.date) {
+          <button
+            type="button"
+            class="calendar-day"
+            [class.adjacent-month]="day.inDisplayMonth === false"
+            [class.today]="isToday(day)"
+            [class.selected]="isSelected(day)"
+            [class.completed]="day.hasCompleted"
+            role="gridcell"
+            [attr.aria-label]="dayAriaLabel(day)"
+            [attr.aria-selected]="isSelected(day)"
+            (click)="selectDay(day)"
+          >
+            <span class="calendar-day-number">{{ dayNumber(day) }}</span>
+            @if (day.hasPending) {
+              <span class="calendar-dots" aria-hidden="true">
+                <span class="dot dot-pending"></span>
+              </span>
+            }
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Selected-date pane -->
+    @if (selectedDate() && !calendarLoading() && !calendarError()) {
+      <div class="selected-date-pane">
+        <h3 class="selected-date-label">{{ selectedDateLabel() }}</h3>
+        @if (hasSelectedDateWorkouts()) {
+          <div class="workout-grid">
+            @for (card of selectedDateWorkouts(); track card.id) {
+              <app-workout-card [card]="card" />
+            }
+          </div>
+        } @else {
+          <p class="empty-line">No workouts scheduled for this date.</p>
+        }
+      </div>
+    }
+  </section>
+}
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- LIST VIEW                                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+@if (isList()) {
+  <section class="list-section" aria-label="Schedule list">
+    @if (listLoading() && !list()) {
+      <!-- List first-load skeleton: a few card-shaped skeletons. -->
+      <div class="list-skeleton" aria-hidden="true">
+        @for (_ of [0, 1, 2, 3, 4]; track $index) {
+          <div class="workout-card-skeleton">
+            <div class="workout-card-skeleton-header">
+              <span class="skeleton skeleton-card-title"></span>
+              <span class="skeleton skeleton-card-badge"></span>
+            </div>
+            <span class="skeleton skeleton-card-meta"></span>
+            <span class="skeleton skeleton-card-line"></span>
+            <span class="skeleton skeleton-card-line short"></span>
+          </div>
+        }
+      </div>
+    } @else if (listError()) {
+      <div class="list-error">
+        <p>{{ listError() }}</p>
+        <button mat-button color="primary" type="button" (click)="retryList()">Retry</button>
+      </div>
+    } @else if (list(); as l) {
+      @if (!hasAnyListRows()) {
+        <div class="list-empty">
+          <h2>No scheduled workouts</h2>
+          <p>Open a workout and tap 'Schedule' to add it here.</p>
+        </div>
+      } @else {
+        @if (l.today && l.today.length > 0) {
+          <section class="bucket-section">
+            <header class="bucket-header">
+              <h2>Today</h2>
+              <span class="bucket-date">{{ l.todayDate | date: 'EEEE, MMM d' }}</span>
+            </header>
+            <div class="workout-grid">
+              @for (card of l.today; track card.id) {
+                <app-workout-card [card]="card" />
+              }
+            </div>
+          </section>
+        }
+
+        @if (l.tomorrow && l.tomorrow.length > 0) {
+          <section class="bucket-section">
+            <header class="bucket-header">
+              <h2>Tomorrow</h2>
+            </header>
+            <div class="workout-grid">
+              @for (card of l.tomorrow; track card.id) {
+                <app-workout-card [card]="card" />
+              }
+            </div>
+          </section>
+        }
+
+        @if (l.yesterday && l.yesterday.length > 0) {
+          <section class="bucket-section">
+            <header class="bucket-header">
+              <h2>Yesterday</h2>
+            </header>
+            <div class="workout-grid">
+              @for (card of l.yesterday; track card.id) {
+                <app-workout-card [card]="card" />
+              }
+            </div>
+          </section>
+        }
+
+        @if (futureGroups().length > 0) {
+          <section class="bucket-section">
+            <header class="bucket-header">
+              <h2>Future</h2>
+            </header>
+            @for (group of futureGroups(); track group.date) {
+              <div class="future-group">
+                <h3 class="future-group-date">{{ group.date | date: 'EEEE, MMM d' }}</h3>
+                <div class="workout-grid">
+                  @for (card of group.cards; track card.id) {
+                    <app-workout-card [card]="card" />
+                  }
+                </div>
+              </div>
+            }
+            <!-- Sentinel: triggers next-page fetch when scrolled into view. -->
+            <div #futureSentinel class="scroll-sentinel" aria-hidden="true">
+              @if (futureFetching()) {
+                <span class="skeleton skeleton-card-line"></span>
+              }
+            </div>
+          </section>
+        }
+
+        @if (pastGroups().length > 0) {
+          <section class="bucket-section">
+            <header class="bucket-header">
+              <h2>Past</h2>
+            </header>
+            @for (group of pastGroups(); track group.date) {
+              <div class="future-group">
+                <h3 class="future-group-date">{{ group.date | date: 'EEEE, MMM d' }}</h3>
+                <div class="workout-grid">
+                  @for (card of group.cards; track card.id) {
+                    <app-workout-card [card]="card" />
+                  }
+                </div>
+              </div>
+            }
+            <div #pastSentinel class="scroll-sentinel" aria-hidden="true">
+              @if (pastFetching()) {
+                <span class="skeleton skeleton-card-line"></span>
+              }
+            </div>
+          </section>
+        }
+      }
+    }
+  </section>
+}
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- FAB                                                                       -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+@if (fabExpanded()) {
+  <div class="fab-backdrop" aria-hidden="true" (click)="closeFab()"></div>
+}
+<div class="fab-stack">
+  @if (fabExpanded()) {
+    <div class="fab-action">
+      <span class="fab-action-label">Create Workout</span>
+      <button
+        mat-mini-fab
+        color="primary"
+        type="button"
+        aria-label="Create workout"
+        (click)="openCreateWorkout()"
+      >
+        <mat-icon>add</mat-icon>
+      </button>
+    </div>
+    <div class="fab-action">
+      <span class="fab-action-label">Schedule Workout</span>
+      <button
+        mat-mini-fab
+        color="primary"
+        type="button"
+        aria-label="Schedule workout"
+        (click)="openSchedule()"
+      >
+        <mat-icon>event_available</mat-icon>
+      </button>
+    </div>
+  }
+  <button
+    mat-fab
+    color="primary"
+    type="button"
+    class="fab-main"
+    [attr.aria-expanded]="fabExpanded()"
+    [attr.aria-label]="fabExpanded() ? 'Close action menu' : 'Open action menu'"
+    (click)="toggleFab()"
+  >
+    <mat-icon>{{ fabExpanded() ? 'close' : 'add' }}</mat-icon>
+  </button>
+</div>
+
+<app-workout-drawer />

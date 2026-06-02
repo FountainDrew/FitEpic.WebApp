@@ -31,9 +31,29 @@ export interface DashboardWorkoutCardResponse {
   id?: string | null;
 
   /**
+   * Schedule-shape lock. When `true`, the caller cannot reschedule, unschedule, or
+   * otherwise move this row — the client should hide reschedule / unschedule affordances.
+   * Always `true` for group-targeted rows (the gym owns the schedule shape).
+   * <strong>Scope:</strong> this flag gates schedule-shape mutations only. Per-athlete
+   * result writes — logging, marking complete, scoring, notes, duration, exercise logs —
+   * remain allowed regardless of this flag.
+   */
+  isLocked?: boolean;
+
+  /**
    * Workout name (e.g. "Upper Body").
    */
   name?: string | null;
+
+  /**
+   * AspNetUsers id of the athlete who programmed this row, when that athlete is not the
+   * caller. Drives the client's "coach-programmed" affordance (e.g. coach-icon chip) on
+   * every surface that renders this card. Null when the caller programmed the row for
+   * themselves. Non-null when a coach in the caller's gym, or a peer with
+   * `ProgramWorkouts` permission, placed the row on the caller's schedule.
+   * Independent of FitEpic.Api.Models.WebApp.Response.DashboardWorkoutCardResponse.TrainingGroupName — a coach-scheduled group row sets both.
+   */
+  programmedByAthleteId?: string | null;
 
   /**
    * Freestyle / unparsed workout description. Used as a body fallback when FitEpic.Api.Models.WebApp.Response.DashboardWorkoutCardResponse.Exercises is empty.

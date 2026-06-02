@@ -18,6 +18,8 @@ export type { AthleteResultEntryResponse } from './models/athlete-result-entry-r
 export type { AthleteResultPayloadResponse } from './models/athlete-result-payload-response';
 export type { AuthResponse } from './models/auth-response';
 export type { BatchReactionsRequest } from './models/batch-reactions-request';
+export type { CalendarDayResponse } from './models/calendar-day-response';
+export type { CalendarScheduleResponse } from './models/calendar-schedule-response';
 export type { ChangeGymMemberRoleRequest } from './models/change-gym-member-role-request';
 export type { ConnectionPermissionLevel } from './models/connection-permission-level';
 export type { CreateAthleteConnectionInviteRequest } from './models/create-athlete-connection-invite-request';
@@ -65,6 +67,7 @@ export type { ScheduledWorkoutResponse } from './models/scheduled-workout-respon
 export type { ScheduledWorkoutResultsResponse } from './models/scheduled-workout-results-response';
 export type { ScheduledWorkoutStatus } from './models/scheduled-workout-status';
 export type { ScheduledWorkoutSyncResponse } from './models/scheduled-workout-sync-response';
+export type { ScheduleListResponse } from './models/schedule-list-response';
 export type { SendGymInviteRequest } from './models/send-gym-invite-request';
 export type { SendGymInviteResponse } from './models/send-gym-invite-response';
 export type { SetGymOwnerFlagRequest } from './models/set-gym-owner-flag-request';

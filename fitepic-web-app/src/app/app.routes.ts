@@ -7,20 +7,17 @@ export const routes: Routes = [
   {
     path: 'login',
     canActivate: [guestGuard],
-    loadComponent: () =>
-      import('./features/auth/login-page').then((m) => m.LoginPage),
+    loadComponent: () => import('./features/auth/login-page').then((m) => m.LoginPage),
   },
   {
     path: 'register',
     canActivate: [guestGuard],
-    loadComponent: () =>
-      import('./features/auth/register-page').then((m) => m.RegisterPage),
+    loadComponent: () => import('./features/auth/register-page').then((m) => m.RegisterPage),
   },
   {
     path: '',
     canActivate: [authGuard],
-    loadComponent: () =>
-      import('./layout/admin-shell/admin-shell').then((m) => m.AdminShell),
+    loadComponent: () => import('./layout/admin-shell/admin-shell').then((m) => m.AdminShell),
     children: [
       {
         path: '',
@@ -29,12 +26,18 @@ export const routes: Routes = [
           import('./features/dashboard/dashboard-page').then((m) => m.DashboardPage),
       },
       {
+        path: 'schedule',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/schedule/schedule-page').then((m) => m.SchedulePage),
+      },
+      {
         path: 'dashboard/weekly-stats/duration',
         pathMatch: 'full',
         loadComponent: () =>
-          import(
-            './features/dashboard/total-duration-details/total-duration-details-page'
-          ).then((m) => m.TotalDurationDetailsPage),
+          import('./features/dashboard/total-duration-details/total-duration-details-page').then(
+            (m) => m.TotalDurationDetailsPage,
+          ),
       },
       {
         path: 'dashboard/monthly-stats',
@@ -52,20 +55,17 @@ export const routes: Routes = [
       {
         path: 'gyms',
         pathMatch: 'full',
-        loadComponent: () =>
-          import('./features/gyms/gyms-list-page').then((m) => m.GymsListPage),
+        loadComponent: () => import('./features/gyms/gyms-list-page').then((m) => m.GymsListPage),
       },
       {
         path: 'gyms/join',
         pathMatch: 'full',
-        loadComponent: () =>
-          import('./features/gyms/join-gym-page').then((m) => m.JoinGymPage),
+        loadComponent: () => import('./features/gyms/join-gym-page').then((m) => m.JoinGymPage),
       },
       {
         path: 'gyms/my-inbox',
         pathMatch: 'full',
-        loadComponent: () =>
-          import('./features/gyms/my-inbox-page').then((m) => m.MyInboxPage),
+        loadComponent: () => import('./features/gyms/my-inbox-page').then((m) => m.MyInboxPage),
       },
       {
         path: 'gyms/:gymId',
@@ -85,8 +85,7 @@ export const routes: Routes = [
           },
           {
             path: 'groups',
-            loadComponent: () =>
-              import('./features/gyms/tabs/groups-tab').then((m) => m.GroupsTab),
+            loadComponent: () => import('./features/gyms/tabs/groups-tab').then((m) => m.GroupsTab),
           },
           {
             path: 'groups/:groupId',
