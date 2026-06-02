@@ -65,6 +65,14 @@ interface ExerciseLogGroup {
   exerciseSummary: string | null;
   orderIndex: number;
   rows: ExerciseLogRow[];
+  /**
+   * True when the athlete (or coach) has marked this exercise as skipped.
+   * Skipped groups are excluded from the save payload entirely — the server
+   * never sees empty log rows for an exercise that wasn't actually performed.
+   * On reload, a group is auto-marked skipped if the workout was previously
+   * logged AND no log rows exist for this exercise (round-trip preservation).
+   */
+  skipped: boolean;
 }
 
 const TIME_SCORE_TYPES = new Set<WorkoutScoreType>([
@@ -272,7 +280,9 @@ export class WorkoutLogPage implements OnInit {
       this.notes.set(sw.notes ?? '');
       if (sw.scoreResult) this.populateExistingScore(sw.scoreResult);
       this.prefillDuration(sw.duration ?? w?.duration ?? null);
-      this.exerciseGroups.set(this.buildExerciseGroups(w, sw.exerciseLogs ?? []));
+      this.exerciseGroups.set(
+        this.buildExerciseGroups(w, sw.exerciseLogs ?? [], sw.status === 'Completed'),
+      );
     } catch {
       this.error.set('Could not load the workout. Try again.');
     } finally {
@@ -505,6 +515,7 @@ export class WorkoutLogPage implements OnInit {
       actualDistanceUnit?: DistanceUnit | null;
       actualCalories?: number | null;
     }>,
+    isPriorlyLogged: boolean,
   ): ExerciseLogGroup[] {
     if (!workout) return [];
     const isIntervals = workout.workoutType === 'Intervals';
@@ -563,12 +574,19 @@ export class WorkoutLogPage implements OnInit {
       }
       if (rows.length === 0) continue;
 
+      // Round-trip preservation: if the workout had been previously logged and
+      // none of the prior logs targeted this exercise, treat it as skipped on
+      // reload — otherwise re-opening a skipped exercise silently re-creates
+      // empty rows the user has to skip again.
+      const skipped = isPriorlyLogged && matching.length === 0;
+
       groups.push({
         workoutExerciseId: exercise.id!,
         exerciseName: exercise.userEnteredExerciseName ?? 'Exercise',
         exerciseSummary: this.buildExerciseSummary(exercise, isIntervals),
         orderIndex: exercise.orderIndex ?? 0,
         rows,
+        skipped,
       });
     }
     return groups;
@@ -738,6 +756,9 @@ export class WorkoutLogPage implements OnInit {
     const out: WorkoutExerciseLogRequest[] = [];
     const now = new Date().toISOString();
     for (const group of this.exerciseGroups()) {
+      // Skipped groups contribute no rows — the server sees them as if the
+      // exercise wasn't logged at all.
+      if (group.skipped) continue;
       for (const row of group.rows) {
         let durationSeconds: number | null = null;
         if (row.showDurationInput) {
@@ -791,6 +812,19 @@ export class WorkoutLogPage implements OnInit {
       if (row) row[field] = value;
       return next;
     });
+  }
+
+  /**
+   * Toggle the skipped state for an exercise group. When skipped, the group's
+   * input rows are hidden in the UI and its log payloads are omitted from
+   * save — the server never sees an empty log row for this exercise.
+   */
+  protected toggleGroupSkipped(groupIndex: number): void {
+    this.exerciseGroups.update((groups) =>
+      groups.map((g, i) =>
+        i === groupIndex ? { ...g, skipped: !g.skipped, rows: g.rows.map((r) => ({ ...r })) } : g,
+      ),
+    );
   }
 
   /**

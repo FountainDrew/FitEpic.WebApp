@@ -119,6 +119,12 @@
   --mdc-elevated-card-container-color: var(--fe-surface);
   background-color: var(--fe-surface);
   border: 1px solid var(--fe-border);
+
+  &.skipped {
+    .exercise-group-title {
+      opacity: 0.55;
+    }
+  }
 }
 
 .exercise-group-header {
@@ -128,6 +134,14 @@
   gap: 12px;
   margin-bottom: 12px;
   flex-wrap: wrap;
+}
+
+.exercise-group-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .exercise-group-name {
@@ -140,6 +154,19 @@
   font-size: 12px;
   color: var(--fe-text);
   opacity: 0.7;
+}
+
+.skip-toggle {
+  flex: 0 0 auto;
+  font-size: 12px;
+}
+
+.exercise-skipped-note {
+  margin: 0;
+  padding: 8px 0;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--fe-text-muted);
 }
 
 .exercise-log-rows {
