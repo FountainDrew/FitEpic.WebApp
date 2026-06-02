@@ -23,6 +23,8 @@ export type { AthleteResultEntryResponse } from './models/athlete-result-entry-r
 export type { AthleteResultPayloadResponse } from './models/athlete-result-payload-response';
 export type { AuthResponse } from './models/auth-response';
 export type { BatchReactionsRequest } from './models/batch-reactions-request';
+export type { CalendarDayResponse } from './models/calendar-day-response';
+export type { CalendarScheduleResponse } from './models/calendar-schedule-response';
 export type { ChangeGymMemberRoleRequest } from './models/change-gym-member-role-request';
 export type { ConnectionPermissionLevel } from './models/connection-permission-level';
 export type { CreateAthleteConnectionInviteRequest } from './models/create-athlete-connection-invite-request';
@@ -70,6 +72,7 @@ export type { ScheduledWorkoutResponse } from './models/scheduled-workout-respon
 export type { ScheduledWorkoutResultsResponse } from './models/scheduled-workout-results-response';
 export type { ScheduledWorkoutStatus } from './models/scheduled-workout-status';
 export type { ScheduledWorkoutSyncResponse } from './models/scheduled-workout-sync-response';
+export type { ScheduleListResponse } from './models/schedule-list-response';
 export type { SendGymInviteRequest } from './models/send-gym-invite-request';
 export type { SendGymInviteResponse } from './models/send-gym-invite-response';
 export type { SetGymOwnerFlagRequest } from './models/set-gym-owner-flag-request';
@@ -340,3 +343,7 @@ export type { ApiWebappQuotesMineIdV1Put$Params as ApiWebappQuotesMineIdV1Put$Pa
 export { apiWebappQuotesMineIdV1Put as apiWebappQuotesMineIdV1Put } from './fn/web-app-quotes/api-webapp-quotes-mine-id-v-1-put';
 export type { ApiWebappQuotesMineIdV1Delete$Params as ApiWebappQuotesMineIdV1Delete$Params } from './fn/web-app-quotes/api-webapp-quotes-mine-id-v-1-delete';
 export { apiWebappQuotesMineIdV1Delete as apiWebappQuotesMineIdV1Delete } from './fn/web-app-quotes/api-webapp-quotes-mine-id-v-1-delete';
+export type { ApiWebappScheduleCalendarV1Get$Params as ApiWebappScheduleCalendarV1Get$Params } from './fn/web-app-schedule/api-webapp-schedule-calendar-v-1-get';
+export { apiWebappScheduleCalendarV1Get as apiWebappScheduleCalendarV1Get } from './fn/web-app-schedule/api-webapp-schedule-calendar-v-1-get';
+export type { ApiWebappScheduleListV1Get$Params as ApiWebappScheduleListV1Get$Params } from './fn/web-app-schedule/api-webapp-schedule-list-v-1-get';
+export { apiWebappScheduleListV1Get as apiWebappScheduleListV1Get } from './fn/web-app-schedule/api-webapp-schedule-list-v-1-get';

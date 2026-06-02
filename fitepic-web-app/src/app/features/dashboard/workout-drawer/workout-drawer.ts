@@ -14,10 +14,7 @@ import {
 import { WorkoutsService } from '../../../core/workouts/workouts.service';
 import { showGymError, SYNC_RESULT_MESSAGES } from '../../../core/gyms/gym-error-messages';
 import { createPendingAction } from '../../../core/async/pending-action';
-import {
-  ConfirmActionDialog,
-  ConfirmActionDialogData,
-} from '../../gyms/confirm-action-dialog';
+import { ConfirmActionDialog, ConfirmActionDialogData } from '../../gyms/confirm-action-dialog';
 import {
   RescheduleWorkoutDialog,
   RescheduleWorkoutDialogData,
@@ -55,20 +52,21 @@ export class WorkoutDrawer {
     formatDurationFromIso(this.service.workout()?.duration),
   );
 
-  protected readonly hasExercises = computed(() => (this.service.workout()?.exercises?.length ?? 0) > 0);
+  protected readonly hasExercises = computed(
+    () => (this.service.workout()?.exercises?.length ?? 0) > 0,
+  );
   protected readonly hasRawText = computed(() => Boolean(this.service.workout()?.rawText?.trim()));
   protected readonly isCompleted = computed(() => this.service.workout()?.status === 'Completed');
 
   /**
-   * Group-scheduled row indicator. The dashboard projects `trainingGroupName`
-   * only for rows targeted at a training group; personal rows leave it null.
-   * Used to gate schedule-affecting actions (reschedule / unschedule) since
-   * those belong to the gym Schedule surface for the coach, not the athlete's
-   * personal dashboard.
+   * Schedule-shape lock from the server. Drives reschedule / unschedule
+   * visibility — when true, the caller cannot move this row off its date or
+   * remove it, so those buttons hide. Per-athlete result writes (log,
+   * complete, score, notes, duration, exercise logs) remain available
+   * regardless. Always true on group-targeted rows (the gym owns the
+   * schedule shape).
    */
-  protected readonly isGroupWorkout = computed(() =>
-    Boolean(this.service.workout()?.trainingGroupName),
-  );
+  protected readonly isLocked = computed(() => Boolean(this.service.workout()?.isLocked));
 
   /**
    * Split score render for the drawer's Score section — separate title and
@@ -163,7 +161,8 @@ export class WorkoutDrawer {
     if (!w?.id || !w.scheduledDate) return;
     const confirmed = await this.confirm({
       title: 'Delete this workout’s logs?',
-      message: 'Removes your completion and any logged scores or notes. The workout stays on your schedule and you can complete it again.',
+      message:
+        'Removes your completion and any logged scores or notes. The workout stays on your schedule and you can complete it again.',
       confirmLabel: 'Delete logs',
       warn: true,
     });
@@ -346,5 +345,4 @@ export class WorkoutDrawer {
     );
     return (await ref.afterClosed().toPromise()) ?? false;
   }
-
 }

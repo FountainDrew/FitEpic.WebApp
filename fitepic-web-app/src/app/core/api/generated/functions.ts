@@ -229,3 +229,7 @@ export type { ApiWebappQuotesMineIdV1Put$Params as ApiWebappQuotesMineIdV1Put$Pa
 export { apiWebappQuotesMineIdV1Put as apiWebappQuotesMineIdV1Put } from './fn/web-app-quotes/api-webapp-quotes-mine-id-v-1-put';
 export type { ApiWebappQuotesMineIdV1Delete$Params as ApiWebappQuotesMineIdV1Delete$Params } from './fn/web-app-quotes/api-webapp-quotes-mine-id-v-1-delete';
 export { apiWebappQuotesMineIdV1Delete as apiWebappQuotesMineIdV1Delete } from './fn/web-app-quotes/api-webapp-quotes-mine-id-v-1-delete';
+export type { ApiWebappScheduleCalendarV1Get$Params as ApiWebappScheduleCalendarV1Get$Params } from './fn/web-app-schedule/api-webapp-schedule-calendar-v-1-get';
+export { apiWebappScheduleCalendarV1Get as apiWebappScheduleCalendarV1Get } from './fn/web-app-schedule/api-webapp-schedule-calendar-v-1-get';
+export type { ApiWebappScheduleListV1Get$Params as ApiWebappScheduleListV1Get$Params } from './fn/web-app-schedule/api-webapp-schedule-list-v-1-get';
+export { apiWebappScheduleListV1Get as apiWebappScheduleListV1Get } from './fn/web-app-schedule/api-webapp-schedule-list-v-1-get';

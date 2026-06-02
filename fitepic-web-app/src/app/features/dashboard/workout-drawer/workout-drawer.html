@@ -1,11 +1,6 @@
 @if (service.workout(); as w) {
   <div class="drawer-backdrop" (click)="close()" aria-hidden="true"></div>
-  <aside
-    class="drawer"
-    role="dialog"
-    aria-modal="true"
-    [attr.aria-labelledby]="'drawer-title'"
-  >
+  <aside class="drawer" role="dialog" aria-modal="true" [attr.aria-labelledby]="'drawer-title'">
     <header class="drawer-header">
       <div class="drawer-header-text">
         <h2 id="drawer-title" class="drawer-title">{{ w.name }}</h2>
@@ -50,13 +45,14 @@
             <span>Delete logs</span>
           </button>
           <!--
-            Workout-template + schedule-changing actions are only offered for
-            personal rows. Group-scheduled rows belong to the gym Schedule
-            surface (coach owns both the workout library and the schedule);
-            athletes can still log/delete their own results but cannot edit
-            the gym's workout template or reschedule/unschedule the row.
+            Workout-template + schedule-changing actions are only offered when
+            the row is not locked. Group-scheduled rows always come back
+            isLocked=true (the gym Schedule surface owns the template and the
+            schedule shape); athletes can still log/delete their own results
+            but cannot reschedule/unschedule or edit the gym's workout
+            template.
           -->
-          @if (!isGroupWorkout()) {
+          @if (!isLocked()) {
             <button
               mat-stroked-button
               type="button"
@@ -90,7 +86,7 @@
             <mat-icon>check_circle</mat-icon>
             <span>Log workout</span>
           </button>
-          @if (!isGroupWorkout()) {
+          @if (!isLocked()) {
             <button
               mat-stroked-button
               type="button"

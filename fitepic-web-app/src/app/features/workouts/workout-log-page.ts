@@ -745,6 +745,13 @@ export class WorkoutLogPage implements OnInit {
           const s = Number(row.actualDurationSeconds) || 0;
           durationSeconds = m * 60 + s;
         }
+        // `actualWeightLbs`, `actualDistance`, `actualCalories` are bound to
+        // `<input type="number">`, so Angular's NumberValueAccessor pushes
+        // `number | null` back through ngModel and the TS `string` type lies
+        // at runtime. Coerce before calling string methods.
+        const weightStr = coerceNumericInput(row.actualWeightLbs);
+        const distanceStr = coerceNumericInput(row.actualDistance);
+        const caloriesStr = coerceNumericInput(row.actualCalories);
         out.push({
           id: row.existingLogId ?? crypto.randomUUID(),
           scheduledWorkoutId,
@@ -755,19 +762,13 @@ export class WorkoutLogPage implements OnInit {
           actualReps:
             row.showRepsInput && row.actualReps.trim() ? row.actualReps.trim() : null,
           actualWeightLbs:
-            row.showWeightInput && row.actualWeightLbs.trim()
-              ? Number(row.actualWeightLbs)
-              : null,
+            row.showWeightInput && weightStr ? Number(weightStr) : null,
           actualDurationSeconds: durationSeconds,
           actualDistance:
-            row.showDistanceInput && row.actualDistance.trim()
-              ? Number(row.actualDistance)
-              : null,
+            row.showDistanceInput && distanceStr ? Number(distanceStr) : null,
           actualDistanceUnit: row.showDistanceInput ? row.actualDistanceUnit : null,
           actualCalories:
-            row.showCaloriesInput && row.actualCalories.trim()
-              ? Number(row.actualCalories)
-              : null,
+            row.showCaloriesInput && caloriesStr ? Number(caloriesStr) : null,
           orderIndex: row.setNumber ?? row.roundNumber ?? 1,
           updatedAt: now,
         });
@@ -791,6 +792,52 @@ export class WorkoutLogPage implements OnInit {
       return next;
     });
   }
+
+  /**
+   * Tab-into-weight UX for straight-sets rows. On focus:
+   *   1. If this row's weight is empty and it isn't the first set, prefill it
+   *      with the previous set's weight. The user almost always works up or
+   *      down from the prior set, so the previous value is the right starting
+   *      point — never blank.
+   *   2. Select the input's contents so a single keypress replaces the value.
+   *      Defers the `.select()` to the next tick so it runs after Angular has
+   *      applied the prefilled model value to the DOM.
+   * Interval rows are skipped (`setNumber == null`); their per-round metric
+   * isn't typically a "same as last round" workflow.
+   *
+   * Note: `actualWeightLbs` is typed `string` in `ExerciseLogRow`, but the
+   * input is `type="number"` so Angular's `NumberValueAccessor` actually
+   * pushes a `number` (or `null`) back through `(ngModelChange)`. We coerce
+   * defensively here rather than depend on a clean string contract.
+   */
+  protected onWeightFocus(event: FocusEvent, gi: number, ri: number): void {
+    const group = this.exerciseGroups()[gi];
+    const row = group?.rows?.[ri];
+    if (!row || !row.showWeightInput || row.setNumber == null) return;
+
+    if (ri > 0 && coerceNumericInput(row.actualWeightLbs) === '') {
+      const prev = group.rows[ri - 1];
+      const prevWeight = coerceNumericInput(prev?.actualWeightLbs);
+      if (prevWeight !== '') {
+        this.setRowField(gi, ri, 'actualWeightLbs', prevWeight);
+      }
+    }
+
+    const target = event.target as HTMLInputElement | null;
+    if (target) setTimeout(() => target.select(), 0);
+  }
+}
+
+/**
+ * Normalize a model value bound to `<input type="number">` to a trimmed
+ * string. Angular's `NumberValueAccessor` pushes `number | null` through
+ * `(ngModelChange)` regardless of the bound field's declared TS type, so any
+ * read that calls a string method (`.trim()`, etc.) has to defensively coerce
+ * first or risk a runtime `TypeError`.
+ */
+function coerceNumericInput(value: unknown): string {
+  if (value == null) return '';
+  return String(value).trim();
 }
 
 function toIsoDate(d: Date): string {

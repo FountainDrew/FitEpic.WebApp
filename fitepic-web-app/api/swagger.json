@@ -7529,6 +7529,164 @@
           }
         }
       }
+    },
+    "/api/webapp/schedule/calendar/v1": {
+      "get": {
+        "tags": [
+          "WebApp - Schedule"
+        ],
+        "summary": "42-cell calendar grid + workout cards for a single calendar month, all resolved in the\r\nathlete's profile timezone. Drives the web app's calendar-view schedule page.",
+        "description": "The server computes the visible 6-row × 7-column grid for year /\r\nmonth. The window starts on the Sunday on or before the 1st of the\r\nmonth and runs 42 days. Indicator booleans and hydrated workout cards cover every date\r\nin the window — including leading and trailing days from adjacent months — so a single\r\nrequest hydrates both the grid and the user's selected-day list. Dismissed rows are\r\nexcluded. Group-targeted rows are merged with this athlete's per-athlete completion\r\nstate.\r\n            \r\nResponse is sent with `Cache-Control: no-store` — the API has a global no-store\r\npolicy on every response so clients never serve stale state.\r\n            \r\nPossible `error.code` values on non-2xx responses (see `WebAppErrorCode` for the full enumeration):\r\n<list type=\"bullet\"><item><description>`VALIDATION_FAILED` (400) — year or month is missing or not an integer.</description></item><item><description>`MONTH_OUT_OF_RANGE` (400) — month is outside 1..12 or year is below 1900. Future months are allowed (athletes plan ahead).</description></item><item><description>`PROFILE_TIMEZONE_REQUIRED` (400) — athlete has not set a profile timezone.</description></item><item><description>`INVALID_TIMEZONE` (400) — stored timezone is not recognized on the server.</description></item><item><description>`PROFILE_NOT_FOUND` (404) — athlete profile record is missing.</description></item><item><description>`UNAUTHENTICATED` (401) — token missing or invalid.</description></item></list>",
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "description": "Calendar year in the athlete's profile timezone (≥ 1900).",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "description": "Calendar month, 1..12, in the athlete's profile timezone.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the calendar-view payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarScheduleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation, month range, or profile-timezone failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Athlete profile record is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webapp/schedule/list/v1": {
+      "get": {
+        "tags": [
+          "WebApp - Schedule"
+        ],
+        "summary": "Five relative-date buckets — yesterday / today / tomorrow / future / past — with\r\ncursor-paged past and future. Drives the web app's list-view schedule page.",
+        "description": "All bucket boundaries are computed in the athlete's profile timezone. Today / tomorrow /\r\nyesterday are unbounded (at most a handful of rows each) and are always populated\r\nregardless of which cursors are supplied. Past and future are bounded by\r\npastLimit / futureLimit (default 50, server-capped\r\nat 200).\r\n            \r\nCursors are opaque base64url strings. Clients must treat them as black boxes — never\r\nparse, mutate, or compare. Pass pastCursor /\r\nfutureCursor back unchanged on subsequent requests. The\r\n`PastNextCursor` / `FutureNextCursor` response fields are null when the\r\ncorresponding bucket has been fully drained.\r\n            \r\nGroup-targeted rows are merged with this athlete's per-athlete completion state.\r\nDismissed rows are excluded.\r\n            \r\nResponse is sent with `Cache-Control: no-store` per the global API policy.\r\n            \r\nPossible `error.code` values on non-2xx responses (see `WebAppErrorCode` for the full enumeration):\r\n<list type=\"bullet\"><item><description>`VALIDATION_FAILED` (400) — pastLimit or futureLimit is less than 1.</description></item><item><description>`INVALID_CURSOR` (400) — a supplied cursor failed to decode or did not match the expected shape.</description></item><item><description>`PROFILE_TIMEZONE_REQUIRED` (400) — athlete has not set a profile timezone.</description></item><item><description>`INVALID_TIMEZONE` (400) — stored timezone is not recognized on the server.</description></item><item><description>`PROFILE_NOT_FOUND` (404) — athlete profile record is missing.</description></item><item><description>`UNAUTHENTICATED` (401) — token missing or invalid.</description></item></list>",
+        "parameters": [
+          {
+            "name": "pastLimit",
+            "in": "query",
+            "description": "Maximum rows in the past bucket. Defaults to 50, server-clamped to a maximum of 200.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "futureLimit",
+            "in": "query",
+            "description": "Maximum rows in the future bucket. Defaults to 50, server-clamped to a maximum of 200.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pastCursor",
+            "in": "query",
+            "description": "Opaque cursor returned by a prior response's `pastNextCursor`. Omit to fetch from the start of the past bucket.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "futureCursor",
+            "in": "query",
+            "description": "Opaque cursor returned by a prior response's `futureNextCursor`. Omit to fetch from the start of the future bucket.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the five-bucket list payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure, invalid cursor, or profile-timezone failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Athlete profile record is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8198,6 +8356,84 @@
         },
         "additionalProperties": false
       },
+      "CalendarDayResponse": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Calendar date represented by this cell.",
+            "format": "date",
+            "example": "2026-05-12"
+          },
+          "hasPending": {
+            "type": "boolean",
+            "description": "True when at least one non-dismissed Pending workout falls on FitEpic.Api.Models.WebApp.Response.CalendarDayResponse.Date."
+          },
+          "hasCompleted": {
+            "type": "boolean",
+            "description": "True when at least one Completed workout falls on FitEpic.Api.Models.WebApp.Response.CalendarDayResponse.Date."
+          },
+          "inDisplayMonth": {
+            "type": "boolean",
+            "description": "True when this cell belongs to the requested display month. False for leading / trailing\r\ndays drawn from the adjacent month. The client uses this to render the dimmed\r\nadjacent-month treatment without recomputing the boundary from\r\nFitEpic.Api.Models.WebApp.Response.CalendarScheduleResponse.WindowStart."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One cell of the calendar grid. Indicators drive the orange (Pending) and green (Completed)\r\ndots beneath the day number on the client."
+      },
+      "CalendarScheduleResponse": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "description": "Requested year, echoed for client-side correlation against late responses.",
+            "format": "int32",
+            "example": 2026
+          },
+          "month": {
+            "type": "integer",
+            "description": "Requested month (1..12), echoed for client-side correlation.",
+            "format": "int32",
+            "example": 5
+          },
+          "windowStart": {
+            "type": "string",
+            "description": "First cell of the visible 6×7 grid — always a Sunday. May fall in the prior month when\r\nthe 1st of FitEpic.Api.Models.WebApp.Response.CalendarScheduleResponse.Month is not itself a Sunday.",
+            "format": "date",
+            "example": "2026-04-26"
+          },
+          "windowEnd": {
+            "type": "string",
+            "description": "Last cell of the visible grid. Equals FitEpic.Api.Models.WebApp.Response.CalendarScheduleResponse.WindowStart + 41 days.",
+            "format": "date",
+            "example": "2026-06-06"
+          },
+          "today": {
+            "type": "string",
+            "description": "Today's calendar date in the athlete's profile timezone. Clients should use this value\r\n(not the browser's `Date.now()`) when deciding whether \"today\" falls inside the\r\ndisplayed window so timezone behavior matches the server.",
+            "format": "date",
+            "example": "2026-05-28"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalendarDayResponse"
+            },
+            "description": "Exactly 42 entries, one per visible grid cell, ascending by FitEpic.Api.Models.WebApp.Response.CalendarDayResponse.Date.\r\nUse the per-day boolean flags to render the orange/green indicator dots without inspecting\r\nthe full FitEpic.Api.Models.WebApp.Response.CalendarScheduleResponse.Workouts array.",
+            "nullable": true
+          },
+          "workouts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardWorkoutCardResponse"
+            },
+            "description": "Every non-dismissed scheduled workout visible to the caller whose\r\nFitEpic.Api.Models.WebApp.Response.DashboardWorkoutCardResponse.ScheduledDate falls inside\r\nFitEpic.Api.Models.WebApp.Response.CalendarScheduleResponse.WindowStart..FitEpic.Api.Models.WebApp.Response.CalendarScheduleResponse.WindowEnd (inclusive). Ordered ascending by\r\n`ScheduledDate`, then Pending before Completed, then by workout name.\r\nEmpty array (not null) when the window has no rows.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response payload for `GET /api/webapp/schedule/calendar/v1`. Drives the web app's\r\nsix-row calendar grid plus the selected-date workout list in a single round trip."
+      },
       "ChangeGymMemberRoleRequest": {
         "required": [
           "role"
@@ -8391,6 +8627,15 @@
             "type": "string",
             "description": "Name of the training group this row belongs to. Null when the row is personal-scheduled\r\n(no training group). Not subject to v7 athlete-tier redaction — the caller already\r\nbelongs to the group, so this is their own membership context, not a gym-internal\r\nidentifier like `GymCode` or `OwnerAthleteId`. May be mildly stale if a coach\r\nrenames the group between dashboard fetches.",
             "nullable": true
+          },
+          "programmedByAthleteId": {
+            "type": "string",
+            "description": "AspNetUsers id of the athlete who programmed this row, when that athlete is not the\r\ncaller. Drives the client's \"coach-programmed\" affordance (e.g. coach-icon chip) on\r\nevery surface that renders this card. Null when the caller programmed the row for\r\nthemselves. Non-null when a coach in the caller's gym, or a peer with\r\n`ProgramWorkouts` permission, placed the row on the caller's schedule.\r\nIndependent of FitEpic.Api.Models.WebApp.Response.DashboardWorkoutCardResponse.TrainingGroupName — a coach-scheduled group row sets both.",
+            "nullable": true
+          },
+          "isLocked": {
+            "type": "boolean",
+            "description": "Schedule-shape lock. When `true`, the caller cannot reschedule, unschedule, or\r\notherwise move this row — the client should hide reschedule / unschedule affordances.\r\nAlways `true` for group-targeted rows (the gym owns the schedule shape).\r\n<strong>Scope:</strong> this flag gates schedule-shape mutations only. Per-athlete\r\nresult writes — logging, marking complete, scoring, notes, duration, exercise logs —\r\nremain allowed regardless of this flag."
           },
           "exercises": {
             "type": "array",
@@ -9602,6 +9847,69 @@
         "additionalProperties": false,
         "description": "Request body for registering a new user account."
       },
+      "ScheduleListResponse": {
+        "type": "object",
+        "properties": {
+          "todayDate": {
+            "type": "string",
+            "description": "Today's calendar date in the athlete's profile timezone.",
+            "format": "date",
+            "example": "2026-05-28"
+          },
+          "yesterday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardWorkoutCardResponse"
+            },
+            "description": "Cards scheduled for yesterday (FitEpic.Api.Models.WebApp.Response.ScheduleListResponse.TodayDate − 1). Ordered Pending before\r\nCompleted; within each, stable by date then by id.",
+            "nullable": true
+          },
+          "today": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardWorkoutCardResponse"
+            },
+            "description": "Cards scheduled for today. Same ordering rule as FitEpic.Api.Models.WebApp.Response.ScheduleListResponse.Yesterday.",
+            "nullable": true
+          },
+          "tomorrow": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardWorkoutCardResponse"
+            },
+            "description": "Cards scheduled for tomorrow (FitEpic.Api.Models.WebApp.Response.ScheduleListResponse.TodayDate + 1). Same ordering rule as\r\nFitEpic.Api.Models.WebApp.Response.ScheduleListResponse.Yesterday.",
+            "nullable": true
+          },
+          "future": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardWorkoutCardResponse"
+            },
+            "description": "Cards scheduled strictly after tomorrow, ascending by date then Pending before Completed\r\nthen by id. Bounded by the request's `futureLimit` (default 50, server-capped at 200).",
+            "nullable": true
+          },
+          "past": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardWorkoutCardResponse"
+            },
+            "description": "Cards scheduled strictly before yesterday, descending by date then Pending before\r\nCompleted then by id. Bounded by the request's `pastLimit` (default 50, server-capped\r\nat 200).",
+            "nullable": true
+          },
+          "pastNextCursor": {
+            "type": "string",
+            "description": "Opaque pagination cursor to fetch the next page of FitEpic.Api.Models.WebApp.Response.ScheduleListResponse.Past. Null when\r\nexhausted. <strong>Clients must treat this string as a black box</strong> — never parse,\r\nmutate, or compare it. Pass it back unchanged as the `pastCursor` query parameter\r\non the next request.",
+            "nullable": true
+          },
+          "futureNextCursor": {
+            "type": "string",
+            "description": "Opaque pagination cursor to fetch the next page of FitEpic.Api.Models.WebApp.Response.ScheduleListResponse.Future. Null when\r\nexhausted. <strong>Clients must treat this string as a black box</strong> — never parse,\r\nmutate, or compare it. Pass it back unchanged as the `futureCursor` query parameter\r\non the next request.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Response payload for `GET /api/webapp/schedule/list/v1`. Drives the web app's five\r\nrelative-date buckets (yesterday / today / tomorrow / future / past) with cursor-paged\r\npast and future."
+      },
       "ScheduledWorkoutRequest": {
         "required": [
           "exerciseLogs",
@@ -10467,7 +10775,8 @@
           "INVALID_TIMEZONE",
           "NOT_FOUND",
           "PINNED",
-          "MONTH_OUT_OF_RANGE"
+          "MONTH_OUT_OF_RANGE",
+          "INVALID_CURSOR"
         ],
         "type": "string"
       },
@@ -11502,6 +11811,9 @@
     },
     {
       "name": "WebApp - Quotes"
+    },
+    {
+      "name": "WebApp - Schedule"
     }
   ]
 }

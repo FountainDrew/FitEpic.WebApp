@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -24,6 +24,11 @@ import { provideNativeDateAdapter } from '@angular/material/core';
 export type DashboardScheduleDialogResult =
   | { mode: 'create'; scheduledDate: string }
   | { mode: 'pick'; scheduledDate: string };
+
+/** ISO `YYYY-MM-DD`. When provided, the date field opens prefilled to this value instead of today. */
+export interface DashboardScheduleDialogData {
+  initialDate?: string;
+}
 
 @Component({
   selector: 'app-dashboard-schedule-dialog',
@@ -102,10 +107,14 @@ export type DashboardScheduleDialogResult =
   ],
 })
 export class DashboardScheduleDialog {
-  private readonly dialogRef =
-    inject(MatDialogRef<DashboardScheduleDialog, DashboardScheduleDialogResult>);
+  private readonly dialogRef = inject(
+    MatDialogRef<DashboardScheduleDialog, DashboardScheduleDialogResult>,
+  );
+  private readonly data = inject<DashboardScheduleDialogData | null>(MAT_DIALOG_DATA, {
+    optional: true,
+  });
 
-  protected readonly date = signal<Date | null>(new Date());
+  protected readonly date = signal<Date | null>(parseInitialDate(this.data?.initialDate));
   protected readonly canSubmit = computed(() => !!this.date());
 
   protected onCreate(): void {
@@ -128,4 +137,11 @@ function toIsoDate(d: Date): string {
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
+}
+
+function parseInitialDate(iso: string | undefined): Date {
+  if (!iso) return new Date();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return new Date();
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 }

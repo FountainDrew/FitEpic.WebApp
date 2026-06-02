@@ -157,6 +157,7 @@
                               (ngModelChange)="setRowField(gi, ri, 'actualWeightLbs', $event)"
                               [name]="'weight-' + gi + '-' + ri"
                               inputmode="decimal"
+                              (focus)="onWeightFocus($event, gi, ri)"
                             />
                           </mat-form-field>
                         }
