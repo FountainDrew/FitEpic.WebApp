@@ -277,12 +277,27 @@ export class WorkoutLogPage implements OnInit {
       const w = sw.workoutId ? await this.workoutsService.getWorkout(sw.workoutId) : null;
       this.workout.set(w);
 
-      this.notes.set(sw.notes ?? '');
-      if (sw.scoreResult) this.populateExistingScore(sw.scoreResult);
-      this.prefillDuration(sw.duration ?? w?.duration ?? null);
-      this.exerciseGroups.set(
-        this.buildExerciseGroups(w, sw.exerciseLogs ?? [], sw.status === 'Completed'),
+      // Defensive read: the coach-pivoted endpoint's "no per-athlete result =>
+      // template defaults" branch (see API ScheduledWorkoutService.cs ~L892)
+      // doesn't actually clear the base row's log fields when merging — it
+      // leaves Status/ScoreResult/Notes/Duration/ExerciseLogs wherever the
+      // base row last had them. For group rows whose base ScheduledWorkout was
+      // ever touched by a personal sync (e.g. the coach logged their own
+      // result through the personal path), those fields carry the *coach's*
+      // data, which then leaks into every other athlete's pivoted view.
+      // We trust `status`: if the merge resolved to Pending, the row was not
+      // logged by this athlete and the log fields are stale regardless of
+      // what they contain. Loading as fresh inputs matches the user's intent
+      // and the API endpoint's documented contract.
+      const isLoggedByThisAthlete = sw.status === 'Completed';
+
+      this.notes.set(isLoggedByThisAthlete ? (sw.notes ?? '') : '');
+      if (isLoggedByThisAthlete && sw.scoreResult) this.populateExistingScore(sw.scoreResult);
+      this.prefillDuration(
+        isLoggedByThisAthlete ? (sw.duration ?? w?.duration ?? null) : (w?.duration ?? null),
       );
+      const existingLogs = isLoggedByThisAthlete ? (sw.exerciseLogs ?? []) : [];
+      this.exerciseGroups.set(this.buildExerciseGroups(w, existingLogs, isLoggedByThisAthlete));
     } catch {
       this.error.set('Could not load the workout. Try again.');
     } finally {
