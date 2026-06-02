@@ -119,14 +119,29 @@
         <h2 class="section-title">Exercises</h2>
         <div class="exercise-groups">
           @for (group of exerciseGroups(); track group.workoutExerciseId; let gi = $index) {
-            <mat-card class="exercise-group-card">
+            <mat-card class="exercise-group-card" [class.skipped]="group.skipped">
               <mat-card-content>
                 <header class="exercise-group-header">
-                  <h3 class="exercise-group-name">{{ group.exerciseName }}</h3>
-                  @if (group.exerciseSummary) {
-                    <span class="exercise-group-summary">{{ group.exerciseSummary }}</span>
-                  }
+                  <div class="exercise-group-title">
+                    <h3 class="exercise-group-name">{{ group.exerciseName }}</h3>
+                    @if (group.exerciseSummary) {
+                      <span class="exercise-group-summary">{{ group.exerciseSummary }}</span>
+                    }
+                  </div>
+                  <button
+                    mat-button
+                    type="button"
+                    class="skip-toggle"
+                    (click)="toggleGroupSkipped(gi)"
+                  >
+                    {{ group.skipped ? 'Log this exercise' : 'Skip exercise' }}
+                  </button>
                 </header>
+                @if (group.skipped) {
+                  <p class="exercise-skipped-note">
+                    This exercise will be skipped — no log will be saved.
+                  </p>
+                } @else {
                 <ul class="exercise-log-rows">
                   @for (row of group.rows; track $index; let ri = $index) {
                     <li class="exercise-log-row">
@@ -233,6 +248,7 @@
                     </li>
                   }
                 </ul>
+                }
               </mat-card-content>
             </mat-card>
           }
