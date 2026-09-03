@@ -233,3 +233,9 @@ export type { ApiWebappScheduleCalendarV1Get$Params as ApiWebappScheduleCalendar
 export { apiWebappScheduleCalendarV1Get as apiWebappScheduleCalendarV1Get } from './fn/web-app-schedule/api-webapp-schedule-calendar-v-1-get';
 export type { ApiWebappScheduleListV1Get$Params as ApiWebappScheduleListV1Get$Params } from './fn/web-app-schedule/api-webapp-schedule-list-v-1-get';
 export { apiWebappScheduleListV1Get as apiWebappScheduleListV1Get } from './fn/web-app-schedule/api-webapp-schedule-list-v-1-get';
+export type { ApiWebappWorkoutsLibraryV1Get$Params as ApiWebappWorkoutsLibraryV1Get$Params } from './fn/web-app-workouts/api-webapp-workouts-library-v-1-get';
+export { apiWebappWorkoutsLibraryV1Get as apiWebappWorkoutsLibraryV1Get } from './fn/web-app-workouts/api-webapp-workouts-library-v-1-get';
+export type { ApiWebappWorkoutsWorkoutIdDeletionPreviewV1Get$Params as ApiWebappWorkoutsWorkoutIdDeletionPreviewV1Get$Params } from './fn/web-app-workouts/api-webapp-workouts-workout-id-deletion-preview-v-1-get';
+export { apiWebappWorkoutsWorkoutIdDeletionPreviewV1Get as apiWebappWorkoutsWorkoutIdDeletionPreviewV1Get } from './fn/web-app-workouts/api-webapp-workouts-workout-id-deletion-preview-v-1-get';
+export type { ApiWebappWorkoutsWorkoutIdV1Delete$Params as ApiWebappWorkoutsWorkoutIdV1Delete$Params } from './fn/web-app-workouts/api-webapp-workouts-workout-id-v-1-delete';
+export { apiWebappWorkoutsWorkoutIdV1Delete as apiWebappWorkoutsWorkoutIdV1Delete } from './fn/web-app-workouts/api-webapp-workouts-workout-id-v-1-delete';

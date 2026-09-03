@@ -2,6 +2,7 @@ import { Component, computed, input, output } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 
 import { WorkoutResponse } from '../../../core/api/generated/models/workout-response';
+import { formatExerciseSummary } from '../../../core/workouts/exercise-summary';
 import { formatDurationFromIso } from '../../../core/workouts/format-duration';
 
 /**
@@ -48,20 +49,8 @@ export class LibraryWorkoutCard {
       .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)),
   );
 
-  protected exerciseSummary(exercise: {
-    reps?: string | null;
-    sets?: number | null;
-    targetWeight?: number | null;
-    duration?: string | null;
-  }): string {
-    const parts: string[] = [];
-    if (exercise.sets != null && exercise.reps) parts.push(`${exercise.sets}×${exercise.reps}`);
-    else if (exercise.reps) parts.push(exercise.reps);
-    else if (exercise.sets != null) parts.push(`${exercise.sets} sets`);
-    if (exercise.targetWeight != null) parts.push(`@${exercise.targetWeight}lb`);
-    if (exercise.duration) parts.push(exercise.duration);
-    return parts.join(' ');
-  }
+  /** Delegates to the shared formatter so cards and the detail drawer agree. */
+  protected exerciseSummary = formatExerciseSummary;
 
   protected onClick(): void {
     this.select.emit(this.workout());
@@ -73,5 +62,4 @@ export class LibraryWorkoutCard {
       this.onClick();
     }
   }
-
 }

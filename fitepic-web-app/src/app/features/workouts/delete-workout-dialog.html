@@ -1,0 +1,65 @@
+<h2 mat-dialog-title>{{ dialogTitle() }}</h2>
+
+<mat-dialog-content>
+  @if (loading()) {
+    <div class="preview-skeleton" aria-label="Checking what will be deleted">
+      <span class="skeleton skeleton-line skeleton-line-lead"></span>
+      <span class="skeleton skeleton-line"></span>
+      <span class="skeleton skeleton-line skeleton-line-short"></span>
+    </div>
+  } @else if (error()) {
+    <p class="dialog-error">{{ error() }}</p>
+  } @else {
+    <p class="dialog-lead">This permanently deletes the workout. It cannot be undone.</p>
+
+    @if (completedCount() > 0) {
+      <div class="callout callout-warn">
+        <mat-icon>history</mat-icon>
+        <span>
+          You'll lose <strong>{{ plural(completedCount(), 'completed workout') }}</strong>
+          from your history.
+        </span>
+      </div>
+    }
+
+    @if (otherAthleteCount() > 0) {
+      <div class="callout callout-warn">
+        <mat-icon>group</mat-icon>
+        <span>
+          <strong>{{ plural(otherAthleteCount(), 'instance') }}</strong>
+          will be removed from another athlete's calendar.
+        </span>
+      </div>
+    }
+
+    @if (isIsolated()) {
+      <p class="dialog-detail">Nothing else references this workout.</p>
+    } @else {
+      <p class="dialog-detail">Deleting it also removes:</p>
+      <ul class="cascade-list">
+        @for (line of cascadeLines(); track line.label) {
+          <li>{{ plural(line.count, line.label) }}</li>
+        }
+      </ul>
+    }
+
+    @if (dateRange(); as range) {
+      <p class="dialog-detail dialog-detail-muted">
+        Scheduled between {{ range.from | date: 'mediumDate' }} and
+        {{ range.to | date: 'mediumDate' }}.
+      </p>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  <button
+    mat-flat-button
+    color="warn"
+    [disabled]="loading() || error() !== null"
+    (click)="confirm()"
+  >
+    Delete workout
+  </button>
+</mat-dialog-actions>

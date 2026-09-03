@@ -1,0 +1,8 @@
+// Workout library detail drawer (athlete view of one workout *template*).
+// Visual chrome lives in the shared partial; this file is for drawer-specific
+// tweaks.
+@use '../../shared/workout-drawer/workout-drawer';
+
+:host {
+  display: contents;
+}

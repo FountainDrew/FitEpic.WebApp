@@ -5327,7 +5327,7 @@
           "Mobile - Workouts"
         ],
         "summary": "Retrieve all workouts for the authenticated athlete since a given timestamp (delta pull).",
-        "description": "Returns all workouts (including soft-deleted ones) with `UpdatedAt` strictly greater\r\nthan `since`. Omit `since` for a full bootstrap pull. Each workout includes its\r\nfull hydrated exercise list.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Returns all workouts (including soft-deleted ones) with `UpdatedAt` strictly greater\r\nthan `since`. Omit `since` for a full bootstrap pull. Each workout includes its\r\nfull hydrated exercise list.\r\n            \r\nVisibility includes (a) workouts the caller authored and (b) gym-scoped workout templates\r\nreferenced by any scheduled row visible to the caller — personal rows, group-scheduled\r\nrows in groups the caller is currently a member of (mid-flight rule applied), and group\r\nrows where the caller holds a non-deleted Completed result (history preservation). Once\r\na workout has flowed to the caller via this path, it is not tombstoned just because the\r\ntriggering scheduled row falls out of the caller's visible set; only an actual soft\r\ndelete of the workout itself flows as `isDeleted: true`.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "since",
@@ -5389,7 +5389,7 @@
           "Mobile - Workouts"
         ],
         "summary": "Retrieve all workouts for the authenticated athlete since a given timestamp (delta pull).",
-        "description": "Returns all workouts (including soft-deleted ones) with `UpdatedAt` strictly greater\r\nthan `since`. Omit `since` for a full bootstrap pull. Each workout includes its\r\nfull hydrated exercise list.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
+        "description": "Returns all workouts (including soft-deleted ones) with `UpdatedAt` strictly greater\r\nthan `since`. Omit `since` for a full bootstrap pull. Each workout includes its\r\nfull hydrated exercise list.\r\n            \r\nVisibility includes (a) workouts the caller authored and (b) gym-scoped workout templates\r\nreferenced by any scheduled row visible to the caller — personal rows, group-scheduled\r\nrows in groups the caller is currently a member of (mid-flight rule applied), and group\r\nrows where the caller holds a non-deleted Completed result (history preservation). Once\r\na workout has flowed to the caller via this path, it is not tombstoned just because the\r\ntriggering scheduled row falls out of the caller's visible set; only an actual soft\r\ndelete of the workout itself flows as `isDeleted: true`.\r\n            \r\nRequires a valid `Authorization: Bearer {token}` header.",
         "parameters": [
           {
             "name": "since",
@@ -7677,6 +7677,144 @@
           },
           "404": {
             "description": "Athlete profile record is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webapp/workouts/library/v1": {
+      "get": {
+        "tags": [
+          "WebApp - Workouts"
+        ],
+        "summary": "Get the caller's entire personal workout library.",
+        "description": "Returns every workout the caller authored that is not scoped to a gym, in a single\r\nround-trip. Requires a valid `Authorization: Bearer {token}` header.\r\n            \r\nRow selection:\r\n<list type=\"bullet\"><item><description>`athleteId` is the caller — another athlete's workouts never appear.</description></item><item><description>`gymId` is null — gym-owned templates belong to the gym's library even when the caller authored them, and are read through `GET /api/gyms/{gymId}/workouts`.</description></item><item><description>Soft-deleted rows are excluded. This is a live read surface with no local cache, so tombstones are meaningless here.</description></item><item><description>Archived rows are excluded. They exist to resolve historical scheduled-workout references, not to be browsed.</description></item></list>\r\n            \r\nRows are ordered by `updatedAt` descending (most recently touched first). Every row\r\ncarries its full non-deleted exercise list in `orderIndex` order, so a detail view can\r\nrender from this response without a second request. `isOwner` is always `true`.\r\n            \r\nThere are no query parameters — no `since`, no paging, no search. An empty library\r\nreturns `200` with `[]`, never `204`.\r\n            \r\nPossible `error.code` values:\r\n<list type=\"bullet\"><item><description>`UNAUTHENTICATED` (401)</description></item></list>",
+        "responses": {
+          "200": {
+            "description": "The caller's personal workout library, possibly empty.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkoutResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webapp/workouts/{workoutId}/deletion-preview/v1": {
+      "get": {
+        "tags": [
+          "WebApp - Workouts"
+        ],
+        "summary": "Summarize everything that deleting a personal workout would remove.",
+        "description": "Step one of the web app's two-step delete: the client calls this, shows the counts in a\r\nconfirmation dialog, and only then calls `DELETE /api/webapp/workouts/{workoutId}/v1`.\r\nRequires a valid `Authorization: Bearer {token}` header. This endpoint writes nothing.\r\n            \r\nDeleting a workout cascades: its exercises, every scheduled instance referencing it, those\r\ninstances' logged results, any per-athlete group result rows, and the reactions and comments\r\nattached to them are all soft-deleted together. The counts describe exactly that set, over\r\nnon-deleted rows only.\r\n            \r\nTwo counts deserve to be surfaced prominently in the confirmation copy:\r\n`completedInstanceCount` (history the athlete permanently loses — there is no\r\ncompleted-history gate on personal workouts, unlike gym-scoped ones) and\r\n`instancesOnOtherAthletesCalendars` (rows this delete removes from someone else's\r\ncalendar, which happens when a trainer programmed their own workout for a client).\r\n            \r\nThe result is **advisory**. There is no version token: the delete recomputes the cascade,\r\nso the numbers can shift if the athlete's mobile client syncs in between. The delete\r\nresponse carries the authoritative counts.\r\n            \r\nScope is personal workouts only. Gym-scoped workouts are deleted through the mobile sync\r\npath, which applies the completed-history gate, and are reported here as `404`.\r\n            \r\nPossible `error.code` values:\r\n<list type=\"bullet\"><item><description>`UNAUTHENTICATED` (401)</description></item><item><description>`NOT_FOUND` (404) — unknown id, already deleted, gym-scoped, or authored by another athlete. These are deliberately indistinguishable.</description></item></list>",
+        "parameters": [
+          {
+            "name": "workoutId",
+            "in": "path",
+            "description": "The personal workout to preview.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Summary of what a delete would remove.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutDeletionPreviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Workout not found, already deleted, gym-scoped, or not authored by the caller.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webapp/workouts/{workoutId}/v1": {
+      "delete": {
+        "tags": [
+          "WebApp - Workouts"
+        ],
+        "summary": "Delete a personal workout and everything that references it.",
+        "description": "Step two of the two-step delete. Requires a valid `Authorization: Bearer {token}` header.\r\n            \r\nSoft-deletes the workout, its exercises, every scheduled instance referencing it, those\r\ninstances' logged results, any per-athlete group result rows, and the attached reactions and\r\ncomments — all in a single transaction, all stamped with the same `updatedAt` so the\r\nathlete's mobile client picks the tombstones up on its next delta pull. Nothing is hard\r\ndeleted.\r\n            \r\nCalling `GET .../deletion-preview/v1` first is not required and is not verified; this\r\nendpoint re-authorizes and recomputes the cascade on its own. The returned counts are what\r\nwas actually written, and may differ from a preview taken earlier.\r\n            \r\n**Not reversible through the API.** There is no undelete endpoint and no archive for personal\r\nworkouts, so the client must confirm with the user before calling this.\r\n            \r\nIdempotency: a second call for the same workout returns `404`, since the row is already\r\ntombstoned. Scope is personal workouts only — gym-scoped workouts return `404` and are\r\ndeleted through the mobile sync path instead.\r\n            \r\nPossible `error.code` values:\r\n<list type=\"bullet\"><item><description>`UNAUTHENTICATED` (401)</description></item><item><description>`NOT_FOUND` (404) — unknown id, already deleted, gym-scoped, or authored by another athlete. These are deliberately indistinguishable.</description></item></list>",
+        "parameters": [
+          {
+            "name": "workoutId",
+            "in": "path",
+            "description": "The personal workout to delete.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workout deleted. Returns the counts actually soft-deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutDeletionResultResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token is missing, expired, or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Workout not found, already deleted, gym-scoped, or not authored by the caller.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10978,6 +11116,170 @@
         "additionalProperties": false,
         "description": "Represents a comment on a completed workout."
       },
+      "WorkoutDeletionCountsResponse": {
+        "type": "object",
+        "properties": {
+          "workoutExercises": {
+            "type": "integer",
+            "description": "Exercises on the workout.",
+            "format": "int32",
+            "example": 4
+          },
+          "scheduledWorkouts": {
+            "type": "integer",
+            "description": "Scheduled instances of the workout.",
+            "format": "int32",
+            "example": 6
+          },
+          "exerciseLogs": {
+            "type": "integer",
+            "description": "Logged exercise entries, across both scheduled rows and group results.",
+            "format": "int32",
+            "example": 37
+          },
+          "groupResults": {
+            "type": "integer",
+            "description": "Per-athlete group result rows.",
+            "format": "int32",
+            "example": 0
+          },
+          "reactions": {
+            "type": "integer",
+            "description": "Reactions on the affected rows.",
+            "format": "int32",
+            "example": 9
+          },
+          "comments": {
+            "type": "integer",
+            "description": "Comments on the affected rows.",
+            "format": "int32",
+            "example": 3
+          }
+        },
+        "additionalProperties": false,
+        "description": "Per-table row counts touched by a delete cascade. Each value counts rows that were live before\r\nthe cascade ran; rows already tombstoned are skipped and not counted."
+      },
+      "WorkoutDeletionPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "workoutId": {
+            "type": "string",
+            "description": "The workout being previewed.",
+            "nullable": true,
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "workoutName": {
+            "type": "string",
+            "description": "The workout's display name. Null when the workout was saved without one.",
+            "nullable": true,
+            "example": "Fran"
+          },
+          "workoutExerciseCount": {
+            "type": "integer",
+            "description": "Exercises on the workout itself that would be soft-deleted.",
+            "format": "int32",
+            "example": 4
+          },
+          "scheduledInstanceCount": {
+            "type": "integer",
+            "description": "Scheduled instances of this workout that would be soft-deleted.",
+            "format": "int32",
+            "example": 6
+          },
+          "completedInstanceCount": {
+            "type": "integer",
+            "description": "Completed scheduled instances. With `pendingInstanceCount` and\r\n`dismissedInstanceCount` this partitions `scheduledInstanceCount`. Group-targeted\r\nrows are classified by the caller's own per-athlete result when one exists, because the\r\nparent row's status is only a template default.",
+            "format": "int32",
+            "example": 4
+          },
+          "pendingInstanceCount": {
+            "type": "integer",
+            "description": "Pending scheduled instances.",
+            "format": "int32",
+            "example": 2
+          },
+          "dismissedInstanceCount": {
+            "type": "integer",
+            "description": "Dismissed scheduled instances.",
+            "format": "int32",
+            "example": 0
+          },
+          "instancesOnOtherAthletesCalendars": {
+            "type": "integer",
+            "description": "Instances sitting on another athlete's calendar — rows scheduled for someone else, plus every\r\ngroup-targeted row. Non-zero when the caller authored this workout and programmed it for a\r\nclient; deleting removes it from their calendar too. A subset of `scheduledInstanceCount`.",
+            "format": "int32",
+            "example": 1
+          },
+          "exerciseLogCount": {
+            "type": "integer",
+            "description": "Logged exercise entries across all affected instances and group results.",
+            "format": "int32",
+            "example": 37
+          },
+          "groupResultCount": {
+            "type": "integer",
+            "description": "Per-athlete group result rows under the affected instances. Zero unless the workout was group-scheduled.",
+            "format": "int32",
+            "example": 0
+          },
+          "reactionCount": {
+            "type": "integer",
+            "description": "Reactions on the affected instances and group results.",
+            "format": "int32",
+            "example": 9
+          },
+          "commentCount": {
+            "type": "integer",
+            "description": "Comments on the affected instances and group results.",
+            "format": "int32",
+            "example": 3
+          },
+          "earliestScheduledDate": {
+            "type": "string",
+            "description": "Earliest scheduled date among the affected instances. Null when there are none.",
+            "format": "date",
+            "nullable": true,
+            "example": "2026-03-02"
+          },
+          "latestScheduledDate": {
+            "type": "string",
+            "description": "Latest scheduled date among the affected instances. Null when there are none.",
+            "format": "date",
+            "nullable": true,
+            "example": "2026-09-14"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Summary of everything a personal-workout delete would remove, for the web app's confirmation\r\ndialog. Every count covers non-deleted rows only — rows already tombstoned are not re-reported.\r\n            \r\nAdvisory: the subsequent `DELETE` recomputes the cascade from scratch, so these numbers can\r\nbe stale if the athlete's mobile client syncs in between. The delete response is authoritative."
+      },
+      "WorkoutDeletionResultResponse": {
+        "type": "object",
+        "properties": {
+          "workoutId": {
+            "type": "string",
+            "description": "The workout that was soft-deleted.",
+            "nullable": true,
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "deletedAt": {
+            "type": "string",
+            "description": "Server timestamp written to `updatedAt` on every row the cascade touched.",
+            "format": "date-time",
+            "example": "2026-09-03T18:04:22.0000000+00:00"
+          },
+          "deleted": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutDeletionCountsResponse"
+              }
+            ],
+            "description": "Per-table counts of the rows soft-deleted, excluding the workout row itself.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Outcome of a personal-workout delete. Unlike the preview, these counts are authoritative — they\r\nare exactly what the cascade transaction wrote."
+      },
       "WorkoutExerciseLogRequest": {
         "required": [
           "exerciseName",
@@ -11814,6 +12116,9 @@
     },
     {
       "name": "WebApp - Schedule"
+    },
+    {
+      "name": "WebApp - Workouts"
     }
   ]
 }
