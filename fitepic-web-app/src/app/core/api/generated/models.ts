@@ -97,6 +97,9 @@ export type { WeeklyStatsDurationBreakdownResponse } from './models/weekly-stats
 export type { WeeklyStatsResponse } from './models/weekly-stats-response';
 export type { WeeklyStatsStreakResponse } from './models/weekly-stats-streak-response';
 export type { WorkoutCommentResponse } from './models/workout-comment-response';
+export type { WorkoutDeletionCountsResponse } from './models/workout-deletion-counts-response';
+export type { WorkoutDeletionPreviewResponse } from './models/workout-deletion-preview-response';
+export type { WorkoutDeletionResultResponse } from './models/workout-deletion-result-response';
 export type { WorkoutExerciseLogRequest } from './models/workout-exercise-log-request';
 export type { WorkoutExerciseLogResponse } from './models/workout-exercise-log-response';
 export type { WorkoutExerciseRequest } from './models/workout-exercise-request';

@@ -1,0 +1,110 @@
+@if (service.workout(); as w) {
+  <div class="drawer-backdrop" (click)="close()" aria-hidden="true"></div>
+  <aside
+    class="drawer"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="'workout-detail-title'"
+  >
+    <header class="drawer-header">
+      <div class="drawer-header-text">
+        <h2 id="workout-detail-title" class="drawer-title">
+          {{ w.name || 'Untitled workout' }}
+        </h2>
+        @if (metaLine()) {
+          <div class="drawer-subtitle">
+            <span class="drawer-meta">{{ metaLine() }}</span>
+          </div>
+        }
+      </div>
+      <button mat-icon-button (click)="close()" aria-label="Close">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <div class="drawer-body">
+      @if (isOwnPersonalWorkout()) {
+        <div class="drawer-actions">
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            class="drawer-action"
+            [disabled]="actionPending()"
+            (click)="editWorkout()"
+          >
+            <mat-icon>edit</mat-icon>
+            <span>Edit workout</span>
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            class="drawer-action drawer-action-warn"
+            [disabled]="actionPending()"
+            (click)="deleteWorkout()"
+          >
+            <mat-icon>delete</mat-icon>
+            <span>Delete workout</span>
+          </button>
+        </div>
+      }
+
+      @if (durationDisplay()) {
+        <section class="drawer-section">
+          <h3 class="section-title">Duration</h3>
+          <div class="duration-pill">
+            <mat-icon>schedule</mat-icon>
+            <span>{{ durationDisplay() }}</span>
+          </div>
+        </section>
+      }
+
+      @if (scoreTypeDisplay()) {
+        <section class="drawer-section">
+          <h3 class="section-title">Scored by</h3>
+          <div class="drawer-score">{{ scoreTypeDisplay() }}</div>
+        </section>
+      }
+
+      @if (hasInstructions()) {
+        <section class="drawer-section">
+          <h3 class="section-title">Instructions</h3>
+          <pre class="raw-text">{{ w.instructions }}</pre>
+        </section>
+      }
+
+      @if (hasRawText()) {
+        <section class="drawer-section">
+          <h3 class="section-title">Description</h3>
+          <pre class="raw-text">{{ w.rawText }}</pre>
+        </section>
+      }
+
+      @if (hasExercises()) {
+        <section class="drawer-section">
+          <h3 class="section-title">Exercises</h3>
+          <ul class="exercise-list">
+            @for (ex of visibleExercises(); track ex.id) {
+              <li class="exercise-item">
+                <div class="exercise-prescribed">
+                  <span class="exercise-name">{{ ex.userEnteredExerciseName }}</span>
+                  @if (exerciseSummary(ex); as summary) {
+                    @if (summary) {
+                      <span class="exercise-summary">{{ summary }}</span>
+                    }
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (!hasRawText() && !hasInstructions() && !hasExercises()) {
+        <section class="drawer-section">
+          <div class="placeholder">No additional workout info available.</div>
+        </section>
+      }
+    </div>
+  </aside>
+}

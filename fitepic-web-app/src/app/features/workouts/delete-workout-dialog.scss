@@ -1,0 +1,91 @@
+.dialog-lead {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--fe-text);
+}
+
+.dialog-detail {
+  margin: 16px 0 6px;
+  font-size: 14px;
+  color: var(--fe-text);
+}
+
+.dialog-detail-muted {
+  font-size: 13px;
+  opacity: 0.65;
+}
+
+.dialog-error {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fe-text);
+  opacity: 0.75;
+}
+
+.cascade-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--fe-text);
+  opacity: 0.85;
+}
+
+// The two consequences that can't be undone and can't be inferred from the
+// list: lost completed history, and rows disappearing off someone else's
+// calendar. Given the weight of a warn-colored panel so they aren't skimmed.
+.callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  margin-bottom: 10px;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+}
+
+.callout-warn {
+  background: color-mix(in srgb, #ff9500 14%, transparent);
+  color: var(--fe-text);
+  box-shadow: 0 0 0 1px color-mix(in srgb, #ff9500 30%, transparent);
+
+  mat-icon {
+    color: #d77b00;
+  }
+}
+
+:host-context(.fe-dark) .callout-warn mat-icon {
+  color: #ffb04d;
+}
+
+.preview-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.skeleton-line {
+  display: block;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.skeleton-line-lead {
+  height: 18px;
+  width: 85%;
+}
+
+.skeleton-line-short {
+  width: 55%;
+}

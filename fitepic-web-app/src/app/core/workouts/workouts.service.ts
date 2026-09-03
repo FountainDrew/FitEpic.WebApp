@@ -13,6 +13,9 @@ import { apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsGet 
 import { apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsPost } from '../api/generated/fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-scheduled-workout-id-results-post';
 import { apiGymsGymIdGroupsGroupIdScheduledWorkoutsScheduledWorkoutIdResultsTargetAthleteIdDelete } from '../api/generated/fn/training-groups/api-gyms-gym-id-groups-group-id-scheduled-workouts-scheduled-workout-id-results-target-athlete-id-delete';
 import { apiGymsGymIdAthletesAthleteIdScheduledWorkoutsGet } from '../api/generated/fn/gyms/api-gyms-gym-id-athletes-athlete-id-scheduled-workouts-get';
+import { apiWebappWorkoutsLibraryV1Get } from '../api/generated/fn/web-app-workouts/api-webapp-workouts-library-v-1-get';
+import { apiWebappWorkoutsWorkoutIdDeletionPreviewV1Get } from '../api/generated/fn/web-app-workouts/api-webapp-workouts-workout-id-deletion-preview-v-1-get';
+import { apiWebappWorkoutsWorkoutIdV1Delete } from '../api/generated/fn/web-app-workouts/api-webapp-workouts-workout-id-v-1-delete';
 import { GroupResultOnBehalfRequest } from '../api/generated/models/group-result-on-behalf-request';
 import { GroupResultOnBehalfResponse } from '../api/generated/models/group-result-on-behalf-response';
 import { ParseWorkoutResponse } from '../api/generated/models/parse-workout-response';
@@ -21,6 +24,8 @@ import { ScheduledWorkoutResponse } from '../api/generated/models/scheduled-work
 import { ScheduledWorkoutResultsResponse } from '../api/generated/models/scheduled-workout-results-response';
 import { SyncItemResult } from '../api/generated/models/sync-item-result';
 import { WorkoutRequest } from '../api/generated/models/workout-request';
+import { WorkoutDeletionPreviewResponse } from '../api/generated/models/workout-deletion-preview-response';
+import { WorkoutDeletionResultResponse } from '../api/generated/models/workout-deletion-result-response';
 import { WorkoutResponse } from '../api/generated/models/workout-response';
 
 /**
@@ -98,6 +103,72 @@ export class WorkoutsService {
         this.personalWorkoutsInFlight = null;
       });
     return this.personalWorkoutsInFlight;
+  }
+
+  /**
+   * The athlete's personal workout library, for the `/workouts/library` page.
+   *
+   * Backed by `GET /api/webapp/workouts/library/v1`, which applies the
+   * personal / non-gym / non-archived / non-deleted filtering and the
+   * `updatedAt` sort server-side and hydrates each row's non-deleted
+   * exercises — so this is one request with no post-processing.
+   *
+   * Deliberately separate from {@link listPersonalWorkouts}, which produces
+   * the same result by paging the mobile delta endpoint and filtering on the
+   * client. That one still backs the dashboard scheduling slideout, and
+   * {@link getWorkout} is still mobile-backed too; folding them into this
+   * endpoint is tracked as a follow-up in
+   * `readmes/workout-library-api-requirements.md` §6.
+   *
+   * Unlike `listPersonalWorkouts` this is uncached — the page is a navigation
+   * target that the athlete often reaches straight after saving or deleting,
+   * and it is a single cheap request.
+   */
+  async listWorkoutLibrary(): Promise<WorkoutResponse[]> {
+    const res = await firstValueFrom(
+      apiWebappWorkoutsLibraryV1Get(this.http, this.config.rootUrl),
+    );
+    return res.body ?? [];
+  }
+
+  /**
+   * Summarizes everything a personal-workout delete would cascade to —
+   * exercises, scheduled instances, logs, group results, reactions, comments.
+   * Writes nothing. Used to populate the delete confirmation dialog.
+   *
+   * The counts are **advisory**: the delete recomputes the cascade, so they
+   * can shift if the athlete's mobile client syncs in between. Throws with
+   * `NOT_FOUND` when the workout is unknown, already deleted, gym-scoped, or
+   * authored by someone else — those cases are indistinguishable by design.
+   */
+  async previewWorkoutDeletion(workoutId: string): Promise<WorkoutDeletionPreviewResponse> {
+    const res = await firstValueFrom(
+      apiWebappWorkoutsWorkoutIdDeletionPreviewV1Get(this.http, this.config.rootUrl, {
+        workoutId,
+      }),
+    );
+    return res.body;
+  }
+
+  /**
+   * Soft-deletes a personal workout and its whole cascade in one transaction,
+   * returning the counts actually written (authoritative, unlike the
+   * preview's).
+   *
+   * **Not reversible** — there is no undelete endpoint, so callers must
+   * confirm with the user first. A second call for the same workout returns
+   * `NOT_FOUND`. Gym-scoped workouts are rejected with `NOT_FOUND`; those go
+   * through the mobile sync path, which applies the completed-history gate.
+   *
+   * Invalidates the {@link listPersonalWorkouts} cache so the deleted workout
+   * stops appearing in the dashboard's scheduling slideout.
+   */
+  async deleteWorkout(workoutId: string): Promise<WorkoutDeletionResultResponse> {
+    const res = await firstValueFrom(
+      apiWebappWorkoutsWorkoutIdV1Delete(this.http, this.config.rootUrl, { workoutId }),
+    );
+    this.cachedPersonalWorkouts = null;
+    return res.body;
   }
 
   private async fetchPersonalWorkouts(): Promise<WorkoutResponse[]> {

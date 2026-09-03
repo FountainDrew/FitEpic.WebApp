@@ -115,6 +115,12 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'workouts/library',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/workouts/workout-library-page').then((m) => m.WorkoutLibraryPage),
+      },
+      {
         path: 'workouts/new',
         pathMatch: 'full',
         loadComponent: () =>
